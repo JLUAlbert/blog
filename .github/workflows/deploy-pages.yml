@@ -1,0 +1,53 @@
+name: Deploy Astro to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install font subsetting tools
+        run: python -m pip install --user fonttools brotli
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # site 与 base 在 Actions 环境里会自动推导为
+      # https://<owner>.github.io/<repo> 与 /<repo>
+      - name: Build site
+        run: bun run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

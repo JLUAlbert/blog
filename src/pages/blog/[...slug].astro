@@ -1,0 +1,21 @@
+---
+import { type CollectionEntry, getCollection, render } from 'astro:content';
+import BlogArticle from '../../layouts/BlogArticle.astro';
+import ZoomableImage from '@navfolio/mdx-components/ZoomableImage.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: post,
+  }));
+}
+type Props = CollectionEntry<'blog'>;
+
+const post = Astro.props;
+const { Content, headings } = await render(post);
+---
+
+<BlogArticle post={post} headings={headings}>
+  <Content components={{ img: ZoomableImage }} />
+</BlogArticle>

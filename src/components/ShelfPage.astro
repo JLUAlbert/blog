@@ -1,0 +1,115 @@
+---
+import MediaShelf, { type MediaShelfItem } from '@navfolio/mdx-components/MediaShelf.astro';
+import BaseHead from './BaseHead.astro';
+import Footer from './Footer.astro';
+import BlogTopNav from './blog/BlogTopNav.astro';
+import { getSiteConfig } from '../data/site';
+import { getHtmlLang } from '../utils/ui-text';
+
+interface Props {
+  pageMeta: { title: string; subtitle: string; note: string };
+  kicker: string;
+  items: MediaShelfItem[];
+  empty: string;
+}
+
+const { pageMeta, kicker, items, empty } = Astro.props;
+const siteConfig = await getSiteConfig();
+const { site, theme } = siteConfig;
+const palette = theme.palette;
+const htmlLang = getHtmlLang(siteConfig);
+---
+
+<!doctype html>
+<html lang={htmlLang} data-palette={palette}>
+  <head>
+    <BaseHead title={`${pageMeta.title} | ${site.title}`} description={pageMeta.subtitle} />
+    <style>
+      main {
+        width: min(100%, 860px);
+        padding-top: 126px;
+        padding-bottom: 80px;
+      }
+      .shelf-hero {
+        margin-bottom: clamp(38px, 6vw, 64px);
+      }
+      .shelf-kicker {
+        margin: 0 0 12px;
+        color: var(--paper-ink-faint);
+        font-family: var(--font-meta);
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .shelf-title {
+        margin: 0;
+        color: var(--paper-ink);
+        font-size: clamp(2.1rem, 6vw, 3.6rem);
+        font-weight: 400;
+        line-height: 1;
+      }
+      .shelf-subtitle {
+        max-width: 34ch;
+        margin: 18px 0 0;
+        color: var(--paper-ink-soft);
+        font-family: var(--font-ui-label);
+        font-size: clamp(0.96rem, 1.6vw, 1.1rem);
+        line-height: 1.7;
+      }
+      .shelf-note,
+      .shelf-count,
+      .shelf-empty {
+        color: var(--paper-ink-faint);
+        font-family: var(--font-meta);
+      }
+      .shelf-note {
+        max-width: 48ch;
+        margin: 12px 0 0;
+        font-size: 0.7rem;
+        line-height: 1.75;
+      }
+      .shelf-heading {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        margin-bottom: 4px;
+        padding-top: 24px;
+        border-top: 1px solid var(--paper-line);
+      }
+      .shelf-count {
+        font-size: 0.7rem;
+      }
+      .shelf-empty {
+        margin: 24px 0 0;
+        font-size: 0.76rem;
+      }
+      @media (max-width: 760px) {
+        main {
+          padding-top: 98px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <BlogTopNav />
+    <main>
+      <header class="shelf-hero">
+        <p class="shelf-kicker">{kicker}</p>
+        <h1 class="shelf-title">{pageMeta.title}</h1>
+        <p class="shelf-subtitle">{pageMeta.subtitle}</p>
+        <p class="shelf-note">{pageMeta.note}</p>
+      </header>
+      <div class="shelf-heading">
+        <span class="shelf-count">{items.length} 部</span>
+      </div>
+      {
+        items.length ? (
+          <MediaShelf columns={4} items={items} />
+        ) : (
+          <p class="shelf-empty">{empty}</p>
+        )
+      }
+    </main>
+    <Footer />
+  </body>
+</html>

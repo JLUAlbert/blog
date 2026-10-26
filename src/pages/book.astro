@@ -1,0 +1,29 @@
+---
+import { getCollection } from 'astro:content';
+import ShelfPage from '../components/ShelfPage.astro';
+import { getSiteConfig } from '../data/site';
+
+const siteConfig = await getSiteConfig();
+const pageMeta = siteConfig.pages.book;
+
+const entries = (await getCollection('book', ({ data }) => !data.draft)).sort(
+  (a, b) => (b.data.completedAt?.valueOf() ?? 0) - (a.data.completedAt?.valueOf() ?? 0)
+);
+
+const items = entries.map((entry) => ({
+  title: entry.data.title,
+  creator: entry.data.author,
+  type: 'book' as const,
+  cover: entry.data.cover,
+  coverAspect: entry.data.coverAspect,
+  rating: entry.data.rating,
+  href: entry.data.externalUrl,
+}));
+---
+
+<ShelfPage
+  pageMeta={pageMeta}
+  kicker="Reading shelf"
+  items={items}
+  empty="书架还空着。把读过的书写成 src/content/book/ 下的一个 md，就会出现在这里。"
+/>

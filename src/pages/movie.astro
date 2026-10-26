@@ -1,0 +1,29 @@
+---
+import { getCollection } from 'astro:content';
+import ShelfPage from '../components/ShelfPage.astro';
+import { getSiteConfig } from '../data/site';
+
+const siteConfig = await getSiteConfig();
+const pageMeta = siteConfig.pages.movie;
+
+const entries = (await getCollection('movie', ({ data }) => !data.draft)).sort(
+  (a, b) => (b.data.completedAt?.valueOf() ?? 0) - (a.data.completedAt?.valueOf() ?? 0)
+);
+
+const items = entries.map((entry) => ({
+  title: entry.data.title,
+  creator: entry.data.creator,
+  type: entry.data.type,
+  cover: entry.data.cover,
+  coverAspect: entry.data.coverAspect,
+  rating: entry.data.rating,
+  href: entry.data.externalUrl,
+}));
+---
+
+<ShelfPage
+  pageMeta={pageMeta}
+  kicker="Watch shelf"
+  items={items}
+  empty="片单还空着。运行 bun run media:sync 从 Trakt 拉取观看记录。"
+/>

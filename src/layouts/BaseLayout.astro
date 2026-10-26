@@ -1,0 +1,33 @@
+---
+import ThemeBaseLayout from '@navfolio/theme-default/components/BaseLayout.astro';
+import BaseHead from '../components/BaseHead.astro';
+import BlogTopNav from '../components/blog/BlogTopNav.astro';
+import FullFontWarmup from '../components/FullFontWarmup.astro';
+import ScrollToTopButton from '../components/ScrollToTopButton.astro';
+import { getSiteConfig } from '../data/site';
+import { getHtmlLang } from '../utils/ui-text';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const siteConfig = await getSiteConfig();
+const palette = siteConfig.theme.palette;
+const htmlLang = getHtmlLang(siteConfig);
+---
+
+<ThemeBaseLayout htmlLang={htmlLang} palette={palette}>
+  <Fragment slot="head">
+    <BaseHead title={title} description={description} />
+  </Fragment>
+  <Fragment slot="navigation">
+    <BlogTopNav />
+  </Fragment>
+  <slot />
+  <Fragment slot="after-content">
+    <ScrollToTopButton />
+    <FullFontWarmup />
+  </Fragment>
+</ThemeBaseLayout>
