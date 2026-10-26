@@ -62,12 +62,12 @@ const CLIENT_ID = () => process.env.TRAKT_CLIENT_ID?.trim();
 const CLIENT_SECRET = () => process.env.TRAKT_CLIENT_SECRET?.trim();
 
 function requireCreds() {
-  if (!CLIENT_ID() || !CLIENT_SECRET()) {
+  if (!CLIENT_ID()) {
     console.error(
       '\n缺少 TRAKT_CLIENT_ID / TRAKT_CLIENT_SECRET。\n' +
         '到 https://trakt.tv/oauth/applications 新建一个应用（Redirect URI 填 urn:ietf:wg:oauth:2.0:oob），\n' +
         '然后把两个值写进仓库根目录的 .env：\n\n' +
-        '  TRAKT_CLIENT_ID=xxxx\n  TRAKT_CLIENT_SECRET=xxxx\n'
+        '  TRAKT_CLIENT_ID=xxxx\n  TRAKT_CLIENT_SECRET=xxxx   # PKCE 应用可留空\n'
     );
     process.exit(1);
   }
@@ -155,7 +155,7 @@ async function deviceAuth() {
       body: JSON.stringify({
         code: code.device_code,
         client_id: CLIENT_ID(),
-        client_secret: CLIENT_SECRET(),
+        ...(CLIENT_SECRET() ? { client_secret: CLIENT_SECRET() } : {}),
       }),
     });
     if (res.status === 200) {
@@ -194,7 +194,7 @@ async function getToken({ refreshIfNeeded = true } = {}) {
     body: JSON.stringify({
       refresh_token: token.refresh_token,
       client_id: CLIENT_ID(),
-      client_secret: CLIENT_SECRET(),
+      ...(CLIENT_SECRET() ? { client_secret: CLIENT_SECRET() } : {}),
       redirect_uri: REDIRECT_URI,
       grant_type: 'refresh_token',
     }),

@@ -15,12 +15,11 @@ pageTitle = "Albert's Blog | Space of Freedom"
 pageDescription = "Think independently. Write honestly. Learn endlessly. Live freely."
 
 # 站点正式 URL。用于生成 RSS、sitemap、canonical 链接。🚨 必改：部署后填你自己的真实域名；现在没域名先保持原样，但上线前一定要换
-# 🚨 TODO：上线时改成真实域名（GitHub Pages 会自动覆盖这个值）
-url = "https://blog.example.com"
+# GitHub Pages 部署时会自动覆盖 site/base，这里保持默认即可
+url = "https://jlualbert.github.io/blog"
 
 # 站点公开仓库地址（页脚会链到这个地址）。🚨 必改：改成你自己的仓库，如 https://github.com/Albert/xxx；不想公开可删掉本行
-# 🚨 TODO：改成 https://github.com/<你的用户名>/blog
-repository = "https://github.com/your-name/blog"
+repository = "https://github.com/JLUAlbert/blog"
 
 # 页脚文案。
 footerNote = "© 2026 Albert. Built with Astro."
@@ -295,8 +294,7 @@ email = "dongmuhanchen@qq.com"
 website = "https://blog.example.com"
 
 # GitHub 主页。🚨 必改：改成你的 GitHub 用户名地址
-# 🚨 TODO：改成你的 GitHub 主页
-github = "https://github.com/your-name"
+github = "https://github.com/JLUAlbert"
 
 # 头像路径。✅ 保留路径，把自己头像文件放进 public/images/ 并改文件名即可
 avatar = "/images/logo-thin.webp"
@@ -426,11 +424,11 @@ href = "/blog"
 # tooltip 留空会隐藏该链接，不想显示的直接把 tooltip 改成 ""
 # ============================================================
 
-# GitHub。🚨 TODO：等 GitHub 用户名确定后填 https://github.com/<用户名>
+# GitHub。
 [[config.home.links]]
 label = "GitHub"
 icon = "github"
-tooltip = ""
+tooltip = "https://github.com/JLUAlbert"
 copy = false
 
 
