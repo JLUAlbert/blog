@@ -25,6 +25,8 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const TOKEN_FILE = path.join(ROOT, '.trakt-token.json');
 const CACHE_FILE = path.join(ROOT, 'scripts/.trakt-cache.json');
 const API = 'https://api.trakt.tv';
+// Trakt image paths come back without a scheme ("media.trakt.tv/...")
+const abs = (u) => (u ? (u.startsWith('http') ? u : `https://${u}`) : '');
 const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
 
 const args = new Map();
@@ -83,6 +85,8 @@ async function api(endpoint, { method = 'GET', body, token, raw = false } = {}) 
     'Content-Type': 'application/json',
     'trakt-api-version': '2',
     'trakt-api-key': CLIENT_ID(),
+    // Trakt sits behind Cloudflare; requests without a UA get 403'd
+    'User-Agent': 'navfolio-trakt-sync/1.0',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -114,12 +118,13 @@ async function api(endpoint, { method = 'GET', body, token, raw = false } = {}) 
   throw new Error(`giving up on ${endpoint}`);
 }
 
-async function* paginate(endpoint) {
+async function* paginate(endpoint, opts = {}) {
   let page = 1;
   let total = 1;
   do {
     const { data, res } = await api(`${endpoint}${endpoint.includes('?') ? '&' : '?'}page=${page}&limit=100`, {
       raw: true,
+      ...opts,
     });
     total = Number(res.headers.get('x-pagination-page-count') || 1);
     yield data;
@@ -235,13 +240,19 @@ async function details(kind, id, token) {
   let creator = '';
   try {
     const people = await api(`${base}/${id}/people`, { token });
-    const crew = people?.crew || [];
-    const hit =
-      crew.find((c) => /^creator$/i.test(c.job || '')) ||
-      crew.find((c) => /director/i.test(c.job || '')) ||
-      crew.find((c) => /^writer$/i.test(c.job || '')) ||
-      crew[0];
-    creator = hit?.person?.name || '';
+    // crew is an object keyed by department ({ directing: [...], writing: [...] });
+    // within a department, match by exact job ("Director" outranks second-unit etc.)
+    const byJob = (dept, job) =>
+      (people?.crew?.[dept] || []).find((c) => (c.job || '').toLowerCase() === job)?.person?.name;
+    const first = (dept) => (people?.crew?.[dept] || [])[0]?.person?.name;
+    creator =
+      byJob('directing', 'director') ||
+      byJob('production', 'creator') ||
+      byJob('writing', 'writer') ||
+      byJob('writing', 'story') ||
+      first('directing') ||
+      first('writing') ||
+      '';
   } catch {
     creator = '';
   }
@@ -254,8 +265,8 @@ async function details(kind, id, token) {
     network: full?.network || '',
     aired: full?.aired_episodes || 0,
     status: full?.status || '',
-    poster: full?.images?.poster?.[0] || '',
-    fanart: full?.images?.fanart?.[0] || '',
+    poster: abs(full?.images?.poster?.[0]),
+    fanart: abs(full?.images?.fanart?.[0]),
     creator,
   };
 
@@ -446,7 +457,7 @@ async function collectLive(token, user) {
 
   if (only !== 'shows') {
     console.log('  拉取电影历史 …');
-    for await (const page of paginate(p('/history/movies'))) addMovies(page);
+    for await (const page of paginate(p('/history/movies'), { token })) addMovies(page);
     console.log('  拉取电影评分 …');
     for (const row of await api(p('/ratings/movies'), { token })) {
       if (row?.movie?.ids?.trakt) ratings.movies.set(row.movie.ids.trakt, row.rating);
@@ -454,7 +465,7 @@ async function collectLive(token, user) {
   }
   if (only !== 'movies') {
     console.log('  拉取剧集历史 …');
-    for await (const page of paginate(p('/history/episodes'))) addEpisodes(page);
+    for await (const page of paginate(p('/history/episodes'), { token })) addEpisodes(page);
     console.log('  拉取剧集评分 …');
     for (const row of await api(p('/ratings/shows'), { token })) {
       if (row?.show?.ids?.trakt) ratings.shows.set(row.show.ids.trakt, row.rating);
