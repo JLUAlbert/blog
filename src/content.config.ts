@@ -219,11 +219,6 @@ const defaultPagesConfig = {
     note: 'Not formal enough for blog posts, but still part of the story.',
     showTrail: true,
   },
-  book: {
-    title: 'Books',
-    subtitle: '读过的书，以及当时留下的评分。',
-    note: '按读完时间排列的书架。',
-  },
   movie: {
     title: 'Movies',
     subtitle: '看过的电影与剧集。',
@@ -413,7 +408,6 @@ const siteConfig = defineCollection({
         blog: blogPageSchema.optional().default(defaultPagesConfig.blog),
         projects: projectsPageSchema.optional().default(defaultPagesConfig.projects),
         vibe: vibePageSchema.optional().default(defaultPagesConfig.vibe),
-        book: shelfPageSchema(defaultPagesConfig.book).optional().default(defaultPagesConfig.book),
         movie: shelfPageSchema(defaultPagesConfig.movie).optional().default(defaultPagesConfig.movie),
       })
       .optional()
@@ -550,21 +544,6 @@ const shelfEntryBase = {
   externalUrl: z.url().optional(),
 };
 
-const book = defineCollection({
-  loader: glob({ base: `${contentBase}/book`, pattern: '**/*.{md,mdx}' }),
-  schema: ({ image }) =>
-    z.object({
-      title: z.string(),
-      author: z.string(),
-      translator: z.string().optional(),
-      publisher: z.string().optional(),
-      year: z.number().int().optional(),
-      pages: z.number().int().optional(),
-      ...shelfEntryBase,
-      cover: contentImageSchema({ image }).optional(),
-    }),
-});
-
 const movie = defineCollection({
   loader: glob({ base: `${contentBase}/movie`, pattern: '**/*.{md,mdx}' }),
   schema: ({ image }) =>
@@ -585,6 +564,5 @@ export const collections = {
   siteConfig,
   ...(projectsModuleEnabled ? { projects } : {}),
   ...(vibeModuleEnabled ? { vibe } : {}),
-  book,
   movie,
 };

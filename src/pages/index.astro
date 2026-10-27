@@ -5,7 +5,7 @@ import NavigationCard from '../components/cards/NavigationCard.astro';
 import ProfileCard from '../components/cards/ProfileCard.astro';
 import DashboardFlow from '../components/layout/DashboardFlow.astro';
 import BlogHeatmap from '../components/widgets/BlogHeatmap.astro';
-import RandomPicks from '../components/widgets/RandomPicks.astro';
+import RecentPosts from '../components/widgets/RecentPosts.astro';
 import { getSiteConfig } from '../data/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
@@ -23,6 +23,10 @@ const { home, profile, site } = await getSiteConfig();
       <IntroCard intro={home.intro} quote={home.quote} />
     </Fragment>
 
+    <Fragment slot="doing">
+      <RecentPosts count={home.latest.count} excludeDraft={home.latest.excludeDraft} />
+    </Fragment>
+
     <Fragment slot="latest">
       <BlogHeatmap
         weeks={home.latest.heatmapWeeks}
@@ -32,7 +36,6 @@ const { home, profile, site } = await getSiteConfig();
         startDate={home.latest.startDate || null}
         dateArchiveBaseHref={home.latest.dateArchiveBaseHref || undefined}
       />
-      <RandomPicks />
     </Fragment>
 
     <Fragment slot="navigation">

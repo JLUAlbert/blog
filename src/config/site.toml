@@ -205,14 +205,6 @@ note = "Short thoughts — not formal enough for posts, but still part of the st
 showTrail = true
 
 # ============================================================
-# [config.pages.book] —— 书架
-# ============================================================
-[config.pages.book]
-title = "Books"
-subtitle = "Books I have read, with the ratings they left behind."
-note = "Sorted by completion date."
-
-# ============================================================
 # [config.pages.movie] —— 片单
 # ============================================================
 [config.pages.movie]
@@ -324,11 +316,6 @@ module = "projects"
 label = "Vibe"
 module = "vibe"
 
-# 书架入口。
-[[config.topNav.links]]
-label = "Books"
-href = "/book"
-
 # 片单入口。
 [[config.topNav.links]]
 label = "Movies"
@@ -387,13 +374,6 @@ dateArchiveBaseHref = ""
 # ============================================================
 # [[config.home.navigation]] —— 首页导航卡片（4 个快捷入口）
 # ============================================================
-
-# 书架卡片。
-[[config.home.navigation]]
-icon = "compass"
-title = "Books"
-subtitle = "Books I have read, and the ratings they left behind"
-href = "/book"
 
 # 博客卡片。✅ 保留（href=/blog 指站内）
 [[config.home.navigation]]

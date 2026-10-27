@@ -1,0 +1,113 @@
+---
+import { getCollection } from 'astro:content';
+import Icon from '../Icon.astro';
+import { getSiteConfig } from '../../data/site';
+import { createRecentBlogHeatmap } from '../../utils/blog-heatmap';
+import { getUiText } from '../../utils/ui-text';
+
+interface Props {
+  count?: number;
+  excludeDraft?: boolean;
+}
+
+const { count = 6, excludeDraft = true } = Astro.props;
+const posts = await getCollection('blog', ({ data }) => !excludeDraft || !data.draft);
+const { latestPosts } = createRecentBlogHeatmap(posts, 4, count);
+const ui = getUiText(await getSiteConfig());
+const formatDate = new Intl.DateTimeFormat(ui.locale, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+---
+
+{
+  latestPosts.length > 0 && (
+    <section class="glass-card recent-card" aria-label={ui.heatmap.latestPublishedPosts}>
+      <strong class="recent-label">{ui.heatmap.latest}</strong>
+      <div class="latest-list">
+        {latestPosts.map((post) => (
+          <a class="latest-link" href={post.href} aria-label={ui.heatmap.openLatestPost(post.title)}>
+            <em>{post.title}</em>
+            <time datetime={post.date.toISOString()}>{formatDate.format(post.date)}</time>
+            <span class="latest-icon" aria-hidden="true">
+              <Icon name="external" size={15} />
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .recent-card {
+    display: grid;
+    gap: 10px;
+    padding: 16px 18px;
+    max-width: 560px;
+  }
+
+  .recent-label {
+    color: var(--paper-accent);
+    font-size: 0.72rem;
+    line-height: 1.15;
+  }
+
+  .latest-list {
+    display: grid;
+    gap: 4px;
+  }
+
+  .latest-link {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content 24px;
+    align-items: center;
+    min-width: 0;
+    gap: 10px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .latest-link em {
+    overflow: hidden;
+    color: var(--paper-ink);
+    font-size: 0.82rem;
+    font-style: normal;
+    font-weight: 650;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .latest-link time {
+    color: var(--paper-ink-soft);
+    font-size: 0.68rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .latest-icon {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    color: var(--paper-accent);
+    transition:
+      background 180ms ease,
+      transform 180ms ease;
+  }
+
+  .latest-link:hover .latest-icon,
+  .latest-link:focus-visible .latest-icon {
+    background: var(--paper-control-hover);
+    transform: translateY(-1px);
+  }
+
+  .latest-link:focus-visible {
+    border-radius: 7px;
+    outline: 2px solid color-mix(in srgb, var(--paper-accent) 28%, transparent);
+    outline-offset: 3px;
+  }
+</style>
