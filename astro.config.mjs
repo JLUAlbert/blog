@@ -98,6 +98,10 @@ const paletteIntegration = {
         'head-inline',
         `(() => {
   const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const paletteParam = params.get('palette');
+  const themeParam = params.get('theme');
+  if (themeParam === 'dark' || themeParam === 'light') root.dataset.theme = themeParam;
   const css = ${JSON.stringify(paletteCss)};
   if (css && !document.getElementById('palette-backgrounds')) {
     const style = document.createElement('style');
@@ -120,7 +124,8 @@ const paletteIntegration = {
   const apply = (palette) => {
     if (palettes.includes(palette)) root.dataset.palette = palette;
   };
-  apply(stored() || root.dataset.palette);
+  const preferred = () => paletteParam || stored() || root.dataset.palette;
+  apply(preferred());
   const syncButtons = () => {
     const current = root.dataset.palette;
     for (const button of document.querySelectorAll('[data-palette-toggle]')) {
@@ -130,7 +135,7 @@ const paletteIntegration = {
     }
   };
   const init = () => {
-    apply(stored() || root.dataset.palette);
+    apply(preferred());
     syncButtons();
   };
   if (document.readyState === 'loading') {

@@ -2,32 +2,34 @@
  * Palette-aware backgrounds.
  * 让 8 套色盘不仅改变点缀色，还接管全页面背景/卡片/导航底色。
  * 浅色模式基于各盘的 --paper-fog，深色模式基于 --paper-accent-soft，
- * 用 color-mix 调出同色系的背景层，文字对比度不受影响。
+ * 再叠一层 --paper-accent 提亮色相，保证切换时差异一目了然。
  */
 
 /* ---------- 浅色模式 ---------- */
 :root[data-palette] {
-  --paper-bg: color-mix(in srgb, var(--paper-fog) 58%, #fdfdf9);
-  --paper-bg-deep: color-mix(in srgb, var(--paper-fog) 82%, #f6f8f3);
-  --paper-surface: color-mix(in srgb, var(--paper-fog) 20%, #fffffc);
-  --paper-surface-muted: color-mix(in srgb, var(--paper-fog) 40%, #fbfcf8);
+  --palette-tint: color-mix(in srgb, var(--paper-fog) 74%, #fdfdf9);
+  --paper-bg: color-mix(in srgb, var(--paper-accent) 5%, var(--palette-tint));
+  --paper-bg-deep: color-mix(in srgb, var(--paper-fog) 92%, #f0f2ee);
+  --paper-surface: color-mix(in srgb, var(--paper-fog) 30%, #fffffc);
+  --paper-surface-muted: color-mix(in srgb, var(--paper-fog) 52%, #fbfcf8);
   --paper-nav: color-mix(in srgb, var(--paper-surface) 90%, transparent);
   --paper-control: color-mix(in srgb, var(--paper-surface) 74%, transparent);
   --paper-control-hover: color-mix(in srgb, var(--paper-surface-muted) 88%, transparent);
   --paper-card-wash-top: color-mix(in srgb, var(--paper-surface) 78%, transparent);
   --paper-card-wash-bottom: color-mix(in srgb, var(--paper-surface-muted) 52%, transparent);
-  --paper-page-bg: color-mix(in srgb, var(--paper-fog) 58%, #fdfdf9);
-  --paper-detail-bg: color-mix(in srgb, var(--paper-fog) 58%, #fdfdf9);
-  --paper-theme-color: color-mix(in srgb, var(--paper-fog) 58%, #fdfdf9);
-  --gray-gradient: color-mix(in srgb, var(--paper-fog) 40%, transparent), var(--paper-bg);
+  --paper-page-bg: var(--paper-bg);
+  --paper-detail-bg: var(--paper-bg);
+  --paper-theme-color: var(--paper-bg);
+  --gray-gradient: color-mix(in srgb, var(--paper-fog) 48%, transparent), var(--paper-bg);
 }
 
 /* ---------- 深色模式 ---------- */
 :root[data-theme='dark'][data-palette] {
-  --paper-bg: color-mix(in srgb, var(--paper-accent-soft) 58%, #0f120f);
-  --paper-bg-deep: color-mix(in srgb, var(--paper-accent-soft) 42%, #0b0e0b);
-  --paper-surface: color-mix(in srgb, var(--paper-accent-soft) 76%, #101310);
-  --paper-surface-muted: color-mix(in srgb, var(--paper-accent-soft) 88%, #121512);
+  --palette-tint: color-mix(in srgb, var(--paper-accent-soft) 72%, #0f120f);
+  --paper-bg: color-mix(in srgb, var(--paper-accent) 8%, var(--palette-tint));
+  --paper-bg-deep: color-mix(in srgb, var(--paper-accent-soft) 48%, #0b0e0b);
+  --paper-surface: color-mix(in srgb, var(--paper-accent-soft) 82%, #101310);
+  --paper-surface-muted: color-mix(in srgb, var(--paper-accent-soft) 92%, #121512);
   --paper-nav: color-mix(in srgb, var(--paper-surface) 90%, transparent);
   --paper-control: color-mix(in srgb, var(--paper-accent-soft) 48%, transparent);
   --paper-control-hover: color-mix(in srgb, var(--paper-accent-soft) 62%, transparent);
@@ -35,13 +37,13 @@
   --paper-card-wash-bottom: color-mix(in srgb, var(--paper-bg) 52%, transparent);
   --paper-page-bg: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--paper-accent-soft) 56%, #0f120f) 0%,
-    color-mix(in srgb, var(--paper-accent-soft) 40%, #0b0e0b) 100%
+    color-mix(in srgb, var(--paper-accent) 7%, var(--palette-tint)) 0%,
+    color-mix(in srgb, var(--paper-accent-soft) 46%, #0b0e0b) 100%
   );
   --paper-detail-bg: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--paper-accent-soft) 56%, #0f120f) 0%,
-    color-mix(in srgb, var(--paper-accent-soft) 40%, #0b0e0b) 100%
+    color-mix(in srgb, var(--paper-accent) 7%, var(--palette-tint)) 0%,
+    color-mix(in srgb, var(--paper-accent-soft) 46%, #0b0e0b) 100%
   );
-  --paper-theme-color: color-mix(in srgb, var(--paper-accent-soft) 58%, #0f120f);
+  --paper-theme-color: var(--paper-bg);
 }
