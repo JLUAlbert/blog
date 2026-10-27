@@ -10,6 +10,7 @@
         "@astrojs/sitemap": "^3.7.3",
         "@expressive-code/plugin-collapsible-sections": "^0.44.1",
         "@expressive-code/plugin-line-numbers": "^0.44.1",
+        "@fontsource/libre-baskerville": "^5.3.0",
         "@fontsource/maple-mono": "^5.3.0",
         "@navfolio/core": "github:navfolio/core",
         "@navfolio/mdx-components": "github:navfolio/mdx-components",
@@ -160,6 +161,8 @@
     "@expressive-code/plugin-shiki": ["@expressive-code/plugin-shiki@0.44.3", "https://registry.npmmirror.com/@expressive-code/plugin-shiki/-/plugin-shiki-0.44.3.tgz", { "dependencies": { "@expressive-code/core": "^0.44.3", "shiki": "^4.0.2" } }, "sha512-jAibAZPG7lDmi61EFJADZjoSZzjHiwZZdbbgR/mTlWXM4ON/Pyo/9tB2vrqQNKylsci6jqtCi6idrwqQXF53xA=="],
 
     "@expressive-code/plugin-text-markers": ["@expressive-code/plugin-text-markers@0.44.3", "https://registry.npmmirror.com/@expressive-code/plugin-text-markers/-/plugin-text-markers-0.44.3.tgz", { "dependencies": { "@expressive-code/core": "^0.44.3" } }, "sha512-4Ae2xRSDV5kdWPsi40xWbOtoihbzM0zLVjQKkDAnD5KzFXl+6/kd+VhuWOlTRVaJ5cqGk++vCbAaf0MR1XbZlw=="],
+
+    "@fontsource/libre-baskerville": ["@fontsource/libre-baskerville@5.3.0", "https://registry.npmmirror.com/@fontsource/libre-baskerville/-/libre-baskerville-5.3.0.tgz", {}, "sha512-IA6OLq36/JWMX70Fha15sri2qWsijFh7hgdDXCRZHjKUHtWarLQoiGilvm7iMqm7HiYFEv9acF3+IuRHO9kUiA=="],
 
     "@fontsource/maple-mono": ["@fontsource/maple-mono@5.3.0", "https://registry.npmmirror.com/@fontsource/maple-mono/-/maple-mono-5.3.0.tgz", {}, "sha512-8N3FVDWphO/971tZIig9D558j9jf09fWYIXFjgv7DKJEvDjtgfATx1ScWHdTCsf+tufFS5M1bAa4AumVBKPhSQ=="],
 

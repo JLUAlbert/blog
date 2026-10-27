@@ -39,8 +39,8 @@ lang = "zh-CN"
 # [config.fonts] —— 字体设置
 # ============================================================
 [config.fonts]
-# 英文与数字字体。✅ 保留（Maple Mono 是模板主打的等宽圆体）
-en = "Maple Mono"
+# 英文与数字字体。Libre Baskerville（SIL OFL，优雅衬线）；字体文件由 @fontsource 在构建时打包
+en = "Libre Baskerville"
 
 # 代码字体。✅ 保留（Monaco 是系统经典等宽字体）
 code = "Monaco"
