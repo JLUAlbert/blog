@@ -31,3 +31,133 @@ const htmlLang = getHtmlLang(siteConfig);
     <FullFontWarmup />
   </Fragment>
 </ThemeBaseLayout>
+
+<script>
+  // About 面板控制器：全站加载一次，仅当页面存在 #about-panel（首页）时生效。
+  // 站点启用了 ClientRouter，<script is:inline> 在客户端导航后不会重新执行，
+  // 因此把逻辑放在布局层，并借助 astro:page-load 在每次导航后复位状态。
+  (() => {
+    const PANEL_ID = 'about-panel';
+    const root = document.documentElement;
+    const host = window as Window & { __aboutPanelController?: boolean };
+    const state = { open: false, locked: false, timer: 0 };
+
+    const panel = () => document.getElementById(PANEL_ID);
+    const scroller = () => panel()?.querySelector<HTMLElement>('[data-about-scroll]') ?? null;
+
+    const lock = () => {
+      state.locked = true;
+      window.clearTimeout(state.timer);
+      state.timer = window.setTimeout(() => {
+        state.locked = false;
+      }, 760);
+    };
+
+    const applyState = (open: boolean) => {
+      const element = panel();
+      state.open = open && Boolean(element);
+      if (element) {
+        element.classList.toggle('is-open', state.open);
+        element.setAttribute('aria-hidden', state.open ? 'false' : 'true');
+        if (state.open) element.removeAttribute('inert');
+        else element.setAttribute('inert', '');
+      }
+      root.classList.toggle('about-open', state.open);
+      if (state.open) {
+        const target = scroller();
+        if (target) target.scrollTop = 0;
+      }
+    };
+
+    const openPanel = () => {
+      if (!panel() || state.open) return;
+      lock();
+      applyState(true);
+    };
+
+    const closePanel = () => {
+      if (!state.open) return;
+      lock();
+      applyState(false);
+    };
+
+    const atPageBottom = () => window.innerHeight + window.scrollY >= root.scrollHeight - 8;
+
+    if (!host.__aboutPanelController) {
+      host.__aboutPanelController = true;
+
+      // 触控板 / 滚轮：页面触底后继续下滑 → 打开 About；面板顶部继续上滑 → 回到首页
+      window.addEventListener(
+        'wheel',
+        (event) => {
+          if (state.locked || !panel()) return;
+          if (!state.open) {
+            if (event.deltaY > 8 && atPageBottom()) {
+              event.preventDefault();
+              openPanel();
+            }
+            return;
+          }
+          const target = scroller();
+          if (event.deltaY < -8 && target && target.scrollTop <= 0) {
+            event.preventDefault();
+            closePanel();
+          }
+        },
+        { passive: false },
+      );
+
+      // 移动端触摸：上滑打开、下滑关闭
+      let touchStartY = 0;
+      window.addEventListener(
+        'touchstart',
+        (event) => {
+          touchStartY = event.touches[0]?.clientY ?? 0;
+        },
+        { passive: true },
+      );
+      window.addEventListener(
+        'touchmove',
+        (event) => {
+          if (state.locked || !panel()) return;
+          const delta = touchStartY - (event.touches[0]?.clientY ?? 0);
+          if (!state.open) {
+            if (delta > 46 && atPageBottom()) openPanel();
+            return;
+          }
+          const target = scroller();
+          if (delta < -46 && target && target.scrollTop <= 0) closePanel();
+        },
+        { passive: true },
+      );
+
+      document.addEventListener('click', (event) => {
+        const target = event.target as Element | null;
+        if (!target?.closest) return;
+        if (target.closest('[data-about-open]')) {
+          event.preventDefault();
+          openPanel();
+          return;
+        }
+        if (target.closest('[data-about-close]')) {
+          event.preventDefault();
+          closePanel();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && state.open) closePanel();
+      });
+    }
+
+    // 初始加载与每次客户端导航后复位，避免离开首页时残留滚动锁。
+    const reset = () => {
+      state.locked = false;
+      window.clearTimeout(state.timer);
+      applyState(false);
+    };
+
+    document.addEventListener('astro:page-load', reset);
+    reset();
+  })();
+</script>

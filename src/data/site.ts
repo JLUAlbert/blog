@@ -112,8 +112,6 @@ export function resolveTopNavLinks(
 export function getRouteLabels(): Record<string, string> {
   const routeLabels: Record<string, string> = {
     '/blog': 'blog',
-    '/archive': 'archive',
-    '/about': 'about',
   };
 
   for (const module of getResolvedPageModules(navfolioConfig)) {
@@ -132,9 +130,3 @@ export type SiteSearch = SiteConfig['search'];
 export type SiteMath = SiteConfig['math'];
 export type SiteFonts = SiteConfig['fonts'];
 export type SitePages = SiteConfig['pages'];
-export type HomeNavigationItem = SiteConfig['home']['navigation'][number];
-export type HomeLinkItem = SiteConfig['home']['links'][number];
-export type HomeDoingItem = SiteConfig['home']['doing'][number];
-export type HomeIntro = SiteConfig['home']['intro'];
-export type HomeQuote = SiteConfig['home']['quote'];
-export type HomeLatest = SiteConfig['home']['latest'];

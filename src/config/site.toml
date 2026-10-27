@@ -321,10 +321,7 @@ module = "vibe"
 label = "Movies"
 href = "/movie"
 
-# 关于页入口。✅ 保留
-[[config.topNav.links]]
-label = "About"
-href = "/about"
+# 关于不再进入导航栏：About 已并入首页底部的滑动面板（见 src/pages/index.astro）。
 
 # ============================================================
 # [config.home] —— 首页（访客第一眼看到的东西，全部要改成你的）
@@ -359,7 +356,7 @@ count = 5
 # 热力图显示周数。✅ 保留 24
 heatmapWeeks = 24
 
-# 是否在最新动态区块中显示热力图下的最新文章列表（已改由“随机推荐”卡片承担）。false
+# 是否在热力图下方再显示一份最新文章列表。首页已单独渲染“最新”卡片，故关闭。
 showHeatmapLatest = false
 
 # 是否排除草稿。✅ 保留 true
@@ -452,28 +449,4 @@ icon = "douyin"
 tooltip = "Iamdongmu"
 copy = true
 
-# ============================================================
-# [[config.home.doing]] —— 首页 "正在做的事" 列表
-# 每一项是一个事项，mark 是左侧序号
-# ============================================================
-
-# 事项 1。🚨 必改：改成你正在做的事情，或整块删除
-[[config.home.doing]]
-text = "把《乡土中国》和政治经济学的笔记整理成系列"
-mark = "01"
-
-[[config.home.doing]]
-text = "补上欠着的几篇影评"
-mark = "02"
-
-[[config.home.doing]]
-text = "把 Trakt 观影记录同步进片单"
-mark = "03"
-
-[[config.home.doing]]
-text = "给书架补上今年读过的书"
-mark = "04"
-
-[[config.home.doing]]
-text = "处理积压在硬盘里的照片"
-mark = "05"
+# “正在做的事”列表已移除：首页左侧现由“最新”文章卡片承担该位置。

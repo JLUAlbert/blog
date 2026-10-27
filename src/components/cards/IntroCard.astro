@@ -22,7 +22,7 @@ const { intro, quote } = Astro.props as { intro: Intro; quote?: Quote };
       )
     }
     <h2>
-      {intro.title.replace(intro.name, '')}<em>{intro.name}</em>
+      {intro.title.replace(intro.name, '').trim()}{' '}<em>{intro.name}</em>
     </h2>
     {
       quote && (
