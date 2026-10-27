@@ -20,7 +20,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Restore Trakt token
-        run: echo "${{ secrets.TRAKT_TOKEN }}" > .trakt-token.json
+        env:
+          TRAKT_TOKEN: ${{ secrets.TRAKT_TOKEN }}
+        run: |
+          printf '%s' "$TRAKT_TOKEN" > .trakt-token.json
+          wc -c .trakt-token.json
 
       - name: Run Trakt sync
         env:
