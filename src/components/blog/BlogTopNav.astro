@@ -1,5 +1,5 @@
 ---
-import { Github, ListTree, Menu, Moon, Sun } from 'lucide-astro';
+import { Github, ListTree, Menu, Palette } from 'lucide-astro';
 import SiteSearch from './SiteSearch.astro';
 import TocTree from './TocTree.astro';
 import { getRouteLabels, getSiteConfig, getTopNavLinks } from '../../data/site';
@@ -135,9 +135,8 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
     >
       <Github size={17} stroke-width={2} />
     </a>
-    <button type="button" data-theme-toggle aria-label="Switch theme">
-      <Moon class="theme-icon-moon" size={17} stroke-width={2} />
-      <Sun class="theme-icon-sun" size={17} stroke-width={2} />
+    <button type="button" data-palette-toggle aria-label="Change theme color">
+      <Palette size={17} stroke-width={2} />
     </button>
     {search.enabled && <SiteSearch search={search} />}
     {

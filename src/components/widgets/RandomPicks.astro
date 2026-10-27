@@ -1,0 +1,173 @@
+---
+import Icon from '../Icon.astro';
+import { getCollection } from 'astro:content';
+
+function shuffle<T>(items: T[]): T[] {
+  const pool = [...items];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool;
+}
+
+function excerpt(text: string, maxLength = 46) {
+  const plain = text
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/[#>*`_\-\[\]()!]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return plain.length > maxLength ? `${plain.slice(0, maxLength)}…` : plain;
+}
+
+const posts = await getCollection('blog', ({ data }) => !data.draft);
+const vibes = await getCollection('vibe');
+const books = await getCollection('book', ({ data }) => !data.draft);
+const movies = await getCollection('movie', ({ data }) => !data.draft);
+
+const pickedPosts = shuffle(posts).slice(0, 3);
+const pickedVibe = shuffle(vibes)[0];
+const pickedBook = shuffle(books)[0];
+const pickedMovie = shuffle(movies)[0];
+---
+
+<article class="glass-card doing-card random-picks">
+  <h2><Icon name="sparkle" /> Random Picks</h2>
+
+  <ul>
+    {
+      pickedPosts.map((post) => (
+        <li>
+          <a class="pick-link" href={`/blog/${post.id}/`}>
+            <span class="pick-kind">Blog</span>
+            <span class="pick-title">{post.data.title}</span>
+          </a>
+        </li>
+      ))
+    }
+    {
+      pickedVibe && (
+        <li>
+          <a class="pick-link" href="/vibe">
+            <span class="pick-kind">Vibe</span>
+            <span class="pick-title">
+              {pickedVibe.data.title}
+              {pickedVibe.body && <span class="pick-note"> — {excerpt(pickedVibe.body)}</span>}
+            </span>
+          </a>
+        </li>
+      )
+    }
+    {
+      pickedMovie && (
+        <li>
+          <a class="pick-link" href="/movie">
+            <span class="pick-kind">Movie</span>
+            <span class="pick-title">
+              {pickedMovie.data.title}
+              {pickedMovie.data.creator && (
+                <span class="pick-note"> · {pickedMovie.data.creator}</span>
+              )}
+            </span>
+          </a>
+        </li>
+      )
+    }
+    {
+      pickedBook && (
+        <li>
+          <a class="pick-link" href="/book">
+            <span class="pick-kind">Book</span>
+            <span class="pick-title">
+              {pickedBook.data.title}
+              {pickedBook.data.author && <span class="pick-note"> · {pickedBook.data.author}</span>}
+            </span>
+          </a>
+        </li>
+      )
+    }
+  </ul>
+</article>
+
+<style>
+  .random-picks {
+    padding: 24px 0 0;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .random-picks:hover {
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 16px;
+    color: var(--paper-ink);
+    font-size: 1.06rem;
+  }
+
+  h2 :global(svg) {
+    width: 21px;
+    height: 21px;
+    color: var(--paper-accent);
+  }
+
+  ul {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    position: relative;
+    padding: 13px 0 13px 18px;
+    border-top: 1px solid var(--paper-line);
+    color: var(--paper-ink);
+    font-size: 0.98rem;
+  }
+
+  li::before {
+    position: absolute;
+    left: 0;
+    top: 22px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--paper-accent);
+    content: '';
+  }
+
+  .pick-link {
+    display: block;
+    color: var(--paper-ink);
+    text-decoration: none;
+    line-height: 1.6;
+  }
+
+  .pick-link:hover .pick-title {
+    color: var(--paper-accent);
+  }
+
+  .pick-kind {
+    margin-right: 8px;
+    color: var(--paper-accent);
+    font-family: var(--font-ui-label);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .pick-note {
+    color: var(--paper-ink-soft);
+    font-size: 0.9rem;
+  }
+</style>

@@ -425,7 +425,7 @@ const siteConfig = defineCollection({
       intro: z.object({
         title: z.string(),
         name: z.string(),
-        body: z.array(z.string()).min(1),
+        body: z.array(z.string()).default([]),
       }),
       latest: z
         .object({

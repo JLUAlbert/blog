@@ -22,7 +22,7 @@ url = "https://jlualbert.github.io/blog"
 repository = "https://github.com/JLUAlbert/blog"
 
 # 页脚文案。
-footerNote = "© 2026 Albert Chan (陈树强) · Think independently. Write honestly. Learn endlessly. Live freely."
+footerNote = "© 2026 Albert Chan · Think independently. Write honestly. Learn endlessly. Live freely."
 
 # ============================================================
 # [config.theme] —— 主题色盘与 UI 语言
@@ -120,10 +120,10 @@ title = "Essays"
 kicker = "Notebook archive"
 
 # 副标题。✏️ 建议改
-subtitle = "Notes from the margins."
+subtitle = "Essays and notes from the margins."
 
 # 列表页说明文字。✏️ 建议改
-note = "Field notes, drafts, and technical margins arranged for slow browsing."
+note = "Long-form writing, drafts, and field notes — arranged for slow browsing."
 
 # 每页文章数。✅ 保留 6（太长影响加载，太短翻页多）
 postsPerPage = 6
@@ -183,7 +183,7 @@ kicker = "Project shelf"
 subtitle = "Small tools and site systems."
 
 # 说明文字。✏️ 建议改
-note = "A compact shelf for implementation choices, releases, and publishing experiments."
+note = "Implementation choices, releases, and publishing experiments."
 
 # ============================================================
 # [config.pages.vibe] —— Vibe 短记录页
@@ -196,10 +196,10 @@ title = "vibe"
 kicker = ""
 
 # 副标题。✏️ 建议改：可写 "生活与编码碎片" 之类
-subtitle = "Life and coding fragments."
+subtitle = "Fragments of everyday life."
 
 # 说明文字。✏️ 建议改
-note = "Not formal enough for blog posts, but still part of the story."
+note = "Short thoughts — not formal enough for posts, but still part of the story."
 
 # 是否显示左侧时间轴。✅ 保留 true
 showTrail = true
@@ -208,17 +208,17 @@ showTrail = true
 # [config.pages.book] —— 书架
 # ============================================================
 [config.pages.book]
-title = "书架"
-subtitle = "读过的书，以及当时留下的评分。"
-note = "按读完时间排列，没有读完的会标在心里。"
+title = "Books"
+subtitle = "Books I have read, with the ratings they left behind."
+note = "Sorted by completion date."
 
 # ============================================================
 # [config.pages.movie] —— 片单
 # ============================================================
 [config.pages.movie]
-title = "片单"
-subtitle = "看过的电影与剧集。"
-note = "数据来自 Trakt，按最近一次观看时间排列。"
+title = "Movies"
+subtitle = "Films and series I have watched."
+note = "Synced from Trakt, sorted by most recent watch."
 
 # ============================================================
 # [config.comments.giscus / utterances / waline] —— 评论后端参数
@@ -282,7 +282,7 @@ comment = true
 name = "Albert"
 
 # 你的账号/昵称。
-handle = "Albert Chan · 陈树强"
+handle = "Albert Chan"
 
 # 你的身份标签。🚨 必改：如 "Developer & Writer" / "独立开发者"
 role = "Writer, reader, photographer, and independent thinker."
@@ -356,17 +356,13 @@ text = [
 # 首页自我介绍区。
 [config.home.intro]
 # 区块标题。
-title = "About This Site"
+title = "Welcome to"
 
 # 显示的名字。
-name = "Albert Chan"
+name = "Albert's Blog"
 
-# 正文段落数组，一行一段。
-body = [
-  "Welcome to my blog. This is Dongmu (东木), my personal digital garden —",
-  "a space for reading, writing, photography, and thinking freely about society, economics, politics, and life.",
-  "独立思考，诚实书写；读书、看电影、拍照，也关心制度与人。",
-]
+# 正文段落数组，一行一段。留空则只显示标题与格言。
+body = []
 
 # 首页“最新动态”区块。
 [config.home.latest]
@@ -376,8 +372,8 @@ count = 5
 # 热力图显示周数。✅ 保留 24
 heatmapWeeks = 24
 
-# 是否在最新动态区块中显示热力图。✅ 保留 true
-showHeatmapLatest = true
+# 是否在最新动态区块中显示热力图下的最新文章列表（已改由“随机推荐”卡片承担）。false
+showHeatmapLatest = false
 
 # 是否排除草稿。✅ 保留 true
 excludeDraft = true
@@ -395,8 +391,8 @@ dateArchiveBaseHref = ""
 # 书架卡片。
 [[config.home.navigation]]
 icon = "compass"
-title = "书架"
-subtitle = "读过的书与留下的评分"
+title = "Books"
+subtitle = "Books I have read, and the ratings they left behind"
 href = "/book"
 
 # 博客卡片。✅ 保留（href=/blog 指站内）
@@ -409,16 +405,16 @@ href = "/blog"
 # 片单卡片。
 [[config.home.navigation]]
 icon = "briefcase"
-title = "片单"
-subtitle = "看过的电影与剧集"
+title = "Movies"
+subtitle = "Films and series I have watched"
 href = "/movie"
 
-# 博客卡片。
+# Vibe 卡片。
 [[config.home.navigation]]
-icon = "pen"
-title = "Blog"
-subtitle = "长文与随笔"
-href = "/blog"
+icon = "sparkles"
+title = "Vibe"
+subtitle = "Poems and fragments of everyday life"
+href = "/vibe"
 
 # ============================================================
 # [[config.home.links]] —— 首页社交媒体链接图标条
