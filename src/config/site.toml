@@ -6,13 +6,13 @@
 title = "Albert's Blog"
 
 # 站点描述（SEO meta description）。✅ 保留，或写成一句你自己的话
-description = "Think independently. Write honestly. Learn endlessly. Live freely."
+description = "A personal digital garden for independent thought, reading, photography, and reflections on society. | 独立思考，诚实书写。"
 
 # 首页浏览器标签标题（完整版）。✅ 保留
 pageTitle = "Albert's Blog | Space of Freedom"
 
 # 页面 meta description（与 description 内容一致即可）。✅ 保留
-pageDescription = "Think independently. Write honestly. Learn endlessly. Live freely."
+pageDescription = "A personal digital garden for independent thought, reading, photography, and reflections on society. | 独立思考，诚实书写。"
 
 # 站点正式 URL。用于生成 RSS、sitemap、canonical 链接。🚨 必改：部署后填你自己的真实域名；现在没域名先保持原样，但上线前一定要换
 # GitHub Pages 部署时会自动覆盖 site/base，这里保持默认即可
@@ -22,7 +22,7 @@ url = "https://jlualbert.github.io/blog"
 repository = "https://github.com/JLUAlbert/blog"
 
 # 页脚文案。
-footerNote = "© 2026 Albert. Built with Astro."
+footerNote = "© 2026 Albert Chan (陈树强) · Think independently. Write honestly. Learn endlessly. Live freely."
 
 # ============================================================
 # [config.theme] —— 主题色盘与 UI 语言
@@ -87,8 +87,8 @@ render = "katex"
 # 是否启用评论。
 enabled = true
 
-# 评论服务商。✅ 保留 "none"（可选 giscus / utterances / waline）
-provider = "none"
+# 评论服务商：giscus（读者用 GitHub 账号评论，数据存在博客仓库的 Discussions 里）
+provider = "giscus"
 
 # 是否在文章页显示评论。✅ 保留 true（enabled=true 时才生效）
 show_on_posts = true
@@ -104,7 +104,7 @@ enabled = true
 shortcut = "mod+k"
 
 # 搜索框占位文案。✏️ 建议改：lang="zh-CN" 后可改成 "搜索文章..."
-placeholder = "搜索文章…"
+placeholder = "Search articles…"
 
 # 搜索结果数量上限。✅ 保留 6
 maxResults = 6
@@ -225,14 +225,14 @@ note = "数据来自 Trakt，按最近一次观看时间排列。"
 # 目前 enabled=false，以下三块都不会生效，纯作预留。✅ 全部保留
 # ============================================================
 [config.comments.giscus]
-# 评论仓库。✅ 保留空串（启用 giscus 时再填）
-repo = ""
-# giscus 仓库 ID。✅ 保留
-repo_id = ""
-# 讨论分类名。✅ 保留
-category = ""
-# 分类 ID。✅ 保留
-category_id = ""
+# 评论仓库。
+repo = "JLUAlbert/blog"
+# giscus 仓库 ID。
+repo_id = "R_kgDOVYiHtQ"
+# 讨论分类名。
+category = "Announcements"
+# 分类 ID。
+category_id = "DIC_kwDOVYiHtc4DJs6w"
 # 页面与讨论的映射方式。✅ 保留
 mapping = "pathname"
 # 严格匹配。✅ 保留
@@ -282,22 +282,22 @@ comment = true
 name = "Albert"
 
 # 你的账号/昵称。
-handle = "Albert Chan"
+handle = "Albert Chan · 陈树强"
 
 # 你的身份标签。🚨 必改：如 "Developer & Writer" / "独立开发者"
-role = "A Cat Developer"
+role = "Writer, reader, photographer, and independent thinker."
 
 # 联系邮箱。
-email = "dongmuhanchen@qq.com"
+email = "2454254583@qq.com"
 
 # 个人网站。🚨 必改：如果没部署可以暂时留空或改成你的 GitHub Pages
-website = "https://blog.example.com"
+website = "https://jlualbert.github.io/blog"
 
 # GitHub 主页。🚨 必改：改成你的 GitHub 用户名地址
 github = "https://github.com/JLUAlbert"
 
 # 头像路径。✅ 保留路径，把自己头像文件放进 public/images/ 并改文件名即可
-avatar = "/images/logo-thin.webp"
+avatar = "/images/avatar.jpg"
 
 # ============================================================
 # [[config.topNav.links]] —— 顶部导航栏
@@ -347,24 +347,25 @@ href = "/about"
 # 首页大字引语（轮播三行文字）。✏️ 建议改：换成你自己的座右铭/开场白
 [config.home.quote]
 text = [
-  "独立思考，",
-  "诚实书写，",
-  "自由生活。",
+  "Think independently.",
+  "Write honestly.",
+  "Learn endlessly.",
+  "Live freely.",
 ]
 
 # 首页自我介绍区。
 [config.home.intro]
 # 区块标题。
-title = "关于这里"
+title = "About This Site"
 
 # 显示的名字。
-name = "Albert"
+name = "Albert Chan"
 
 # 正文段落数组，一行一段。
 body = [
-  "这里是我的个人站：读书笔记、电影观感、一点政治经济学的思考，偶尔写诗。",
-  "不做流量的生意，只记录自己想清楚的东西。",
-  "写作是一种整理——把混乱的经验摊开，看看里面到底是什么。",
+  "Welcome to my blog. This is Dongmu (东木), my personal digital garden —",
+  "a space for reading, writing, photography, and thinking freely about society, economics, politics, and life.",
+  "独立思考，诚实书写；读书、看电影、拍照，也关心制度与人。",
 ]
 
 # 首页“最新动态”区块。
@@ -450,8 +451,8 @@ copy = false
 # Email。
 [[config.home.links]]
 label = "Email"
-icon = "mail"
-tooltip = "dongmuhanchen@qq.com"
+icon = "email"
+tooltip = "2454254583@qq.com"
 copy = true
 
 # QQ。
@@ -465,36 +466,15 @@ copy = true
 [[config.home.links]]
 label = "WeChat"
 icon = "wechat"
-tooltip = "navfolio"
+tooltip = "Iamdongmu"
 copy = true
 
-# Weibo。
+# Douyin。
 [[config.home.links]]
-label = "Weibo"
-icon = "weibo"
-tooltip = ""
-copy = false
-
-# 小红书。
-[[config.home.links]]
-label = "Xiaohongshu"
-icon = "xiaohongshu"
-tooltip = ""
-copy = false
-
-# 知乎。✏️ 建议：没知乎就改 ""
-[[config.home.links]]
-label = "Zhihu"
-icon = "zhihu"
-tooltip = "https://www.zhihu.com/"
-copy = false
-
-# Bilibili。
-[[config.home.links]]
-label = "Bilibili"
-icon = "bilibili"
-tooltip = ""
-copy = false
+label = "Douyin"
+icon = "douyin"
+tooltip = "Iamdongmu"
+copy = true
 
 # ============================================================
 # [[config.home.doing]] —— 首页 "正在做的事" 列表

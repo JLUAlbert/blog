@@ -40,8 +40,7 @@ const normalizeSiteUrl = (value) => {
 
 const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
 const customSite = process.env.SITE_URL;
-const customBase = process.env.SITE_BASE;
-const repositoryOwner = process.env.GITHUB_REPOSITORY_OWNER;
+const customBase = process.env.SITE_BASE;const repositoryOwner = process.env.GITHUB_REPOSITORY_OWNER;
 const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')[1];
 const isProjectPage =
   Boolean(repositoryOwner) &&
@@ -62,6 +61,32 @@ const resolvedSite =
 const resolvedBase =
   customBase || (isGitHubActions && isProjectPage && repositoryName ? `/${repositoryName}` : '/');
 
+// 不蒜子访问统计：每个页面加载统计脚本，并把访问量/访客数追加到页脚
+const busuanziIntegration = {
+  name: 'busuanzi-analytics',
+  hooks: {
+    'astro:config:setup': ({ injectScript }) => {
+      injectScript(
+        'page',
+        `window.addEventListener('DOMContentLoaded', () => {
+          const footer = document.querySelector('footer');
+          if (!footer) return;
+          const span = document.createElement('span');
+          span.style.cssText = 'margin-left:.75rem;opacity:.65;font-size:.85em;white-space:nowrap;';
+          span.innerHTML =
+            '\u00b7 <span id="busuanzi_container_site_pv">Views <b id="busuanzi_value_site_pv"></b></span>' +
+            ' / <span id="busuanzi_container_site_uv">Visitors <b id="busuanzi_value_site_uv"></b></span>';
+          footer.appendChild(span);
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
+          document.head.appendChild(s);
+        });`,
+      );
+    },
+  },
+};
+
 // https://astro.build/config
 export default defineConfig({
   site: resolvedSite,
@@ -70,7 +95,7 @@ export default defineConfig({
     remarkPlugins: astroPluginConfig.remarkPlugins,
     rehypePlugins: astroPluginConfig.rehypePlugins,
   },
-  integrations: [...astroPluginConfig.integrations, mdx(), sitemap()],
+  integrations: [...astroPluginConfig.integrations, mdx(), sitemap(), busuanziIntegration],
 
   vite: {
     plugins: [tailwindcss()],
