@@ -6,7 +6,6 @@ import FullFontWarmup from '../components/FullFontWarmup.astro';
 import ScrollToTopButton from '../components/ScrollToTopButton.astro';
 import { getSiteConfig } from '../data/site';
 import { getHtmlLang } from '../utils/ui-text';
-import '../styles/palette-bg.css';
 
 interface Props {
   title: string;
@@ -22,61 +21,6 @@ const htmlLang = getHtmlLang(siteConfig);
 <ThemeBaseLayout htmlLang={htmlLang} palette={palette}>
   <Fragment slot="head">
     <BaseHead title={title} description={description} />
-    <script
-      is:inline
-      define:vars={{ palettes: ['green-soft', 'green-vivid', 'rose-soft', 'pink-soft', 'purple-soft', 'blue-soft', 'orange-soft', 'brown-soft'] }}
-    >
-      (() => {
-        const storageKey = 'navfolio-palette';
-        const root = document.documentElement;
-        const stored = () => {
-          try {
-            return localStorage.getItem(storageKey);
-          } catch {
-            return null;
-          }
-        };
-        // 明暗跟随系统偏好：清掉旧的明暗强制设置
-        try {
-          localStorage.removeItem('navfolio-theme');
-        } catch {}
-        const apply = (palette) => {
-          if (palettes.includes(palette)) root.dataset.palette = palette;
-        };
-        apply(stored() || root.dataset.palette);
-        const syncButtons = () => {
-          const current = root.dataset.palette;
-          for (const button of document.querySelectorAll('[data-palette-toggle]')) {
-            const label = `Theme color: ${current}`;
-            button.setAttribute('aria-label', label);
-            button.setAttribute('title', label);
-          }
-        };
-        syncButtons();
-        document.addEventListener('click', (event) => {
-          const button = event.target.closest?.('[data-palette-toggle]');
-          if (!button) return;
-          const current = palettes.includes(root.dataset.palette) ? root.dataset.palette : palettes[0];
-          const next = palettes[(palettes.indexOf(current) + 1) % palettes.length];
-          apply(next);
-          try {
-            localStorage.setItem(storageKey, next);
-          } catch {}
-          syncButtons();
-          window.dispatchEvent(
-            new CustomEvent('navfolio:palette-change', { detail: { palette: next } }),
-          );
-        });
-        document.addEventListener('astro:after-swap', () => {
-          apply(stored() || root.dataset.palette);
-          syncButtons();
-        });
-        document.addEventListener('astro:page-load', () => {
-          apply(stored() || root.dataset.palette);
-          syncButtons();
-        });
-      })();
-    </script>
   </Fragment>
   <Fragment slot="navigation">
     <BlogTopNav />

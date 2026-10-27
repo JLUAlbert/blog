@@ -87,6 +87,80 @@ const busuanziIntegration = {
   },
 };
 
+// 色盘背景：把调色盘 CSS 与循环切换脚本注入到每个页面的 <head>，
+// 不依赖某个布局组件，保证文章页/列表页/详情页都跟随色盘改变背景。
+const paletteCss = fs.readFileSync(new URL('./src/styles/palette-bg.css', import.meta.url), 'utf8');
+const paletteIntegration = {
+  name: 'navfolio-palette-backgrounds',
+  hooks: {
+    'astro:config:setup': ({ injectScript }) => {
+      injectScript(
+        'head-inline',
+        `(() => {
+  const root = document.documentElement;
+  const css = ${JSON.stringify(paletteCss)};
+  if (css && !document.getElementById('palette-backgrounds')) {
+    const style = document.createElement('style');
+    style.id = 'palette-backgrounds';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+  const storageKey = 'navfolio-palette';
+  const palettes = ['green-soft', 'green-vivid', 'rose-soft', 'pink-soft', 'purple-soft', 'blue-soft', 'orange-soft', 'brown-soft'];
+  const stored = () => {
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  };
+  try {
+    localStorage.removeItem('navfolio-theme');
+  } catch {}
+  const apply = (palette) => {
+    if (palettes.includes(palette)) root.dataset.palette = palette;
+  };
+  apply(stored() || root.dataset.palette);
+  const syncButtons = () => {
+    const current = root.dataset.palette;
+    for (const button of document.querySelectorAll('[data-palette-toggle]')) {
+      const label = 'Theme color: ' + current;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+    }
+  };
+  const init = () => {
+    apply(stored() || root.dataset.palette);
+    syncButtons();
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+  if (!window.__navfolioPaletteBound) {
+    window.__navfolioPaletteBound = true;
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest ? event.target.closest('[data-palette-toggle]') : null;
+      if (!button) return;
+      const current = palettes.includes(root.dataset.palette) ? root.dataset.palette : palettes[0];
+      const next = palettes[(palettes.indexOf(current) + 1) % palettes.length];
+      apply(next);
+      try {
+        localStorage.setItem(storageKey, next);
+      } catch {}
+      syncButtons();
+      window.dispatchEvent(new CustomEvent('navfolio:palette-change', { detail: { palette: next } }));
+    });
+  }
+  document.addEventListener('astro:after-swap', init);
+  document.addEventListener('astro:page-load', init);
+})();`,
+      );
+    },
+  },
+};
+
 // https://astro.build/config
 export default defineConfig({
   site: resolvedSite,
@@ -95,7 +169,13 @@ export default defineConfig({
     remarkPlugins: astroPluginConfig.remarkPlugins,
     rehypePlugins: astroPluginConfig.rehypePlugins,
   },
-  integrations: [...astroPluginConfig.integrations, mdx(), sitemap(), busuanziIntegration],
+  integrations: [
+    ...astroPluginConfig.integrations,
+    mdx(),
+    sitemap(),
+    busuanziIntegration,
+    paletteIntegration,
+  ],
 
   vite: {
     plugins: [tailwindcss()],

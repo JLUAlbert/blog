@@ -43,15 +43,17 @@ const formatDate = new Intl.DateTimeFormat(ui.locale, {
 <style>
   .recent-card {
     display: grid;
-    gap: 10px;
-    padding: 16px 18px;
-    max-width: 560px;
+    gap: 16px;
+    padding: 24px 26px 26px;
+    max-width: 680px;
   }
 
   .recent-label {
     color: var(--paper-accent);
-    font-size: 0.72rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
     line-height: 1.15;
+    text-transform: uppercase;
   }
 
   .latest-list {
@@ -61,37 +63,42 @@ const formatDate = new Intl.DateTimeFormat(ui.locale, {
 
   .latest-link {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) max-content 24px;
+    grid-template-columns: minmax(0, 1fr) max-content 30px;
     align-items: center;
     min-width: 0;
-    gap: 10px;
+    gap: 16px;
+    padding: 8px 0;
     color: inherit;
     text-decoration: none;
+  }
+
+  .latest-link + .latest-link {
+    border-top: 1px solid var(--paper-line);
   }
 
   .latest-link em {
     overflow: hidden;
     color: var(--paper-ink);
-    font-size: 0.82rem;
+    font-size: 1.08rem;
     font-style: normal;
     font-weight: 650;
-    line-height: 1.3;
+    line-height: 1.6;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .latest-link time {
     color: var(--paper-ink-soft);
-    font-size: 0.68rem;
-    line-height: 1;
+    font-size: 0.82rem;
+    line-height: 1.4;
     white-space: nowrap;
   }
 
   .latest-icon {
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
     border-radius: 8px;
     color: var(--paper-accent);
     transition:
