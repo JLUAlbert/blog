@@ -69,7 +69,7 @@ function requireCreds() {
       '\n缺少 TRAKT_CLIENT_ID / TRAKT_CLIENT_SECRET。\n' +
         '到 https://trakt.tv/oauth/applications 新建一个应用（Redirect URI 填 urn:ietf:wg:oauth:2.0:oob），\n' +
         '然后把两个值写进仓库根目录的 .env：\n\n' +
-        '  TRAKT_CLIENT_ID=xxxx\n  TRAKT_CLIENT_SECRET=xxxx   # PKCE 应用可留空\n'
+        '  TRAKT_CLIENT_ID=xxxx\n  TRAKT_CLIENT_SECRET=xxxx   # PKCE 应用可留空\n',
     );
     process.exit(1);
   }
@@ -122,10 +122,13 @@ async function* paginate(endpoint, opts = {}) {
   let page = 1;
   let total = 1;
   do {
-    const { data, res } = await api(`${endpoint}${endpoint.includes('?') ? '&' : '?'}page=${page}&limit=100`, {
-      raw: true,
-      ...opts,
-    });
+    const { data, res } = await api(
+      `${endpoint}${endpoint.includes('?') ? '&' : '?'}page=${page}&limit=100`,
+      {
+        raw: true,
+        ...opts,
+      },
+    );
     total = Number(res.headers.get('x-pagination-page-count') || 1);
     yield data;
     page += 1;
@@ -277,12 +280,13 @@ async function details(kind, id, token) {
     const kindPath = kind === 'movie' ? 'movie' : 'tv';
     try {
       const res = await fetch(
-        `https://api.themoviedb.org/3/${kindPath}/${tmdbId}?api_key=${process.env.TMDB_API_KEY}&language=zh-CN`
+        `https://api.themoviedb.org/3/${kindPath}/${tmdbId}?api_key=${process.env.TMDB_API_KEY}&language=zh-CN`,
       );
       if (res.ok) {
         const meta = await res.json();
         if (meta.poster_path) entry.poster = `https://image.tmdb.org/t/p/w500${meta.poster_path}`;
-        else if (meta.backdrop_path) entry.fanart = `https://image.tmdb.org/t/p/w780${meta.backdrop_path}`;
+        else if (meta.backdrop_path)
+          entry.fanart = `https://image.tmdb.org/t/p/w780${meta.backdrop_path}`;
       }
     } catch {
       /* keep going without a cover */
@@ -327,7 +331,12 @@ function addEpisodes(history) {
     const s = row.show;
     const e = row.episode;
     if (!s?.ids?.trakt || !e) continue;
-    const rec = bump(showIndex, s.ids.trakt, { ids: s.ids, title: s.title, year: s.year, seasons: new Map() });
+    const rec = bump(showIndex, s.ids.trakt, {
+      ids: s.ids,
+      title: s.title,
+      year: s.year,
+      seasons: new Map(),
+    });
     rec.plays += 1;
     rec.first = earlier(rec.first, row.watched_at);
     rec.last = later(rec.last, row.watched_at);
@@ -451,9 +460,7 @@ function toFive(ten) {
 async function collectLive(token, user) {
   // user mode works with just the client id against a public profile;
   // token mode uses the private /sync endpoints.
-  const p = user
-    ? (ep) => `/users/${encodeURIComponent(user)}${ep}`
-    : (ep) => `/sync${ep}`;
+  const p = user ? (ep) => `/users/${encodeURIComponent(user)}${ep}` : (ep) => `/sync${ep}`;
 
   if (only !== 'shows') {
     console.log('  拉取电影历史 …');
@@ -534,7 +541,14 @@ async function main() {
         externalUrl: rec.ids.slug ? `https://trakt.tv/movies/${rec.ids.slug}` : null,
       };
       const r = await writeEntry({ slug, fields, body: movieBody(rec, det, rating) });
-      report.push({ kind: 'film', title: rec.title, slug, ...r, plays: rec.plays, last: day(rec.last) });
+      report.push({
+        kind: 'film',
+        title: rec.title,
+        slug,
+        ...r,
+        plays: rec.plays,
+        last: day(rec.last),
+      });
       written += 1;
     }
   }
@@ -562,7 +576,14 @@ async function main() {
         externalUrl: rec.ids.slug ? `https://trakt.tv/shows/${rec.ids.slug}` : null,
       };
       const r = await writeEntry({ slug, fields, body: showBody(rec, det, rating) });
-      report.push({ kind: 'series', title: rec.title, slug, ...r, plays: episodes, last: day(rec.last) });
+      report.push({
+        kind: 'series',
+        title: rec.title,
+        slug,
+        ...r,
+        plays: episodes,
+        last: day(rec.last),
+      });
       written += 1;
     }
   }

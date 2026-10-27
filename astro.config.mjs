@@ -40,7 +40,8 @@ const normalizeSiteUrl = (value) => {
 
 const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
 const customSite = process.env.SITE_URL;
-const customBase = process.env.SITE_BASE;const repositoryOwner = process.env.GITHUB_REPOSITORY_OWNER;
+const customBase = process.env.SITE_BASE;
+const repositoryOwner = process.env.GITHUB_REPOSITORY_OWNER;
 const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')[1];
 const isProjectPage =
   Boolean(repositoryOwner) &&

@@ -13,14 +13,14 @@ bun run build              # 完整构建（字体 + astro + pagefind）到 dist
 
 ## 内容结构
 
-| 目录 | 内容 |
-|---|---|
-| `src/content/blog/` | 长文（读书笔记、影评、思考） |
-| `src/content/vibe/` | 短记录（诗词、碎片） |
-| `src/content/movie/` | 片单，`bun run media:sync` 从 Trakt 拉取 |
-| `src/content/book/` | 书架，手动维护 |
-| `src/content/projects/` | 项目文档（摄影课程等） |
-| `src/config/site.toml` | 站点配置：导航、文案、社交链接 |
+| 目录                    | 内容                                     |
+| ----------------------- | ---------------------------------------- |
+| `src/content/blog/`     | 长文（读书笔记、影评、思考）             |
+| `src/content/vibe/`     | 短记录（诗词、碎片）                     |
+| `src/content/movie/`    | 片单，`bun run media:sync` 从 Trakt 拉取 |
+| `src/content/book/`     | 书架，手动维护                           |
+| `src/content/projects/` | 项目文档（摄影课程等）                   |
+| `src/config/site.toml`  | 站点配置：导航、文案、社交链接           |
 
 ## Trakt 片单同步
 

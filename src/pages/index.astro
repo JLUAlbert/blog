@@ -55,8 +55,21 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
     AboutContent && (
       <button class="about-hint" type="button" data-about-open aria-label="Open About">
         <span>About</span>
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path>
+        <svg
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <>
+            <path d="M12 5v14" />
+            <path d="m19 12-7 7-7-7" />
+          </>
         </svg>
       </button>
     )
@@ -68,8 +81,21 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
         <div class="about-panel-scroll" data-about-scroll>
           <div class="about-panel-inner">
             <button class="about-close" type="button" data-about-close aria-label="Back to home">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path>
+              <svg
+                viewBox="0 0 24 24"
+                width="15"
+                height="15"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <>
+                  <path d="M12 19V5" />
+                  <path d="m5 12 7-7 7 7" />
+                </>
               </svg>
               <span>Home</span>
             </button>
@@ -81,7 +107,6 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
       </section>
     )
   }
-
 </BaseLayout>
 
 <style>

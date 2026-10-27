@@ -27,7 +27,11 @@ const formatDate = new Intl.DateTimeFormat(ui.locale, {
       <strong class="recent-label">{ui.heatmap.latest}</strong>
       <div class="latest-list">
         {latestPosts.map((post) => (
-          <a class="latest-link" href={post.href} aria-label={ui.heatmap.openLatestPost(post.title)}>
+          <a
+            class="latest-link"
+            href={post.href}
+            aria-label={ui.heatmap.openLatestPost(post.title)}
+          >
             <em>{post.title}</em>
             <time datetime={post.date.toISOString()}>{formatDate.format(post.date)}</time>
             <span class="latest-icon" aria-hidden="true">

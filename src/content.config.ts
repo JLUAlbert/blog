@@ -408,7 +408,9 @@ const siteConfig = defineCollection({
         blog: blogPageSchema.optional().default(defaultPagesConfig.blog),
         projects: projectsPageSchema.optional().default(defaultPagesConfig.projects),
         vibe: vibePageSchema.optional().default(defaultPagesConfig.vibe),
-        movie: shelfPageSchema(defaultPagesConfig.movie).optional().default(defaultPagesConfig.movie),
+        movie: shelfPageSchema(defaultPagesConfig.movie)
+          .optional()
+          .default(defaultPagesConfig.movie),
       })
       .optional()
       .default(defaultPagesConfig),
