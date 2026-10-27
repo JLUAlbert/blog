@@ -11,9 +11,11 @@ interface Props {
   kicker: string;
   items: MediaShelfItem[];
   empty: string;
+  variant?: 'shelf' | 'inline';
+  countLabel?: string;
 }
 
-const { pageMeta, kicker, items, empty } = Astro.props;
+const { pageMeta, kicker, items, empty, variant = 'shelf', countLabel = 'items' } = Astro.props;
 const siteConfig = await getSiteConfig();
 const { site, theme } = siteConfig;
 const palette = theme.palette;
@@ -100,11 +102,11 @@ const htmlLang = getHtmlLang(siteConfig);
         <p class="shelf-note">{pageMeta.note}</p>
       </header>
       <div class="shelf-heading">
-        <span class="shelf-count">{items.length} 部</span>
+        <span class="shelf-count">{items.length} {countLabel}</span>
       </div>
       {
         items.length ? (
-          <MediaShelf columns={4} items={items} />
+          <MediaShelf variant={variant} columns={4} items={items} />
         ) : (
           <p class="shelf-empty">{empty}</p>
         )

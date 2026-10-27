@@ -5,6 +5,8 @@ translator: "王钟欣 / 余茜"
 publisher: "四川少年儿童出版社"
 year: 2002
 pages: 210
+cover: "./covers/xiao-gou-qian-qian.jpg"
+coverAspect: "portrait"
 status: "completed"
 completedAt: 2021-05-20
 rating: 4

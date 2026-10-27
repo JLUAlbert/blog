@@ -5,6 +5,8 @@ translator: "萧明"
 publisher: "南海出版公司"
 year: 2011
 pages: 260
+cover: "./covers/fu-ba-ba-qiong-ba-ba.jpg"
+coverAspect: "portrait"
 status: "completed"
 completedAt: 2021-08-14
 rating: 4

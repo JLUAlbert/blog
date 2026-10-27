@@ -1,11 +1,11 @@
 {
-  "name": "navfolio",
-  "short_name": "navfolio",
-  "description": "A personal navigation portfolio starter built with Astro.",
+  "name": "Albert's Blog",
+  "short_name": "Albert's Blog",
+  "description": "Albert's Blog — a garden of thought.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#3f5348",
   "icons": [
     {
       "src": "/android-icon-36x36.png",

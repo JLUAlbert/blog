@@ -4,6 +4,8 @@ author: "吴毅"
 publisher: "生活·读书·新知三联书店"
 year: 2007
 pages: 556
+cover: "./covers/xiao-zhen-xuan-xiao.jpg"
+coverAspect: "portrait"
 status: "completed"
 completedAt: 2025-02-11
 rating: 4.5

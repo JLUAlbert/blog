@@ -45,11 +45,11 @@ en = "Maple Mono"
 # 代码字体。✅ 保留（Monaco 是系统经典等宽字体）
 code = "Monaco"
 
-# 中文正文字体。模板内可直接选：ChillRoundM、LXGW WenKai。✏️ 建议：ChillRoundM 偏圆润可爱，LXGW WenKai 偏手写宋体，按喜好选
-zh = "ChillRoundM"
+# 中文正文字体。开源仿宋字体：朱雀仿宋（TrionesType/zhuque, SIL OFL 1.1）
+zh = "Zhuque Fangsong"
 
 # 中文完整字体文件路径。✅ 保留（与上面的 zh 字体对应；切换字体时记得同步改这个路径）
-file = "/fonts/ChillRoundM.ttf"
+file = "/fonts/ZhuqueFangsong-Regular.ttf"
 
 # ============================================================
 # [config.code] —— 代码块渲染

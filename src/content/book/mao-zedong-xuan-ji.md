@@ -3,6 +3,8 @@ title: "毛泽东选集"
 author: "毛泽东"
 publisher: "人民出版社"
 year: 1991
+cover: "./covers/mao-zedong-xuan-ji.jpg"
+coverAspect: "portrait"
 status: "completed"
 completedAt: 2024-10-05
 rating: 4.5

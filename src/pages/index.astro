@@ -32,6 +32,7 @@ const { home, profile, site } = await getSiteConfig();
         startDate={home.latest.startDate || null}
         dateArchiveBaseHref={home.latest.dateArchiveBaseHref || undefined}
       />
+      <RandomPicks />
     </Fragment>
 
     <Fragment slot="navigation">
@@ -40,10 +41,6 @@ const { home, profile, site } = await getSiteConfig();
 
     <Fragment slot="connect">
       <ConnectCard links={home.links} />
-    </Fragment>
-
-    <Fragment slot="doing">
-      <RandomPicks />
     </Fragment>
   </DashboardFlow>
 </BaseLayout>

@@ -4,6 +4,8 @@ author: "杨素秋"
 publisher: "上海译文出版社"
 year: 2024
 pages: 320
+cover: "./covers/shi-shang-wei-shen-me-yao-you-tu-shu-guan.jpg"
+coverAspect: "portrait"
 status: "completed"
 completedAt: 2025-04-18
 rating: 4.5

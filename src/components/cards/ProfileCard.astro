@@ -14,16 +14,6 @@ const { profile } = Astro.props as { profile: Profile };
 ---
 
 <article class="profile-card">
-  <div class="avatar-wrap">
-    <img
-      src={profile.avatar}
-      alt={`${profile.name} GitHub avatar`}
-      width="176"
-      height="176"
-      loading="eager"
-    />
-  </div>
-
   <div class="profile-heading">
     <h1>{profile.name}</h1>
     <p>{profile.handle}</p>

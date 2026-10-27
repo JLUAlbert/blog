@@ -11,7 +11,7 @@ function shuffle<T>(items: T[]): T[] {
   return pool;
 }
 
-function excerpt(text: string, maxLength = 46) {
+function excerpt(text: string, maxLength = 60) {
   const plain = text
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/[#>*`_\-\[\]()!]/g, '')
@@ -29,145 +29,162 @@ const pickedPosts = shuffle(posts).slice(0, 3);
 const pickedVibe = shuffle(vibes)[0];
 const pickedBook = shuffle(books)[0];
 const pickedMovie = shuffle(movies)[0];
+
+const formatDate = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  day: 'numeric',
+});
 ---
 
-<article class="glass-card doing-card random-picks">
-  <h2><Icon name="sparkle" /> Random Picks</h2>
-
-  <ul>
-    {
-      pickedPosts.map((post) => (
-        <li>
-          <a class="pick-link" href={`/blog/${post.id}/`}>
-            <span class="pick-kind">Blog</span>
-            <span class="pick-title">{post.data.title}</span>
+<article class="glass-card picks-card" aria-label="Random picks">
+  <aside class="picks-tip">
+    <strong>Random Picks</strong>
+    <div class="picks-list">
+      {
+        pickedPosts.map((post) => (
+          <a class="pick-link" href={`/blog/${post.id}/`} aria-label={`Read ${post.data.title}`}>
+            <em>{post.data.title}</em>
+            <time datetime={post.data.date?.toISOString?.() ?? undefined}>
+              {post.data.date ? formatDate.format(post.data.date) : 'Blog'}
+            </time>
+            <span class="pick-icon" aria-hidden="true">
+              <Icon name="external" size={15} />
+            </span>
           </a>
-        </li>
-      ))
-    }
-    {
-      pickedVibe && (
-        <li>
-          <a class="pick-link" href="/vibe">
-            <span class="pick-kind">Vibe</span>
-            <span class="pick-title">
+        ))
+      }
+      {
+        pickedVibe && (
+          <a class="pick-link" href="/vibe" aria-label={`Open vibe ${pickedVibe.data.title}`}>
+            <em>
               {pickedVibe.data.title}
               {pickedVibe.body && <span class="pick-note"> — {excerpt(pickedVibe.body)}</span>}
+            </em>
+            <time>Vibe</time>
+            <span class="pick-icon" aria-hidden="true">
+              <Icon name="external" size={15} />
             </span>
           </a>
-        </li>
-      )
-    }
-    {
-      pickedMovie && (
-        <li>
-          <a class="pick-link" href="/movie">
-            <span class="pick-kind">Movie</span>
-            <span class="pick-title">
+        )
+      }
+      {
+        pickedMovie && (
+          <a class="pick-link" href="/movie" aria-label={`Open movie ${pickedMovie.data.title}`}>
+            <em>
               {pickedMovie.data.title}
               {pickedMovie.data.creator && (
-                <span class="pick-note"> · {pickedMovie.data.creator}</span>
+                <span class="pick-note"> — {pickedMovie.data.creator}</span>
               )}
+            </em>
+            <time>Movie</time>
+            <span class="pick-icon" aria-hidden="true">
+              <Icon name="external" size={15} />
             </span>
           </a>
-        </li>
-      )
-    }
-    {
-      pickedBook && (
-        <li>
-          <a class="pick-link" href="/book">
-            <span class="pick-kind">Book</span>
-            <span class="pick-title">
+        )
+      }
+      {
+        pickedBook && (
+          <a class="pick-link" href={`/book/${pickedBook.id}/`} aria-label={`Open book ${pickedBook.data.title}`}>
+            <em>
               {pickedBook.data.title}
-              {pickedBook.data.author && <span class="pick-note"> · {pickedBook.data.author}</span>}
+              {pickedBook.data.author && <span class="pick-note"> — {pickedBook.data.author}</span>}
+            </em>
+            <time>Book</time>
+            <span class="pick-icon" aria-hidden="true">
+              <Icon name="external" size={15} />
             </span>
           </a>
-        </li>
-      )
-    }
-  </ul>
+        )
+      }
+    </div>
+  </aside>
 </article>
 
 <style>
-  .random-picks {
-    padding: 24px 0 0;
+  .picks-card {
+    padding: 18px 0;
     border-color: transparent;
     background: transparent;
     box-shadow: none;
   }
 
-  .random-picks:hover {
+  .picks-card:hover {
     border-color: transparent;
     box-shadow: none;
     transform: none;
   }
 
-  h2 {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0 0 16px;
-    color: var(--paper-ink);
-    font-size: 1.06rem;
-  }
-
-  h2 :global(svg) {
-    width: 21px;
-    height: 21px;
-    color: var(--paper-accent);
-  }
-
-  ul {
+  .picks-tip {
     display: grid;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+    gap: 6px;
+    padding: 10px 11px;
+    border: 1px solid var(--paper-line);
+    border-radius: 7px;
+    background: var(--paper-surface-muted);
   }
 
-  li {
-    position: relative;
-    padding: 13px 0 13px 18px;
-    border-top: 1px solid var(--paper-line);
-    color: var(--paper-ink);
-    font-size: 0.98rem;
+  .picks-tip strong {
+    color: var(--paper-accent);
+    font-size: 0.7rem;
+    line-height: 1.15;
   }
 
-  li::before {
-    position: absolute;
-    left: 0;
-    top: 22px;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--paper-accent);
-    content: '';
+  .picks-list {
+    display: grid;
+    gap: 4px;
   }
 
   .pick-link {
-    display: block;
-    color: var(--paper-ink);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content 24px;
+    align-items: center;
+    min-width: 0;
+    gap: 8px;
+    color: inherit;
     text-decoration: none;
-    line-height: 1.6;
   }
 
-  .pick-link:hover .pick-title {
-    color: var(--paper-accent);
+  .pick-link em {
+    overflow: hidden;
+    color: var(--paper-ink);
+    font-size: 0.8rem;
+    font-style: normal;
+    font-weight: 650;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .pick-kind {
-    margin-right: 8px;
+  .pick-link:hover em {
     color: var(--paper-accent);
-    font-family: var(--font-ui-label);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   .pick-note {
     color: var(--paper-ink-soft);
-    font-size: 0.9rem;
+    font-weight: 400;
+  }
+
+  .pick-link time {
+    color: var(--paper-ink-soft);
+    font-size: 0.68rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .pick-icon {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    color: var(--paper-accent);
+    transition:
+      background 180ms ease,
+      color 180ms ease;
+  }
+
+  .pick-link:hover .pick-icon {
+    background: var(--paper-accent-soft);
   }
 </style>

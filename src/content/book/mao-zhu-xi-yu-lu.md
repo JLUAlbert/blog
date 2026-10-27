@@ -3,6 +3,8 @@ title: "毛主席语录"
 author: "毛泽东"
 publisher: "人民出版社"
 year: 1964
+cover: "./covers/mao-zhu-xi-yu-lu.jpg"
+coverAspect: "portrait"
 status: "completed"
 completedAt: 2024-12-30
 rating: 3.5
