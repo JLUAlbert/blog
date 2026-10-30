@@ -186,7 +186,7 @@ const homeLinkSchema = z.object({
 const defaultPagesConfig = {
   blog: {
     title: 'Writing notes',
-    kicker: 'Notebook archive',
+    kicker: '',
     subtitle: 'Notes from the margins.',
     note: 'Field notes, drafts, and technical margins arranged for slow browsing.',
     postsPerPage: 6,
@@ -208,7 +208,7 @@ const defaultPagesConfig = {
   },
   projects: {
     title: 'Projects',
-    kicker: 'Project shelf',
+    kicker: '',
     subtitle: 'Small tools and site systems.',
     note: 'A compact shelf for implementation choices, releases, and publishing experiments.',
   },

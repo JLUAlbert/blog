@@ -91,6 +91,10 @@ const busuanziIntegration = {
 // 色盘背景：把调色盘 CSS 与循环切换脚本注入到每个页面的 <head>，
 // 不依赖某个布局组件，保证文章页/列表页/详情页都跟随色盘改变背景。
 const paletteCss = fs.readFileSync(new URL('./src/styles/palette-bg.css', import.meta.url), 'utf8');
+// 顺带隐藏被清空的 kicker / subtitle 残留空元素（Notebook archive 等已置空）。
+const siteFixesCss =
+  '\n[class*="kicker"]:empty,[class*="subtitle"]:empty{display:none!important;}';
+const paletteRuntimeCss = paletteCss + siteFixesCss;
 const paletteIntegration = {
   name: 'navfolio-palette-backgrounds',
   hooks: {
@@ -103,13 +107,15 @@ const paletteIntegration = {
   const paletteParam = params.get('palette');
   const themeParam = params.get('theme');
   if (themeParam === 'dark' || themeParam === 'light') root.dataset.theme = themeParam;
-  const css = ${JSON.stringify(paletteCss)};
-  if (css && !document.getElementById('palette-backgrounds')) {
-    const style = document.createElement('style');
-    style.id = 'palette-backgrounds';
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
+  const css = ${JSON.stringify(paletteRuntimeCss)};
+  const ensurePaletteStyle = () => {
+    if (css && !document.getElementById('palette-backgrounds')) {
+      const style = document.createElement('style');
+      style.id = 'palette-backgrounds';
+      style.textContent = css;
+      document.head.appendChild(style);
+    }
+  };
   const storageKey = 'navfolio-palette';
   const palettes = ['green-soft', 'green-vivid', 'rose-soft', 'pink-soft', 'purple-soft', 'blue-soft', 'orange-soft', 'brown-soft'];
   const stored = () => {
@@ -136,6 +142,7 @@ const paletteIntegration = {
     }
   };
   const init = () => {
+    ensurePaletteStyle();
     apply(preferred());
     syncButtons();
   };

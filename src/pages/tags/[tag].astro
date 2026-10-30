@@ -41,6 +41,7 @@ const palette = theme.palette;
 const pageMeta = pages.blog;
 const { tag, page } = Astro.props;
 const ui = getUiText(siteConfig);
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
 <!doctype html>
@@ -64,7 +65,7 @@ const ui = getUiText(siteConfig);
   <body>
     <BlogTopNav />
     <main data-pagefind-body>
-      <BackLink href="/blog/" label={ui.groups.back} />
+      <BackLink href={`${basePath}/blog/`} label={ui.groups.back} />
       <BlogArchive
         page={page}
         headerKicker={ui.groups.tag}

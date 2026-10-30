@@ -36,6 +36,10 @@ type HeatmapStartDate = Date | string | null | undefined;
 const DAYS_IN_WEEK = 7;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
+// Respect the configured `base` (e.g. "/blog" on GitHub Pages project sites)
+// so recent/heatmap post links resolve correctly on every deploy target.
+const BASE = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+
 export function getDateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -57,7 +61,7 @@ export function getLatestPosts(posts: BlogPost[], count = 1): LatestPost[] {
     .slice(0, Math.max(1, count))
     .map((post) => ({
       title: post.data.title,
-      href: `/blog/${post.id}/`,
+      href: `${BASE}/blog/${post.id}/`,
       date: post.data.date,
     }));
 }
@@ -92,7 +96,7 @@ function getPostsByDate(posts: BlogPost[]) {
     const existingPosts = postsByDate.get(key) ?? [];
     existingPosts.push({
       title: post.data.title,
-      href: `/blog/${post.id}/`,
+      href: `${BASE}/blog/${post.id}/`,
     });
     postsByDate.set(key, existingPosts);
   }

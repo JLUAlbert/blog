@@ -117,7 +117,7 @@ maxResults = 6
 title = "Essays"
 
 # 小标题（卡片上方的小字）。✏️ 建议改
-kicker = "Notebook archive"
+kicker = ""
 
 # 副标题。✏️ 建议改
 subtitle = "Essays and notes from the margins."
@@ -177,7 +177,7 @@ note = "Connected notes that can be followed in the order they were written."
 title = "Projects"
 
 # 小标题。✏️ 建议改
-kicker = "Project shelf"
+kicker = ""
 
 # 副标题。✏️ 建议改
 subtitle = "Small tools and site systems."
@@ -196,7 +196,7 @@ title = "vibe"
 kicker = ""
 
 # 副标题。✏️ 建议改：可写 "生活与编码碎片" 之类
-subtitle = "Fragments of everyday life."
+subtitle = ""
 
 # 说明文字。✏️ 建议改
 note = "Short thoughts — not formal enough for posts, but still part of the story."
