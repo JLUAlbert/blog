@@ -13,7 +13,8 @@ sidebar:
   toc: true
   relatedPosts: true
 sticky: false
-icon: palette
+series:
+  - 摄影
 ---
 
 ## 1. 摄影风格与个人审美

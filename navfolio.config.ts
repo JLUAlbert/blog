@@ -4,7 +4,7 @@ import { markdownPlugin } from '@navfolio/plugin-markdown';
 import { defineNavfolioConfig } from './src/plugins/config';
 
 export default defineNavfolioConfig({
-  modules: [projectsModule(), vibeModule()],
+  modules: [projectsModule({ enabled: false }), vibeModule()],
   plugins: [
     markdownPlugin({
       expressiveCode: true,

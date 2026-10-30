@@ -13,7 +13,8 @@ sidebar:
   toc: true
   relatedPosts: true
 sticky: false
-icon: layers-3
+series:
+  - 摄影
 ---
 
 ## 模特手册

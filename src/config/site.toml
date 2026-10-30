@@ -170,22 +170,6 @@ subtitle = ""
 note = "Connected notes that can be followed in the order they were written."
 
 # ============================================================
-# [config.pages.projects] —— 项目页
-# ============================================================
-[config.pages.projects]
-# 项目页大标题。✏️ 建议改：暂时没有项目，可先保留；不想要整个页面可删除 🗑️
-title = "Projects"
-
-# 小标题。✏️ 建议改
-kicker = ""
-
-# 副标题。✏️ 建议改
-subtitle = "Small tools and site systems."
-
-# 说明文字。✏️ 建议改
-note = "Implementation choices, releases, and publishing experiments."
-
-# ============================================================
 # [config.pages.vibe] —— Vibe 短记录页
 # ============================================================
 [config.pages.vibe]
@@ -305,11 +289,6 @@ href = "/"
 [[config.topNav.links]]
 label = "Blog"
 href = "/blog"
-
-# 项目入口。✏️ 建议：不想显示可以删；如果你要显示，配合上面 [config.pages.projects] 改文案
-[[config.topNav.links]]
-label = "Projects"
-module = "projects"
 
 # Vibe 入口。✏️ 建议：同理，保留或删除
 [[config.topNav.links]]

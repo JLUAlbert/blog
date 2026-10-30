@@ -13,7 +13,8 @@ sidebar:
   toc: true
   relatedPosts: true
 sticky: false
-icon: sparkles
+series:
+  - 摄影
 ---
 
 ## 1. 拍摄理念
