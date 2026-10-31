@@ -45,6 +45,11 @@ jobs:
       - name: Build site
         run: npm run build
 
+      # Cloudflare Pages 用 Direct Upload 时，_worker.js 必须放在 dist/ 内，
+      # 否则 /publish 等 Worker 路由会 404。Astro build 会清空 dist，故在 build 后复制。
+      - name: Copy Worker into dist
+        run: cp _worker.js dist/_worker.js
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
