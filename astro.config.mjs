@@ -70,6 +70,28 @@ const resolvedBase =
     : // 其它目标（cloudflare / netlify / 本地）一律根路径 '/'
       '/';
 
+// 站内绝对路径重写：markdown 正文里的 /images/xx.png、/blog/xx 这类以 / 开头的
+// img.src / a.href，在 base 为 /blog（GitHub Pages）时会 404；这里统一补上 base。
+// 外链（http/https）与协议相对地址（//）不动。
+const basePrefix = resolvedBase.replace(/\/$/, '');
+const rewriteInternalPaths = () => (tree) => {
+  const rewrite = (node, key) => {
+    const v = node?.properties?.[key];
+    if (typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') && basePrefix) {
+      if (!v.startsWith(basePrefix + '/')) node.properties[key] = basePrefix + v;
+    }
+  };
+  const walk = (node) => {
+    if (node.type === 'element') {
+      if (node.tagName === 'img') rewrite(node, 'src');
+      if (node.tagName === 'a') rewrite(node, 'href');
+      if (node.tagName === 'source') rewrite(node, 'srcset');
+    }
+    (node.children || []).forEach(walk);
+  };
+  walk(tree);
+};
+
 // 不蒜子访问统计：每个页面加载统计脚本，并把访问量/访客数追加到页脚
 const busuanziIntegration = {
   name: 'busuanzi-analytics',
@@ -188,7 +210,7 @@ export default defineConfig({
   base: resolvedBase,
   markdown: {
     remarkPlugins: astroPluginConfig.remarkPlugins,
-    rehypePlugins: astroPluginConfig.rehypePlugins,
+    rehypePlugins: [...astroPluginConfig.rehypePlugins, rewriteInternalPaths],
   },
   integrations: [
     ...astroPluginConfig.integrations,

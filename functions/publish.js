@@ -54,34 +54,39 @@ export function slugify(desired) {
   return s;
 }
 
+// 北京时间当天日期 YYYY-MM-DD（Worker 运行在 UTC，手动偏移 +8 小时）
+function todayCn() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+// 默认 slug：日期前缀，避免纯中文 URL（纯中文在部分 CDN/GitHub 上有编码兼容问题）
 function defaultSlug(title) {
-  const d = new Date().toISOString().slice(0, 10);
+  const d = todayCn();
   const t = slugify(title);
   if (!/[a-z0-9]/.test(t)) return `${d}-${Math.random().toString(36).slice(2, 6)}`;
   return `${d}-${t}`;
 }
 
-// 当前时刻的完整 ISO 时间戳（含时分秒 + 时区），留空日期时使用，精确到“发布那刻”
+// 当前时刻的完整 ISO 时间戳（北京时间 UTC+8），留空日期时使用，精确到“发布那刻”
+// 注意：Cloudflare Worker 运行在 UTC，需手动偏移到 +08:00
 function nowIso() {
-  const d = new Date();
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
   const pad = (n) => String(n).padStart(2, '0');
-  const offset = -d.getTimezoneOffset();
-  const sign = offset >= 0 ? '+' : '-';
-  const abs = Math.abs(offset);
-  const tz = sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);
   return (
-    d.getFullYear() +
+    d.getUTCFullYear() +
     '-' +
-    pad(d.getMonth() + 1) +
+    pad(d.getUTCMonth() + 1) +
     '-' +
-    pad(d.getDate()) +
+    pad(d.getUTCDate()) +
     'T' +
-    pad(d.getHours()) +
+    pad(d.getUTCHours()) +
     ':' +
-    pad(d.getMinutes()) +
+    pad(d.getUTCMinutes()) +
     ':' +
-    pad(d.getSeconds()) +
-    tz
+    pad(d.getUTCSeconds()) +
+    '+08:00'
   );
 }
 
@@ -234,7 +239,7 @@ export async function onRequestPost(context) {
 
   let sha = await getSha(owner, repo, branch, filePath, token);
   if (sha && !form.get('overwrite')) {
-    // slug 撞名：追加日期后缀，避免覆盖既有文章
+    // 已存在同名文章：加随机短码避免覆盖（同一天同标题也能区分）
     slug = `${slug}-${new Date().toISOString().slice(0, 10)}`;
   }
   const finalPath = `src/content/blog/${slug}.md`;
@@ -435,6 +440,7 @@ const FORM_HTML = `<!doctype html>
     let unlockTimer = null;
     let lastTried = '';
     const KEY = 'abp_unlocked';
+    const PW_KEY = 'abp_pw';
 
     async function unlock(pw) {
       pw = (pw || '').trim();
@@ -453,6 +459,7 @@ const FORM_HTML = `<!doctype html>
           passcode = pw;
           pwField.value = pw;
           sessionStorage.setItem(KEY, '1');
+          sessionStorage.setItem(PW_KEY, pw); // 刷新后可恢复口令，避免直接进表单却发不了
           gate.classList.add('hidden');
           studio.classList.add('show');
           setTimeout(() => document.querySelector('input[name=title]').focus(), 420);
@@ -468,6 +475,7 @@ const FORM_HTML = `<!doctype html>
 
     function relockNow() {
       sessionStorage.removeItem(KEY);
+      sessionStorage.removeItem(PW_KEY);
       gate.classList.remove('hidden');
       studio.classList.remove('show');
       gateInput.value = '';
@@ -497,8 +505,11 @@ const FORM_HTML = `<!doctype html>
 
     relock.addEventListener('click', relockNow);
 
-    // 若本会话已解锁则直接进入
+    // 若本会话已解锁则直接进入（恢复口令，刷新后也能正常发布）
     if (sessionStorage.getItem(KEY) === '1') {
+      const savedPw = sessionStorage.getItem(PW_KEY) || '';
+      passcode = savedPw;
+      pwField.value = savedPw;
       gate.classList.add('hidden');
       studio.classList.add('show');
     }
