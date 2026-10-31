@@ -3,11 +3,13 @@
 // 其它路径原样回退到静态资产。
 //
 // 环境变量：GH_TOKEN / PUBLISH_PASSWORD / GH_OWNER / GH_REPO / GH_BRANCH
+// 口令优先读环境变量 PUBLISH_PASSWORD；未设置时回退到下方默认值。
 
 const API = 'https://api.github.com';
 const ownerOf = (env) => env.GH_OWNER || 'JLUAlbert';
 const repoOf = (env) => env.GH_REPO || 'blog';
 const branchOf = (env) => env.GH_BRANCH || 'main';
+const passwordOf = (env) => env.PUBLISH_PASSWORD || 'chensq0620';
 
 function quoteScalar(v) {
   if (typeof v === 'boolean' || typeof v === 'number') return String(v);
@@ -23,17 +25,25 @@ function quoteListItem(v) {
     /[:#[\]{}',&*!?|>%@`"]/.test(s) ||
     /^\s|\s$/.test(s) ||
     /^-?\d/.test(s) ||
-    s === 'true' || s === 'false' || s === 'null' || s === '~';
+    s === 'true' ||
+    s === 'false' ||
+    s === 'null' ||
+    s === '~';
   return needs ? "'" + s.replace(/'/g, "''") + "'" : s;
 }
 
 function normalizeTags(v) {
   if (Array.isArray(v)) return v.map((s) => String(s).trim()).filter(Boolean);
-  return String(v == null ? '' : v).split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+  return String(v == null ? '' : v)
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function slugify(desired) {
-  let s = String(desired || '').trim().toLowerCase();
+  let s = String(desired || '')
+    .trim()
+    .toLowerCase();
   s = s.replace(/[^a-z0-9一-鿿_-]+/g, '-').replace(/^-+|-+$/g, '');
   return s;
 }
@@ -49,11 +59,36 @@ function defaultSlug(title) {
   return `${d}-${t}`;
 }
 
+// 当前时刻的完整 ISO 时间戳（含时分秒 + 时区），留空日期时使用，精确到“发布那刻”
+function nowIso() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const offset = -d.getTimezoneOffset(); // 分钟
+  const sign = offset >= 0 ? '+' : '-';
+  const abs = Math.abs(offset);
+  const tz = sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);
+  return (
+    d.getFullYear() +
+    '-' +
+    pad(d.getMonth() + 1) +
+    '-' +
+    pad(d.getDate()) +
+    'T' +
+    pad(d.getHours()) +
+    ':' +
+    pad(d.getMinutes()) +
+    ':' +
+    pad(d.getSeconds()) +
+    tz
+  );
+}
+
 function buildFrontmatter({ title, description, date, tags, series, draft }) {
   const lines = [];
   lines.push('title: ' + quoteScalar(title || 'Untitled'));
   lines.push('description: ' + quoteScalar(description || title || ''));
-  lines.push('date: ' + quoteScalar(date || new Date().toISOString().slice(0, 10)));
+  // 日期留空 → 自动取发布时刻（精确到秒）；否则用用户填写的值
+  lines.push('date: ' + quoteScalar((date || '').toString().trim() || nowIso()));
   const tagArr = normalizeTags(tags);
   if (tagArr.length) lines.push('tags:', ...tagArr.map((t) => '  - ' + quoteListItem(t)));
   const seriesArr = normalizeTags(series);
@@ -75,12 +110,18 @@ async function gh(path, { method = 'GET', body, token } = {}) {
   });
   const text = await res.text();
   let json;
-  try { json = JSON.parse(text); } catch { json = { message: text }; }
+  try {
+    json = JSON.parse(text);
+  } catch {
+    json = { message: text };
+  }
   return { ok: res.ok, status: res.status, json };
 }
 
 async function getSha(owner, repo, branch, path, token) {
-  const r = await gh(`/repos/${owner}/${repo}/contents/${encodeURI(path)}?ref=${branch}`, { token });
+  const r = await gh(`/repos/${owner}/${repo}/contents/${encodeURI(path)}?ref=${branch}`, {
+    token,
+  });
   return r.ok && r.json.sha ? r.json.sha : null;
 }
 
@@ -118,7 +159,7 @@ function json(obj, status = 200) {
 
 async function handlePublish(request, env) {
   const token = env.GH_TOKEN;
-  const password = env.PUBLISH_PASSWORD;
+  const password = passwordOf(env);
   if (!token) return json({ error: '服务端未配置 GH_TOKEN' }, 500);
 
   if (request.method === 'GET') {
@@ -128,7 +169,11 @@ async function handlePublish(request, env) {
   if (request.method !== 'POST') return json({ error: '方法不支持' }, 405);
 
   let form;
-  try { form = await request.formData(); } catch { return json({ error: '表单解析失败' }, 400); }
+  try {
+    form = await request.formData();
+  } catch {
+    return json({ error: '表单解析失败' }, 400);
+  }
 
   const pw = form.get('password') || '';
   if (!password || pw !== password) return json({ error: '口令错误', ok: false }, 401);
@@ -158,7 +203,16 @@ async function handlePublish(request, env) {
     const imgName = `${slug}.${ext || 'png'}`;
     const imgPath = `public/images/${imgName}`;
     const imgSha = await getSha(owner, repo, branch, imgPath, token);
-    const ir = await commit(owner, repo, branch, imgPath, bytesToBase64(buf), `add image ${imgName}`, token, imgSha);
+    const ir = await commit(
+      owner,
+      repo,
+      branch,
+      imgPath,
+      bytesToBase64(buf),
+      `add image ${imgName}`,
+      token,
+      imgSha,
+    );
     if (!ir.ok) return json({ error: '图片上传失败: ' + (ir.json.message || ir.status) }, 500);
     content = `![${title}](/images/${imgName})\n\n` + content;
   }
@@ -172,7 +226,16 @@ async function handlePublish(request, env) {
   }
   const finalPath = `src/content/blog/${slug}.md`;
   sha = await getSha(owner, repo, branch, finalPath, token);
-  const r = await commit(owner, repo, branch, finalPath, toBase64(fileContent), `publish: ${title}`, token, sha);
+  const r = await commit(
+    owner,
+    repo,
+    branch,
+    finalPath,
+    toBase64(fileContent),
+    `publish: ${title}`,
+    token,
+    sha,
+  );
   if (!r.ok) return json({ error: '提交失败: ' + (r.json.message || r.status) }, 500);
 
   return json({
@@ -240,10 +303,11 @@ const FORM_HTML = `<!doctype html>
       <div>
         <label>日期</label>
         <input type="date" name="date" />
+        <div class="hint">留空 = 自动用发布这一刻（精确到秒）</div>
       </div>
       <div>
         <label>系列 / 笔记</label>
-        <input type="text" name="series" list="series-list" placeholder="财富自由" />
+        <input type="text" name="series" list="series-list" placeholder="留空 = 独立博客" />
         <datalist id="series-list">
           <option value="财富自由"></option>
           <option value="摄影"></option>

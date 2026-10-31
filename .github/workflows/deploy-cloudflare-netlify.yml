@@ -1,0 +1,92 @@
+name: Deploy to Cloudflare Pages + Netlify
+
+# 与 deploy-pages.yml 并列运行：一次 push 到 main，三平台同时上线。
+# 前置条件（在 GitHub 仓库 Settings → Secrets and variables → Actions 里配置）：
+#   CLOUDFLARE_API_TOKEN  — Cloudflare API Token（需 Pages:Edit 权限）
+#   CLOUDFLARE_ACCOUNT_ID — Cloudflare 账户 ID（dash.cloudflare.com 右侧可见）
+#   CLOUDFLARE_PROJECT   — Pages 项目名，默认 jlualbert-blog
+#   NETLIFY_AUTH_TOKEN   — Netlify Personal access token
+#   NETLIFY_SITE_ID      — Netlify 站点 ID（Site settings → General → API ID）
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-cf-netlify
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: '0'
+      SITE_URL: ${{ vars.SITE_URL }}
+      SITE_BASE: ${{ vars.SITE_BASE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      # 注意：这里 base 保持 '/'（Cloudflare/Netlify 是根域名部署）
+      - name: Build site
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-cf-netlify
+          path: ./dist
+          retention-days: 1
+
+  deploy-cloudflare:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-cf-netlify
+          path: ./dist
+
+      - name: Deploy to Cloudflare Pages (Direct Upload)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PROJECT || 'jlualbert-blog' }}
+
+  deploy-netlify:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-cf-netlify
+          path: ./dist
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: ./dist
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: 'Deploy from GitHub Actions'
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
