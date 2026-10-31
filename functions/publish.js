@@ -45,6 +45,13 @@ export function slugify(desired) {
   return s;
 }
 
+function defaultSlug(title) {
+  const d = new Date().toISOString().slice(0, 10);
+  const t = slugify(title);
+  if (!/[a-z0-9]/.test(t)) return `${d}-${Math.random().toString(36).slice(2, 6)}`;
+  return `${d}-${t}`;
+}
+
 export function buildFrontmatter({ title, description, date, tags, series, draft }) {
   const lines = [];
   lines.push('title: ' + quoteScalar(title || 'Untitled'));
@@ -143,7 +150,8 @@ export async function onRequestPost(context) {
   const series = form.get('series') || '';
   const draft = form.get('draft') === 'true' || form.get('draft') === 'on';
   let content = (form.get('content') || '').toString();
-  let slug = slugify((form.get('slug') || '').toString().trim() || title);
+  let slug = slugify((form.get('slug') || '').toString().trim());
+  if (!slug) slug = defaultSlug(title);
   if (!slug) return json({ error: '无法生成 slug' }, 400);
 
   const owner = ownerOf(env);
@@ -174,7 +182,7 @@ export async function onRequestPost(context) {
   }
   const finalPath = `src/content/blog/${slug}.md`;
   sha = await getSha(owner, repo, branch, finalPath, token);
-  const r = await commit(owner, repo, branch, finalPath, fileContent, `publish: ${title}`, token, sha);
+  const r = await commit(owner, repo, branch, finalPath, toBase64(fileContent), `publish: ${title}`, token, sha);
   if (!r.ok) return json({ error: '提交失败: ' + (r.json.message || r.status) }, 500);
 
   return json({
@@ -249,6 +257,10 @@ const FORM_HTML = `<!doctype html>
 
     <label>标签（逗号分隔）</label>
     <input type="text" name="tags" placeholder="读书, 思考" />
+
+    <label>网址别名 slug（可选，留空自动生成）</label>
+    <input type="text" name="slug" placeholder="留空 = 日期前缀自动生成" />
+    <div class="hint">只填英文/数字/连字符，例如 wealth-freedom-ch2。</div>
 
     <label>正文（Markdown）</label>
     <textarea name="content" placeholder="在这里写内容…支持 # 标题、**加粗**、- 列表 等 Markdown 语法"></textarea>

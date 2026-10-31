@@ -35,3 +35,4 @@ public/friend-circle.json
 .trakt-token.json
 scripts/.trakt-cache.json
 scripts/.trakt-report.txt
+.wrangler/
