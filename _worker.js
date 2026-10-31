@@ -243,7 +243,7 @@ async function handlePublish(request, env) {
     slug,
     path: finalPath,
     githubPages: `https://${owner}.github.io/${repo}/blog/${slug}/`,
-    cloudflare: `${env.CF_SITE_URL || 'https://jlualbert-blog-bu1.pages.dev'}/blog/${slug}/`,
+    cloudflare: `${env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev'}/blog/${slug}/`,
     netlify: `${env.NETLIFY_SITE_URL || 'https://jlualbert-blog.netlify.app'}/blog/${slug}/`,
   });
 }
