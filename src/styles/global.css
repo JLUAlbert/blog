@@ -1,2 +1,40 @@
 @import './fonts.css';
 @import 'katex/dist/katex.min.css';
+
+/* ===== 页面切换过渡动画（ClientRouter / View Transitions API） =====
+   全站导航（movie ↔ blog ↔ vibe ↔ 文章 ↔ 首页）都套用优雅的淡入 + 轻微上移，
+   新页淡入、旧页淡出并轻微下沉，轻盈不抢戏。 */
+::view-transition-old(root) {
+  animation: page-out 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+::view-transition-new(root) {
+  animation: page-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes page-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 为文章正文/列表主容器增加轻微入场，让内容层与页面层错开，更有层次 */
+@keyframes content-soft-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 尊重「减少动态效果」的系统偏好 */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
