@@ -432,6 +432,8 @@ const FORM_HTML = `<!doctype html>
     const progressLabel = document.getElementById('progress-label');
 
     let passcode = '';
+    let unlocking = false;
+    let unlockTimer = null;
     const KEY = 'abp_unlocked';
 
     async function unlock(pw) {
@@ -472,9 +474,7 @@ const FORM_HTML = `<!doctype html>
     }
 
     // 输入即自动解锁：防抖 + 忽略 IME 组合中间态，避免发送未完成/重复值
-    let unlockTimer = null;
-    let unlocking = false;
-    gateInput.addEventListener('input', () => {
+    gateInput.addEventListener('input', (e) => {
       // 中文输入法组合（composition）期间不触发，等组合结束后再判断
       if (e && e.isComposing) return;
       const v = gateInput.value.trim();
