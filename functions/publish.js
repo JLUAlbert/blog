@@ -251,8 +251,8 @@ export async function onRequestPost(context) {
     slug,
     path: finalPath,
     githubPages: `https://${owner}.github.io/${repo}/blog/${slug}/`,
-    cloudflare: `https://jlualbert-blog.pages.dev/blog/${slug}/`,
-    netlify: `https://jlualbert-blog.netlify.app/blog/${slug}/`,
+    cloudflare: `${env.CF_SITE_URL || 'https://jlualbert-blog-bu1.pages.dev'}/blog/${slug}/`,
+    netlify: `${env.NETLIFY_SITE_URL || 'https://jlualbert-blog.netlify.app'}/blog/${slug}/`,
   });
 }
 
