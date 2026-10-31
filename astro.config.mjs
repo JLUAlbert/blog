@@ -40,7 +40,9 @@ const normalizeSiteUrl = (value) => {
 
 const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
 const customSite = process.env.SITE_URL;
-const customBase = process.env.SITE_BASE;
+// 部署目标标记：'github-pages' 用 /blog，其它（cloudflare/netlify/本地）默认根 '/'
+// 用非路径字符串做标记，避免被本地运行时劫持路径型环境变量
+const deployTarget = process.env.DEPLOY_TARGET;
 const repositoryOwner = process.env.GITHUB_REPOSITORY_OWNER;
 const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')[1];
 const isProjectPage =
@@ -60,7 +62,13 @@ const resolvedSite =
   'https://example.com';
 
 const resolvedBase =
-  customBase || (isGitHubActions && isProjectPage && repositoryName ? `/${repositoryName}` : '/');
+  // 显式指定部署目标为 github-pages 时，用仓库名做 base
+  deployTarget === 'github-pages'
+    ? isProjectPage && repositoryName
+      ? `/${repositoryName}`
+      : '/'
+    : // 其它目标（cloudflare / netlify / 本地）一律根路径 '/'
+      '/';
 
 // 不蒜子访问统计：每个页面加载统计脚本，并把访问量/访客数追加到页脚
 const busuanziIntegration = {

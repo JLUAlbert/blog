@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HUSKY: '0'
+      # 显式标记部署目标，让 base 正确推导为 /blog
+      DEPLOY_TARGET: github-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v7

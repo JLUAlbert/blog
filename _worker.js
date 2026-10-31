@@ -434,10 +434,15 @@ const FORM_HTML = `<!doctype html>
     let passcode = '';
     let unlocking = false;
     let unlockTimer = null;
+    let lastTried = '';
     const KEY = 'abp_unlocked';
 
     async function unlock(pw) {
+      pw = (pw || '').trim();
+      if (!pw) return;
       if (unlocking) return;
+      if (pw === lastTried) return; // 同一个值不重复请求
+      lastTried = pw;
       unlocking = true;
       try {
         const fd = new FormData();
@@ -454,11 +459,9 @@ const FORM_HTML = `<!doctype html>
           setTimeout(() => document.querySelector('input[name=title]').focus(), 420);
         } else {
           gateInput.classList.remove('shake'); void gateInput.offsetWidth; gateInput.classList.add('shake');
-          gateInput.select();
         }
       } catch (err) {
         gateInput.classList.remove('shake'); void gateInput.offsetWidth; gateInput.classList.add('shake');
-        gateInput.select();
       } finally {
         unlocking = false;
       }
@@ -471,24 +474,26 @@ const FORM_HTML = `<!doctype html>
       gateInput.value = '';
       passcode = '';
       unlocking = false;
+      lastTried = '';
     }
 
-    // 输入即自动解锁：防抖 + 忽略 IME 组合中间态，避免发送未完成/重复值
-    gateInput.addEventListener('input', (e) => {
-      // 中文输入法组合（composition）期间不触发，等组合结束后再判断
-      if (e && e.isComposing) return;
+    // 即输即验：每次输入停顿 500ms 后自动验证（无需回车）
+    // 用 lastTried 去重，避免同一残缺值反复请求；失败后保留输入内容便于纠正
+    function scheduleUnlock() {
       const v = gateInput.value.trim();
       if (!v) return;
       clearTimeout(unlockTimer);
-      unlockTimer = setTimeout(() => {
-        if (!unlocking) unlock(v);
-      }, 350);
+      unlockTimer = setTimeout(() => unlock(v), 500);
+    }
+    gateInput.addEventListener('input', scheduleUnlock);
+    gateInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); unlock(gateInput.value); }
     });
-
-    // 组合输入结束（compositionend）也触发一次，兜底
-    gateInput.addEventListener('compositionend', () => {
-      const v = gateInput.value.trim();
-      if (v) { clearTimeout(unlockTimer); unlockTimer = setTimeout(() => { if (!unlocking) unlock(v); }, 200); }
+    // 手机端某些输入法不触发 input 的 change 兜底
+    gateInput.addEventListener('change', scheduleUnlock);
+    // 失焦兜底
+    gateInput.addEventListener('blur', () => {
+      if (gateInput.value.trim()) unlock(gateInput.value);
     });
 
     relock.addEventListener('click', relockNow);

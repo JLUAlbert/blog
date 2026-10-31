@@ -27,7 +27,8 @@ jobs:
     env:
       HUSKY: '0'
       SITE_URL: ${{ vars.SITE_URL }}
-      SITE_BASE: ${{ vars.SITE_BASE }}
+      # 根域名部署（Cloudflare/Netlify），base 固定为 '/'
+      DEPLOY_TARGET: cloudflare
     steps:
       - name: Checkout
         uses: actions/checkout@v7
