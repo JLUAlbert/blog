@@ -88,14 +88,23 @@ async function commit(owner, repo, branch, path, content, message, token, sha) {
   return gh(`/repos/${owner}/${repo}/contents/${encodeURI(path)}`, { method: 'PUT', body, token });
 }
 
-function toBase64(str) {
-  const bytes = new TextEncoder().encode(str);
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+function bytesToBase64(bytes) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes[i];
+    const b1 = bytes[i + 1];
+    const b2 = bytes[i + 2];
+    out += chars[b0 >> 2];
+    out += chars[((b0 & 3) << 4) | (b1 === undefined ? 0 : b1 >> 4)];
+    out += b1 === undefined ? '=' : chars[((b1 & 15) << 2) | (b2 === undefined ? 0 : b2 >> 6)];
+    out += b2 === undefined ? '=' : chars[b2 & 63];
   }
-  return btoa(binary);
+  return out;
+}
+
+function toBase64(str) {
+  return bytesToBase64(new TextEncoder().encode(str));
 }
 
 function json(obj, status = 200) {
@@ -145,16 +154,11 @@ export async function onRequestPost(context) {
   const image = form.get('image');
   if (image && typeof image === 'object' && image.size > 0) {
     const buf = new Uint8Array(await image.arrayBuffer());
-    let binary = '';
-    const chunk = 0x8000;
-    for (let i = 0; i < buf.length; i += chunk) {
-      binary += String.fromCharCode.apply(null, buf.subarray(i, i + chunk));
-    }
     const ext = (image.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
     const imgName = `${slug}.${ext || 'png'}`;
     const imgPath = `public/images/${imgName}`;
     const imgSha = await getSha(owner, repo, branch, imgPath, token);
-    const ir = await commit(owner, repo, branch, imgPath, toBase64(binary), `add image ${imgName}`, token, imgSha);
+    const ir = await commit(owner, repo, branch, imgPath, bytesToBase64(buf), `add image ${imgName}`, token, imgSha);
     if (!ir.ok) return json({ error: '图片上传失败: ' + (ir.json.message || ir.status) }, 500);
     content = `![${title}](/images/${imgName})\n\n` + content;
   }
