@@ -362,7 +362,6 @@ const FORM_HTML = `<!doctype html>
       <span class="cursor"></span>
       <input id="gate-input" type="password" placeholder="passcode" autocomplete="off" autocapitalize="off" />
     </div>
-    <div class="gate-hint">输入口令解锁 · 回车确认</div>
   </div>
 
   <!-- 发布台 -->
@@ -436,6 +435,8 @@ const FORM_HTML = `<!doctype html>
     const KEY = 'abp_unlocked';
 
     async function unlock(pw) {
+      if (unlocking) return;
+      unlocking = true;
       try {
         const fd = new FormData();
         fd.append('password', pw);
@@ -451,11 +452,13 @@ const FORM_HTML = `<!doctype html>
           setTimeout(() => document.querySelector('input[name=title]').focus(), 420);
         } else {
           gateInput.classList.remove('shake'); void gateInput.offsetWidth; gateInput.classList.add('shake');
-          gateInput.value = '';
+          gateInput.select();
         }
       } catch (err) {
         gateInput.classList.remove('shake'); void gateInput.offsetWidth; gateInput.classList.add('shake');
-        gateInput.value = '';
+        gateInput.select();
+      } finally {
+        unlocking = false;
       }
     }
 
@@ -465,15 +468,27 @@ const FORM_HTML = `<!doctype html>
       studio.classList.remove('show');
       gateInput.value = '';
       passcode = '';
+      unlocking = false;
     }
 
-    gateInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && gateInput.value.trim()) unlock(gateInput.value.trim());
+    // 输入即自动解锁：防抖 + 忽略 IME 组合中间态，避免发送未完成/重复值
+    let unlockTimer = null;
+    let unlocking = false;
+    gateInput.addEventListener('input', () => {
+      // 中文输入法组合（composition）期间不触发，等组合结束后再判断
+      if (e && e.isComposing) return;
+      const v = gateInput.value.trim();
+      if (!v) return;
+      clearTimeout(unlockTimer);
+      unlockTimer = setTimeout(() => {
+        if (!unlocking) unlock(v);
+      }, 350);
     });
 
-    // 自动检测：输入达到 10 位（chensq0620）即自动解锁
-    gateInput.addEventListener('input', () => {
-      if (gateInput.value.trim().length >= 10) unlock(gateInput.value.trim());
+    // 组合输入结束（compositionend）也触发一次，兜底
+    gateInput.addEventListener('compositionend', () => {
+      const v = gateInput.value.trim();
+      if (v) { clearTimeout(unlockTimer); unlockTimer = setTimeout(() => { if (!unlocking) unlock(v); }, 200); }
     });
 
     relock.addEventListener('click', relockNow);
