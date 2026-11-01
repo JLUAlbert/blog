@@ -780,3 +780,97 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
     }
   }
 </style>
+
+<script>
+  // Vibe 时间线逐项「遮罩上移」：承接原「文章正文逐行显现」的动效语言，
+  // 改为对 Vibe 页每个 .vibe-item 做容器裁切 + 内层上移，滚动进入时显现。
+  const initVibeMaskUp = () => {
+    const items = Array.from(document.querySelectorAll('.vibe-item'));
+    if (!items.length) return;
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    items.forEach((item) => {
+      if (item.dataset.vibeMask === '1') return;
+      item.dataset.vibeMask = '1';
+
+      // 关闭主题自带的淡入，改由遮罩上移承担入场
+      item.style.animation = 'none';
+
+      const dot = item.querySelector('.vibe-dot');
+      const mask = document.createElement('div');
+      mask.className = 'vibe-mask';
+      const inner = document.createElement('div');
+      inner.className = 'vibe-mask__inner';
+
+      Array.from(item.childNodes).forEach((node) => {
+        if (node === dot) return;
+        inner.appendChild(node);
+      });
+      mask.appendChild(inner);
+      item.appendChild(mask);
+      // 圆点保留在遮罩之外（直接挂到 item），避免被裁切隐藏
+      if (dot) item.appendChild(dot);
+    });
+
+    if (reduce) {
+      items.forEach((item) => item.classList.add('is-revealed'));
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting) {
+            en.target.classList.add('is-revealed');
+            io.unobserve(en.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -6% 0px' },
+    );
+    items.forEach((item) => io.observe(item));
+  };
+
+  document.addEventListener('astro:page-load', initVibeMaskUp);
+  initVibeMaskUp();
+
+  // Movies 书架重构：去除导演（creator），将星级（rating）移到片名正下方并居中。
+  // 配合 motion.css 中 [data-movie-shelf] 门控的「图片悬停微放大」与「星级居中」样式。
+  const initMovieShelf = () => {
+    const shelf = document.querySelector('[data-movie-shelf]');
+    if (!shelf) return;
+
+    shelf.querySelectorAll('.navfolio-media-shelf__item').forEach((item) => {
+      if (item.dataset.movieProcessed === '1') return;
+      item.dataset.movieProcessed = '1';
+
+      const content = item.querySelector('.navfolio-media-shelf__content');
+      if (!content) return;
+
+      const strong = content.querySelector('strong');
+      const meta = content.querySelector('.navfolio-media-shelf__meta');
+      const creator = content.querySelector('.navfolio-media-shelf__creator');
+      const rating = content.querySelector('.navfolio-media-shelf__rating');
+
+      // 1) 去除导演
+      if (creator) creator.remove();
+
+      // 2) 星级移到片名正下方，并打上居中标记
+      if (rating) {
+        rating.classList.add('is-rating-moved');
+        if (strong) {
+          content.insertBefore(rating, strong.nextSibling);
+        } else {
+          content.appendChild(rating);
+        }
+      }
+
+      // 3) meta 已无子节点时一并移除，避免残留空标签影响布局
+      if (meta && !meta.childElementCount) meta.remove();
+    });
+  };
+
+  document.addEventListener('astro:page-load', initMovieShelf);
+  initMovieShelf();
+</script>

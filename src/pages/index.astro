@@ -29,8 +29,10 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
     </Fragment>
 
     <Fragment slot="doing">
-      <RecentPosts count={home.latest.count} excludeDraft={home.latest.excludeDraft} />
-      <BlogUptime />
+      <div class="doing-stack">
+        <RecentPosts count={home.latest.count} excludeDraft={home.latest.excludeDraft} />
+        <BlogUptime />
+      </div>
     </Fragment>
 
     <Fragment slot="latest">
@@ -103,6 +105,7 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
             </button>
             <article class="article-content about-content">
               <AboutContent />
+              <div class="about-footer-note">© 2026 Albert's Blog. © 2026 Albert Chan</div>
             </article>
           </div>
         </div>
@@ -112,6 +115,12 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
 </BaseLayout>
 
 <style>
+  /* Recently 与「已运行」之间留出约一行间距，避免紧贴 */
+  .doing-stack {
+    display: grid;
+    gap: 24px;
+  }
+
   .about-hint {
     display: flex;
     align-items: center;

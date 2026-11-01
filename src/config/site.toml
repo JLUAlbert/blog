@@ -22,7 +22,7 @@ url = "https://jlualbert.github.io/blog"
 repository = "https://github.com/JLUAlbert/blog"
 
 # 页脚文案。
-footerNote = "© 2026 Albert Chan · Think independently. Write honestly. Learn endlessly. Live freely."
+footerNote = "© 2026 Albert Chan"
 
 # ============================================================
 # [config.theme] —— 主题色盘与 UI 语言
@@ -264,7 +264,7 @@ handle = "Albert Chan"
 role = "Writer, reader, photographer, and independent thinker."
 
 # 联系邮箱。
-email = "2454254583@qq.com"
+email = "dongmuhanchen@gmail.com"
 
 # 个人网站。🚨 必改：如果没部署可以暂时留空或改成你的 GitHub Pages
 website = "https://jlualbert.github.io/blog"
@@ -404,28 +404,7 @@ copy = false
 [[config.home.links]]
 label = "Email"
 icon = "email"
-tooltip = "2454254583@qq.com"
-copy = true
-
-# QQ。
-[[config.home.links]]
-label = "QQ"
-icon = "qq"
-tooltip = "2454254583"
-copy = true
-
-# WeChat。✏️ 建议：同上，微信号可留可隐藏
-[[config.home.links]]
-label = "WeChat"
-icon = "wechat"
-tooltip = "Iamdongmu"
-copy = true
-
-# Douyin。
-[[config.home.links]]
-label = "Douyin"
-icon = "douyin"
-tooltip = "Iamdongmu"
+tooltip = "dongmuhanchen@gmail.com"
 copy = true
 
 # “正在做的事”列表已移除：首页左侧现由“最新”文章卡片承担该位置。

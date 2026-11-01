@@ -1,7 +1,7 @@
 /* ===== 动效工具集 · 取自 web-motion-showcase 的克制动效语言 =====
-   覆盖：淡入上移 (fade-in-up)、文字逐行显现 (line-reveal)、
+   覆盖：淡入上移 (fade-in-up)、Vibe 逐项遮罩上移 (vibe-mask)、
    页面幕布转场 (page-curtain)。滑动指示器药丸与数字滚动的样式分别落在
-   BlogTopNav 与 BlogUptime 组件内；逻辑统一由 BaseLayout 的全局脚本驱动。
+   BlogTopNav 与 BlogUptime 组件内；逻辑由 BaseLayout / BlogTopNav 全局脚本驱动。
    全部默认尊重「减少动态效果」系统偏好。 */
 
 /* —— 淡入上移（backwards：结束后回落到元素自身样式，hover 等 transform 不受影响） —— */
@@ -20,26 +20,45 @@
   animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
-/* —— 文字逐行显现（容器溢出裁切 + 行内遮罩上移） ——
-   默认（未拆分）内容可见；仅当 JS 拆分后加 .is-line-split 才先隐藏再显现，
-   即便脚本未执行也不会导致标题不可见。 */
-.line-reveal__line {
-  display: block;
+/* —— Vibe 时间线逐项「遮罩上移」（承接原逐行显现的动效语言） ——
+   每个 .vibe-item 的内容被包进 .vibe-mask（溢出裁切），内层 .vibe-mask__inner
+   初始下移并透明，滚动进入视口时上移显现；圆点 (.vibe-dot) 在遮罩之外，不被裁切。 */
+.vibe-mask {
   overflow: hidden;
 }
 
-.line-reveal__inner {
-  display: block;
-}
-
-.is-line-split .line-reveal__inner {
-  transform: translateY(115%);
-  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+.vibe-mask__inner {
+  transform: translateY(44px);
+  opacity: 0;
+  transition:
+    transform 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.7s ease;
   will-change: transform;
 }
 
-.is-line-split.is-revealed .line-reveal__inner {
+.vibe-item.is-revealed .vibe-mask__inner {
   transform: translateY(0);
+  opacity: 1;
+}
+
+/* —— Movies 卡片图片 hover 微放大（容器圆角 + 溢出裁切保持不变） —— */
+[data-movie-shelf] .navfolio-media-shelf__cover img {
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-movie-shelf] .navfolio-media-shelf__item:hover .navfolio-media-shelf__cover img,
+[data-movie-shelf] .navfolio-media-shelf__item:focus-within .navfolio-media-shelf__cover img {
+  transform: scale(1.06);
+}
+
+/* Movies：星级从「与导演同行」改为片名正下方居中 */
+[data-movie-shelf] .navfolio-media-shelf__rating.is-rating-moved {
+  display: block;
+  margin-top: 5px;
+  text-align: center;
+  color: var(--paper-ink-soft);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
 }
 
 /* —— 页面幕布转场（侧滑遮挡） —— */
@@ -71,8 +90,14 @@
 
 /* —— 降级保护 —— */
 @media (prefers-reduced-motion: reduce) {
-  .line-reveal__inner {
+  .vibe-mask__inner {
     transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+
+  [data-movie-shelf] .navfolio-media-shelf__cover img {
+    transition: none !important;
   }
 
   .page-curtain {

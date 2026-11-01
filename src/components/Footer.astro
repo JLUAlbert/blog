@@ -1,8 +1,21 @@
 ---
-import ThemeFooter from '@navfolio/theme-default/components/Footer.astro';
 import { getSiteConfig } from '../data/site';
 
-const { profile, site } = await getSiteConfig();
+const { site } = await getSiteConfig();
+const year = new Date().getFullYear();
 ---
 
-<ThemeFooter site={site} profile={profile} />
+<footer class="site-footer">
+  &copy; {year}
+  {site.title}. {site.footerNote}
+</footer>
+
+<style>
+  .site-footer {
+    padding: 3em 1em 5em;
+    color: var(--paper-ink-faint);
+    font-size: 0.86rem;
+    text-align: center;
+    line-height: 1.6;
+  }
+</style>

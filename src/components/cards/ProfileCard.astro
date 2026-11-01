@@ -1,6 +1,4 @@
 ---
-import Icon from '../Icon.astro';
-
 interface Profile {
   name: string;
   handle: string;
@@ -14,9 +12,7 @@ const { profile } = Astro.props as { profile: Profile };
 
 <article class="profile-card">
   <div class="profile-heading">
-    <h1>{profile.name}</h1>
-    <p>{profile.handle}</p>
-    <span><Icon name="sparkle" /> {profile.role}</span>
+    <h1>{profile.handle}</h1>
   </div>
 </article>
 

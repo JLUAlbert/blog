@@ -305,75 +305,8 @@ const htmlLang = getHtmlLang(siteConfig);
     io.observe(root);
   }
 
-  /* ---------- 文字逐行显现 ---------- */
-  function initLineReveal() {
-    const targets = Array.from(
-      document.querySelectorAll('.article-content h2, .article-content h3, .prose h2, .prose h3'),
-    );
-    if (!targets.length) return;
-
-    if (motionReduced()) {
-      targets.forEach((el) => el.classList.add('is-revealed'));
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      targets.forEach((el) => {
-        if (el.dataset.lineSplit === '1') return;
-        el.dataset.lineSplit = '1';
-        el.classList.add('is-line-split');
-        const text = el.textContent;
-        el.textContent = '';
-        const words = text.split(/(\s+)/).filter((s) => s.trim().length);
-        const wordSpans = words.map((w) => {
-          const s = document.createElement('span');
-          s.style.display = 'inline-block';
-          s.style.whiteSpace = 'pre';
-          s.textContent = w;
-          return s;
-        });
-        wordSpans.forEach((s) => el.appendChild(s));
-
-        const lines = [];
-        let cur = null;
-        let lastTop = null;
-        wordSpans.forEach((s) => {
-          const top = s.offsetTop;
-          if (lastTop === null || Math.abs(top - lastTop) > 2) {
-            cur = [];
-            lines.push(cur);
-            lastTop = top;
-          }
-          cur.push(s);
-        });
-
-        el.textContent = '';
-        lines.forEach((lineSpans, i) => {
-          const lineEl = document.createElement('span');
-          lineEl.className = 'line-reveal__line';
-          const inner = document.createElement('span');
-          inner.className = 'line-reveal__inner';
-          lineSpans.forEach((s) => inner.appendChild(s));
-          lineEl.appendChild(inner);
-          el.appendChild(lineEl);
-          inner.style.transitionDelay = `${i * 0.08}s`;
-        });
-      });
-
-      const io = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((en) => {
-            if (en.isIntersecting) {
-              en.target.classList.add('is-revealed');
-              io.unobserve(en.target);
-            }
-          });
-        },
-        { threshold: 0.15, rootMargin: '0px 0px -8% 0px' },
-      );
-      targets.forEach((el) => io.observe(el));
-    });
-  }
+  /* ---------- 文字逐行显现：已移除（原作用于文章正文 h2/h3）---------- */
+  /* 改为 Vibe 页「逐项遮罩上移」：见 BlogTopNav 的 initVibeMaskUp。 */
 
   /* ---------- 页面幕布转场（进入文章页）---------- */
   function initCurtain() {
@@ -412,7 +345,6 @@ const htmlLang = getHtmlLang(siteConfig);
   function initMotion() {
     initSlidingTabs();
     initCountUp();
-    initLineReveal();
   }
 
   document.addEventListener('astro:page-load', initMotion);
