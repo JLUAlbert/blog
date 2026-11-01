@@ -87,16 +87,19 @@ function nowIso() {
   );
 }
 
-function buildFrontmatter({ title, description, date, tags, series, draft }) {
+function buildFrontmatter({ title, description, date, tags, series, draft, section }) {
   const lines = [];
   lines.push('title: ' + quoteScalar(title || 'Untitled'));
-  lines.push('description: ' + quoteScalar(description || title || ''));
+  // 意境(Vibe) 集合只需 title/date/tags/draft，不写 description / series
+  if (section !== 'vibe') {
+    lines.push('description: ' + quoteScalar(description || title || ''));
+    const seriesArr = normalizeTags(series);
+    if (seriesArr.length) lines.push('series:', ...seriesArr.map((t) => '  - ' + quoteListItem(t)));
+  }
   // 日期留空 → 自动取发布时刻（精确到秒）；否则用用户填写的值
   lines.push('date: ' + quoteScalar((date || '').toString().trim() || nowIso()));
   const tagArr = normalizeTags(tags);
   if (tagArr.length) lines.push('tags:', ...tagArr.map((t) => '  - ' + quoteListItem(t)));
-  const seriesArr = normalizeTags(series);
-  if (seriesArr.length) lines.push('series:', ...seriesArr.map((t) => '  - ' + quoteListItem(t)));
   lines.push('draft: ' + (draft ? 'true' : 'false'));
   return lines.join('\n');
 }
@@ -195,6 +198,7 @@ async function handlePublish(request, env) {
   const tags = form.get('tags') || '';
   const series = form.get('series') || '';
   const draft = form.get('draft') === 'true' || form.get('draft') === 'on';
+  const section = ((form.get('section') || 'blog').toString().trim().toLowerCase() === 'vibe') ? 'vibe' : 'blog';
   let content = (form.get('content') || '').toString();
   let slug = slugify((form.get('slug') || '').toString().trim());
   if (!slug) slug = defaultSlug(title);
@@ -226,15 +230,15 @@ async function handlePublish(request, env) {
     content = `![${title}](/images/${imgName})\n\n` + content;
   }
 
-  const fm = buildFrontmatter({ title, description, date, tags, series, draft });
+  const fm = buildFrontmatter({ title, description, date, tags, series, draft, section });
   const fileContent = `---\n${fm}\n---\n\n${content}\n`;
 
-  let sha = await getSha(owner, repo, branch, `src/content/blog/${slug}.md`, token);
+  let sha = await getSha(owner, repo, branch, `src/content/${section}/${slug}.md`, token);
   if (sha && !form.get('overwrite')) {
     // 已存在同名文章：加随机短码避免覆盖（同一天同标题也能区分）
     slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
   }
-  const finalPath = `src/content/blog/${slug}.md`;
+  const finalPath = `src/content/${section}/${slug}.md`;
   sha = await getSha(owner, repo, branch, finalPath, token);
   const r = await commit(
     owner,
@@ -248,12 +252,19 @@ async function handlePublish(request, env) {
   );
   if (!r.ok) return json({ error: '提交失败: ' + (r.json.message || r.status) }, 500);
 
+  const baseGh = `https://${owner}.github.io/${repo}`;
+  const baseCf = env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev';
+  // 意境(Vibe) 没有独立详情页，只渲染在 /vibe 时间线；博客则有独立文章页
+  const links =
+    section === 'vibe'
+      ? { githubPages: `${baseGh}/vibe/`, cloudflare: `${baseCf}/vibe/` }
+      : { githubPages: `${baseGh}/blog/${slug}/`, cloudflare: `${baseCf}/blog/${slug}/` };
   return json({
     ok: true,
     slug,
     path: finalPath,
-    githubPages: `https://${owner}.github.io/${repo}/blog/${slug}/`,
-    cloudflare: `${env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev'}/blog/${slug}/`,
+    section,
+    ...links,
   });
 }
 
@@ -357,7 +368,7 @@ const FORM_HTML = `<!doctype html>
   <!-- 解锁门 -->
   <div id="gate">
     <div class="platforms">
-      <a class="plat" href="https://github.com/JLUAlbert" target="_blank" rel="noreferrer">GitHub</a>
+      <a class="plat" href="https://jlualbert.github.io/blog/" target="_blank" rel="noreferrer">GitHub</a>
       <a class="plat" href="https://jlualbert-blog.pages.dev" target="_blank" rel="noreferrer">Cloudflare</a>
     </div>
     <div class="brand">Albert's blog <b>Publish</b><span class="dot">.</span></div>
@@ -380,6 +391,13 @@ const FORM_HTML = `<!doctype html>
 
       <label>标题 *</label>
       <input type="text" name="title" placeholder="例如：财富自由 · 第二章" required />
+
+      <label>栏目 / 分类</label>
+      <select name="section">
+        <option value="blog" selected>博客 · Blog（长文 / 笔记）</option>
+        <option value="vibe">意境 · Vibe（诗词 / 随笔）</option>
+      </select>
+      <div class="hint">选择发布到的板块：博客为独立文章页；意境为时间线信息流。</div>
 
       <div class="row">
         <div>
