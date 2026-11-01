@@ -1,6 +1,35 @@
 @import './fonts.css';
 @import 'katex/dist/katex.min.css';
 
+/* ===== Caslon 字体栈（《独立宣言》字体） =====
+   优先 Libre Caslon Text（开源复刻），其次系统内置 Caslon，最后退回通用衬线。 */
+:root {
+  --font-caslon:
+    'Libre Caslon Text', 'Adobe Caslon Pro', 'Caslon', 'Big Caslon', 'Baskerville',
+    'Libre Baskerville', Georgia, var(--font-config-zh), 'PingFang SC', 'Microsoft YaHei', serif;
+}
+
+/* About 面板正文统一使用 Caslon；code / pre 保持等宽不受影响 */
+.about-content.about-content,
+.about-content.about-content :is(p, blockquote, li, h1, h2, h3, h4, h5, h6, strong, em, a) {
+  font-family: var(--font-caslon);
+}
+
+/* About 面板首个标题不留默认的 64px 顶部间距；诗体引言四行收紧 */
+.about-content.about-content > h1:first-child {
+  margin-top: 0;
+  font-size: 1.9rem;
+}
+
+.about-content.about-content blockquote p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.about-content.about-content blockquote p + p {
+  margin-top: 0.22em;
+}
+
 /* ===== 页面切换过渡 · Paper Motion（ClientRouter / View Transitions API） =====
    设计语言：纸页起落。旧页如纸轻轻下沉淡出，新页自下浮起、微模糊收敛为清晰。
    无缩放、无平移、无全屏遮罩；首次打开不播任何入场动画。

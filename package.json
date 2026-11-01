@@ -27,12 +27,14 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.5",
     "@astrojs/mdx": "^7.0.3",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
     "@expressive-code/plugin-collapsible-sections": "^0.44.1",
     "@expressive-code/plugin-line-numbers": "^0.44.1",
     "@fontsource/libre-baskerville": "^5.3.0",
+    "@fontsource/libre-caslon-text": "^5.3.0",
     "@fontsource/maple-mono": "^5.3.0",
     "@navfolio/core": "github:navfolio/core",
     "@navfolio/mdx-components": "github:navfolio/mdx-components",

@@ -1,3 +1,8 @@
 @import '@fontsource/libre-baskerville/latin-400.css';
 @import '@fontsource/libre-baskerville/latin-400-italic.css';
 @import '@fontsource/libre-baskerville/latin-700.css';
+
+/* Caslon —— 美国《独立宣言》所用字体；Libre Caslon Text 为其开源复刻 */
+@import '@fontsource/libre-caslon-text/latin-400.css';
+@import '@fontsource/libre-caslon-text/latin-400-italic.css';
+@import '@fontsource/libre-caslon-text/latin-700.css';
