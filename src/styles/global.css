@@ -1,35 +1,239 @@
 @import './fonts.css';
 @import 'katex/dist/katex.min.css';
 
-/* ===== 页面切换过渡动画（ClientRouter / View Transitions API） =====
-   全站导航（movie ↔ blog ↔ vibe ↔ 文章 ↔ 首页）套用「极简淡入 + 轻微缩放 + 模糊消散」：
-   新页放大并散焦淡入、旧页微缩淡出，干净克制有层次，手机/电脑皆顺滑。 */
+/* ===== 页面切换过渡（iOS 风格分层切换 · 2026-11-01） =====
+   pan    : 导航栏页面之间左右平移（类 iPhone 主屏滑动）
+   zoom   : 点进文章由触点放大至全屏（类 App 启动）
+   aurora : 首屏 / 从文章返回首页·导航页时的极光揭幕
+   cross  : 其它场景的克制淡入淡出（默认） */
 ::view-transition-old(root) {
-  animation: page-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: vt-fade-out 0.3s ease both;
 }
 ::view-transition-new(root) {
-  animation: page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: vt-fade-in 0.42s ease both;
 }
-@keyframes page-out {
-  from { opacity: 1; transform: scale(1); filter: blur(0); }
-  to { opacity: 0; transform: scale(0.985); filter: blur(2px); }
+@keyframes vt-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
-@keyframes page-in {
-  from { opacity: 0; transform: scale(1.012); filter: blur(6px); }
-  to { opacity: 1; transform: scale(1); filter: blur(0); }
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* 为文章正文/列表主容器增加轻微入场，让内容层与页面层错开，更有层次 */
+/* —— PAN：左右平移（导航栏页面间） —— */
+html[data-vt='pan'][data-vt-detail='right'] ::view-transition-old(root) {
+  animation: pan-out-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+html[data-vt='pan'][data-vt-detail='right'] ::view-transition-new(root) {
+  animation: pan-in-right 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html[data-vt='pan'][data-vt-detail='left'] ::view-transition-old(root) {
+  animation: pan-out-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+html[data-vt='pan'][data-vt-detail='left'] ::view-transition-new(root) {
+  animation: pan-in-left 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pan-out-left {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-24%);
+    opacity: 0.35;
+    filter: blur(2px);
+  }
+}
+@keyframes pan-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0.55;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes pan-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(24%);
+    opacity: 0.35;
+    filter: blur(2px);
+  }
+}
+@keyframes pan-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.55;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* —— ZOOM：由触点放大至全屏（点进文章） —— */
+html[data-vt='zoom'] ::view-transition-old(root) {
+  animation: vt-fade-out 0.25s ease both;
+}
+html[data-vt='zoom'] ::view-transition-new(root) {
+  transform-origin: var(--vt-x, 50%) var(--vt-y, 50%);
+  animation: zoom-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes zoom-in {
+  from {
+    transform: scale(0.12);
+    opacity: 0.5;
+    filter: blur(6px);
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* —— AURORA：极光揭幕（首屏 / 从文章返回），旧页已被 .site-aurora 遮住，根快照瞬切 —— */
+html[data-vt='aurora'] ::view-transition-old(root),
+html[data-vt='aurora'] ::view-transition-new(root) {
+  animation: none;
+}
+
+/* 内容层轻微入场，与页面层错开更有层次 */
 @keyframes content-soft-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 极光揭幕层（首屏 / 从文章返回首页·导航页） ===== */
+.site-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #07080a;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.site-aurora.cover {
+  opacity: 1;
+}
+.site-aurora.play {
+  animation: aurora-reveal 1.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.site-aurora-bg {
+  position: absolute;
+  inset: -35%;
+  opacity: 0.9;
+  filter: blur(50px);
+  background:
+    radial-gradient(38% 38% at 28% 32%, rgba(87, 185, 138, 0.22), transparent 60%),
+    radial-gradient(34% 34% at 72% 58%, rgba(86, 196, 255, 0.15), transparent 60%),
+    radial-gradient(30% 30% at 52% 82%, rgba(87, 185, 138, 0.13), transparent 62%);
+  animation: aurora-move 18s ease-in-out infinite alternate;
+}
+@keyframes aurora-move {
+  0% {
+    transform: translate3d(-4%, -2%, 0) scale(1.05) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(5%, 3%, 0) scale(1.18) rotate(7deg);
+  }
+  100% {
+    transform: translate3d(-3%, 4%, 0) scale(1.1) rotate(-6deg);
+  }
+}
+.site-aurora-brand {
+  position: relative;
+  z-index: 1;
+  color: #e8eaed;
+  font-weight: 300;
+  font-size: clamp(26px, 6vw, 40px);
+  letter-spacing: 0.5px;
+  font-family: var(--font-display, Georgia, serif);
+  opacity: 0;
+  transform: translateY(14px);
+  filter: blur(6px);
+}
+.site-aurora.play .site-aurora-brand {
+  animation: aurora-brand-in 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.05s forwards;
+}
+.site-aurora-brand .dot {
+  color: #57b98a;
+  animation: aurora-dot 2.6s ease-in-out infinite;
+}
+@keyframes aurora-reveal {
+  0% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes aurora-brand-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.42em;
+    transform: translateY(14px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.5px;
+    transform: none;
+    filter: blur(0);
+  }
+}
+@keyframes aurora-dot {
+  0%,
+  100% {
+    opacity: 0.55;
+    text-shadow: 0 0 0 rgba(87, 185, 138, 0);
+  }
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 16px rgba(87, 185, 138, 0.8);
+  }
 }
 
 /* 尊重「减少动态效果」的系统偏好 */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation: none;
+    animation: none !important;
+  }
+  .site-aurora,
+  .site-aurora-bg,
+  .site-aurora-brand,
+  .site-aurora-brand .dot {
+    animation: none !important;
   }
   * {
     animation-duration: 0.01ms !important;
@@ -38,3 +242,17 @@
   }
 }
 
+/* ===== 视觉增强（设计检视 · 2026-11-01） ===== */
+/* 文章内链接：加强下划线可见度，改善可寻路性，同时保留克制的品牌气质。
+   原主题下划线色 rgba(102,125,109,.32) 过淡，静止态几乎不可见。 */
+.article-content a {
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(102, 125, 109, 0.55);
+  transition:
+    text-decoration-color 0.2s ease,
+    color 0.2s ease;
+}
+.article-content a:hover {
+  text-decoration-color: var(--paper-accent);
+}

@@ -205,7 +205,8 @@ export async function onRequestPost(context) {
   const tags = form.get('tags') || '';
   const series = form.get('series') || '';
   const draft = form.get('draft') === 'true' || form.get('draft') === 'on';
-  const section = ((form.get('section') || 'blog').toString().trim().toLowerCase() === 'vibe') ? 'vibe' : 'blog';
+  const section =
+    (form.get('section') || 'blog').toString().trim().toLowerCase() === 'vibe' ? 'vibe' : 'blog';
   let content = (form.get('content') || '').toString();
   let slug = slugify((form.get('slug') || '').toString().trim());
   if (!slug) slug = defaultSlug(title);
@@ -285,7 +286,7 @@ const FORM_HTML = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Albert's blog Publish</title>
 <style>
-  :root { color-scheme: dark; }
+  :root { color-scheme: dark; --brand: #57b98a; --brand-strong: #4acb88; --brand-ink: #08130d; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin: 0; font: 16px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
          background: #0b0d10; color: #e8eaed; min-height: 100vh; overflow-x: hidden; }
@@ -297,9 +298,9 @@ const FORM_HTML = `<!doctype html>
   /* 极光呼吸：缓慢流动的低饱和光晕 */
   #gate::before { content: ''; position: absolute; inset: -35%; z-index: 0; opacity: .9;
                   background:
-                    radial-gradient(38% 38% at 28% 32%, rgba(61,186,122,.20), transparent 60%),
+                    radial-gradient(38% 38% at 28% 32%, rgba(87,185,138,.20), transparent 60%),
                     radial-gradient(34% 34% at 72% 58%, rgba(86,196,255,.14), transparent 60%),
-                    radial-gradient(30% 30% at 52% 82%, rgba(61,186,122,.12), transparent 62%);
+                    radial-gradient(30% 30% at 52% 82%, rgba(87,185,138,.12), transparent 62%);
                   filter: blur(50px);
                   animation: aurora 20s ease-in-out infinite alternate; }
   @keyframes aurora {
@@ -313,33 +314,33 @@ const FORM_HTML = `<!doctype html>
           color: #d6d9de; text-decoration: none; font-size: 13px; letter-spacing: .4px;
           opacity: 0; transform: translateY(16px); animation: rise .9s cubic-bezier(.2,.7,.2,1) forwards;
           transition: border-color .3s, color .3s, transform .3s, box-shadow .3s; }
-  .plat:hover { border-color: #3dba7a; color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(61,186,122,.18); }
+  .plat:hover { border-color: var(--brand); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(87,185,138,.18); }
   .plat:nth-child(1) { animation-delay: .15s; }
   .plat:nth-child(2) { animation-delay: .3s; }
   @keyframes rise { from { opacity: 0; transform: translateY(16px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
   .brand { font-size: clamp(26px, 6vw, 40px); font-weight: 300; letter-spacing: .5px;
            opacity: 0; animation: brandIn 1.2s cubic-bezier(.2,.7,.2,1) .4s forwards; }
   .brand b { font-weight: 600; }
-  .brand .dot { color: #3dba7a; animation: dotPulse 2.6s ease-in-out infinite; }
+  .brand .dot { color: var(--brand); animation: dotPulse 2.6s ease-in-out infinite; }
   @keyframes brandIn {
     from { opacity: 0; letter-spacing: .42em; transform: translateY(12px); filter: blur(8px); }
     to   { opacity: 1; letter-spacing: .5px; transform: none; filter: blur(0); }
   }
   @keyframes dotPulse {
-    0%, 100% { opacity: .55; text-shadow: 0 0 0 rgba(61,186,122,0); }
-    50%      { opacity: 1; text-shadow: 0 0 16px rgba(61,186,122,.75); }
+    0%, 100% { opacity: .55; text-shadow: 0 0 0 rgba(87,185,138,0); }
+    50%      { opacity: 1; text-shadow: 0 0 16px rgba(87,185,138,.75); }
   }
   @keyframes fadeup { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   .prompt { margin-top: 40px; display: flex; align-items: center; gap: 10px; opacity: 0;
             animation: fadeup .8s ease .7s forwards; }
-  .cursor { display: inline-block; width: 9px; height: 22px; border-radius: 2px; background: #3dba7a;
+  .cursor { display: inline-block; width: 9px; height: 22px; border-radius: 2px; background: var(--brand);
             animation: breathe 2.4s ease-in-out infinite; }
   @keyframes breathe {
-    0%, 100% { opacity: .35; box-shadow: 0 0 0 0 rgba(61,186,122,0); }
-    50%      { opacity: 1; box-shadow: 0 0 14px 3px rgba(61,186,122,.55); }
+    0%, 100% { opacity: .35; box-shadow: 0 0 0 0 rgba(87,185,138,0); }
+    50%      { opacity: 1; box-shadow: 0 0 14px 3px rgba(87,185,138,.55); }
   }
   #gate-input { background: transparent; border: 0; outline: 0; color: #e8eaed; font-size: 20px;
-                caret-color: transparent; width: 140px; letter-spacing: 8px; text-align: left; }
+                caret-color: var(--brand); width: 140px; letter-spacing: 8px; text-align: left; }
   #gate-input::placeholder { color: #4a4f57; letter-spacing: 2px; }
   .gate-hint { margin-top: 16px; color: #565c66; font-size: 12px; opacity: 0; animation: fadeup .8s ease .9s forwards; }
   .shake { animation: shake .5s cubic-bezier(.36,.07,.19,.97); }
@@ -368,13 +369,13 @@ const FORM_HTML = `<!doctype html>
   input, textarea, select { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px;
          border: 1px solid #262b33; background: #14171c; color: #e8eaed; outline: none;
          transition: border-color .25s, box-shadow .25s; }
-  input:focus, textarea:focus { border-color: #3dba7a; box-shadow: 0 0 0 3px rgba(61,186,122,.14); }
+  input:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(87,185,138,.14); }
   textarea { min-height: 40vh; resize: vertical; line-height: 1.6; }
   input[type=checkbox] { width: auto; transform: scale(1.3); margin-right: 8px; }
   .row { display: flex; gap: 10px; }
   .row > div { flex: 1; }
   button { margin-top: 24px; width: 100%; padding: 15px; font-size: 17px; font-weight: 600;
-           border: 0; border-radius: 12px; background: #3dba7a; color: #08130d; cursor: pointer;
+           border: 0; border-radius: 12px; background: var(--brand); color: #08130d; cursor: pointer;
            transition: transform .15s, background .2s; }
   button:hover { background: #4acb88; }
   button:active { transform: scale(.98); }
@@ -386,19 +387,39 @@ const FORM_HTML = `<!doctype html>
   #progress.show { display: block; }
   .bar { height: 6px; background: #1c2026; border-radius: 999px; overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; border-radius: 999px;
-           background: linear-gradient(90deg,#3dba7a,#62dca0,#3dba7a);
+           background: linear-gradient(90deg,var(--brand),#62dca0,var(--brand));
            background-size: 200% 100%; animation: barflow 1.7s linear infinite;
            transition: width .3s ease; }
   @keyframes barflow { to { background-position: -200% 0; } }
   #progress .label { font-size: 12.5px; color: #9aa0a6; margin-top: 8px; text-align: center; }
   #result { display: none; margin-top: 18px; padding: 16px; border-radius: 12px; font-size: 14px;
             background: #14171c; border: 1px solid #262b33; white-space: pre-wrap; }
-  #result.ok { display: block; border-color: #3dba7a; }
+  #result.ok { display: block; border-color: var(--brand); }
   #result.err { display: block; border-color: #e5534b; }
-  #result a { color: #3dba7a; word-break: break-all; }
+  #result a { color: var(--brand); word-break: break-all; }
   .lockbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .back-blog { background: transparent; border: 0; color: var(--brand); font-size: 12px; cursor: pointer;
+               padding: 4px 8px; margin: 0; width: auto; text-decoration: none; }
+  .back-blog:hover { color: var(--brand-strong); }
   .relock { background: transparent; border: 0; color: #8b919b; font-size: 12px; cursor: pointer;
             padding: 4px 8px; margin: 0; width: auto; }
+
+  /* ===== 分区卡片（概念稿 · 2026-11-01） ===== */
+  .form-card { margin: 14px 0; padding: 18px; border: 1px solid #262b33; border-radius: 14px;
+               background: #14171c; opacity: 0; transform: translateY(14px);
+               animation: cardIn .6s cubic-bezier(.2,.7,.2,1) forwards; }
+  .form-card:nth-of-type(1) { animation-delay: .06s; }
+  .form-card:nth-of-type(2) { animation-delay: .16s; }
+  .form-card:nth-of-type(3) { animation-delay: .26s; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  .card-title { margin: 0 0 14px; color: var(--brand); font-size: 12.5px; font-weight: 600;
+                letter-spacing: .06em; text-transform: uppercase; }
+  .form-card > label:first-of-type { margin-top: 0; }
+  .check-row { display: flex; align-items: center; gap: 8px; color: #c6c9ce; font-size: 13px; }
+  .check-row input { width: auto; transform: scale(1.3); margin: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .form-card { animation: none !important; opacity: 1 !important; transform: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -417,7 +438,7 @@ const FORM_HTML = `<!doctype html>
 
   <!-- 发布台 -->
   <div id="studio">
-    <div class="lockbar"><span></span><button class="relock" id="relock" type="button">🔒 锁定</button></div>
+    <div class="lockbar"><a class="back-blog" href="https://jlualbert.github.io/blog/" target="_blank" rel="noreferrer">← 博客</a><button class="relock" id="relock" type="button">🔒 锁定</button></div>
     <div class="head">
       <h1>Albert's blog <b>Publish</b></h1>
       <p class="sub">提交后自动 commit 到 GitHub，两平台重新构建上线</p>
@@ -426,50 +447,59 @@ const FORM_HTML = `<!doctype html>
       <input type="hidden" name="password" id="pw-field" />
       <input type="hidden" name="unlock" value="false" />
 
-      <label>标题 *</label>
-      <input type="text" name="title" placeholder="例如：财富自由 · 第二章" required />
+      <section class="form-card">
+        <h2 class="card-title">内容</h2>
+        <label>标题 *</label>
+        <input type="text" name="title" placeholder="例如：财富自由 · 第二章" required />
 
-      <label>栏目 / 分类</label>
-      <select name="section">
-        <option value="blog" selected>博客 · Blog（长文 / 笔记）</option>
-        <option value="vibe">意境 · Vibe（诗词 / 随笔）</option>
-      </select>
-      <div class="hint">选择发布到的板块：博客为独立文章页；意境为时间线信息流。</div>
+        <label>栏目 / 分类</label>
+        <select name="section">
+          <option value="blog" selected>博客 · Blog（长文 / 笔记）</option>
+          <option value="vibe">意境 · Vibe（诗词 / 随笔）</option>
+        </select>
+        <div class="hint">选择发布到的板块：博客为独立文章页；意境为时间线信息流。</div>
+      </section>
 
-      <div class="row">
-        <div>
-          <label>日期</label>
-          <input type="date" name="date" />
-          <div class="hint">留空 = 自动用发布这一刻（精确到秒）</div>
+      <section class="form-card">
+        <h2 class="card-title">元信息</h2>
+        <div class="row">
+          <div>
+            <label>日期</label>
+            <input type="date" name="date" />
+            <div class="hint">留空 = 自动用发布这一刻（精确到秒）</div>
+          </div>
+          <div>
+            <label>系列 / 笔记</label>
+            <input type="text" name="series" list="series-list" placeholder="留空 = 独立博客" />
+            <datalist id="series-list">
+              <option value="财富自由"></option>
+              <option value="摄影"></option>
+            </datalist>
+          </div>
         </div>
-        <div>
-          <label>系列 / 笔记</label>
-          <input type="text" name="series" list="series-list" placeholder="留空 = 独立博客" />
-          <datalist id="series-list">
-            <option value="财富自由"></option>
-            <option value="摄影"></option>
-          </datalist>
-        </div>
-      </div>
 
-      <label>摘要</label>
-      <input type="text" name="description" placeholder="留空则等于标题" />
+        <label>摘要</label>
+        <input type="text" name="description" placeholder="留空则等于标题" />
 
-      <label>标签（逗号分隔）</label>
-      <input type="text" name="tags" placeholder="读书, 思考" />
+        <label>标签（逗号分隔）</label>
+        <input type="text" name="tags" placeholder="读书, 思考" />
 
-      <label>网址别名 slug（可选，留空自动生成）</label>
-      <input type="text" name="slug" placeholder="留空 = 日期前缀自动生成" />
-      <div class="hint">只填英文/数字/连字符，例如 wealth-freedom-ch2。</div>
+        <label>网址别名 slug（可选，留空自动生成）</label>
+        <input type="text" name="slug" placeholder="留空 = 日期前缀自动生成" />
+        <div class="hint">只填英文/数字/连字符，例如 wealth-freedom-ch2。</div>
+      </section>
 
-      <label>正文（Markdown）</label>
-      <textarea name="content" placeholder="在这里写内容…支持 # 标题、**加粗**、- 列表 等 Markdown 语法"></textarea>
+      <section class="form-card">
+        <h2 class="card-title">正文</h2>
+        <label>正文（Markdown）</label>
+        <textarea name="content" placeholder="在这里写内容…支持 # 标题、**加粗**、- 列表 等 Markdown 语法"></textarea>
 
-      <label>封面 / 配图（可选）</label>
-      <input type="file" name="image" accept="image/*" />
-      <div class="hint">图片会存到 public/images，并自动插入到正文顶部。</div>
+        <label>封面 / 配图（可选）</label>
+        <input type="file" name="image" accept="image/*" />
+        <div class="hint">图片会存到 public/images，并自动插入到正文顶部。</div>
 
-      <label style="display:flex;align-items:center;"><input type="checkbox" name="draft" value="true" />存为草稿（不进首页，仍可凭链接访问预览）</label>
+        <label class="check-row"><input type="checkbox" name="draft" value="true" />存为草稿（不进首页，仍可凭链接访问预览）</label>
+      </section>
 
       <button type="submit">发布</button>
     </form>

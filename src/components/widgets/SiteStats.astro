@@ -1,0 +1,207 @@
+---
+// 首页“最近”下方：本站运行时间（天 / 时 / 分），数字翻转入场后静止。
+// 起点：2026-10-28 16:00（北京时间，UTC+8）。访客统计无真实数据源，已移除。
+const START_LABEL = '2026.10.28 16:00';
+---
+
+<section class="glass-card sitestats-card" aria-label="站点统计">
+  <strong class="sitestats-label">本站运行 · UPTIME</strong>
+
+  <div class="uptime-row" id="ss-uptime" aria-live="off">
+    <div class="flip-unit" data-unit="d">
+      <div class="flip-digits"></div>
+      <span class="flip-unit-label">天</span>
+    </div>
+    <span class="uptime-sep" aria-hidden="true">:</span>
+    <div class="flip-unit" data-unit="h">
+      <div class="flip-digits"></div>
+      <span class="flip-unit-label">时</span>
+    </div>
+    <span class="uptime-sep" aria-hidden="true">:</span>
+    <div class="flip-unit" data-unit="m">
+      <div class="flip-digits"></div>
+      <span class="flip-unit-label">分</span>
+    </div>
+  </div>
+
+  <p class="sitestats-note">自 {START_LABEL}（北京时间）起实时计数</p>
+</section>
+
+<script>
+  // 数字翻转（odometer roll）：入场时从 0 滚到目标值后停止动画；
+  // 之后每分钟静默更新（无动画），尊重 prefers-reduced-motion。
+  const START = new Date('2026-10-28T16:00:00+08:00').getTime();
+  const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function currentValue() {
+    let s = Math.max(0, Math.floor((Date.now() - START) / 60000)); // 精确到分
+    const d = Math.floor(s / 1440);
+    s -= d * 1440;
+    const h = Math.floor(s / 60);
+    const m = s - h * 60;
+    return { d, h, m };
+  }
+
+  function buildDigits(container, count) {
+    if (container.childElementCount === count) return;
+    container.textContent = '';
+    for (let i = 0; i < count; i++) {
+      const digit = document.createElement('span');
+      digit.className = 'flip-digit';
+      const strip = document.createElement('span');
+      strip.className = 'flip-strip';
+      for (let n = 0; n <= 9; n++) {
+        const item = document.createElement('span');
+        item.className = 'flip-item';
+        item.textContent = String(n);
+        strip.appendChild(item);
+      }
+      digit.appendChild(strip);
+      container.appendChild(digit);
+    }
+  }
+
+  function setUnit(unitEl, value, animate, baseDelay) {
+    const str = String(value);
+    const digitsEl = unitEl.querySelector('.flip-digits');
+    buildDigits(digitsEl, str.length);
+    const strips = digitsEl.querySelectorAll('.flip-strip');
+    strips.forEach((strip, i) => {
+      const n = Number(str[i]);
+      strip.style.transitionDelay = animate ? `${baseDelay + i * 90}ms` : '0ms';
+      if (!animate) strip.style.transition = 'none';
+      strip.style.transform = `translateY(${-n * 10}%)`;
+      if (!animate) {
+        // 强制回流后恢复过渡能力（供后续入场重放时使用）
+        void strip.offsetWidth;
+        strip.style.transition = '';
+      }
+    });
+  }
+
+  let inited = false;
+  function initSiteStats() {
+    const root = document.getElementById('ss-uptime');
+    if (!root || inited) return;
+    inited = true;
+
+    const units = {
+      d: root.querySelector('[data-unit="d"]'),
+      h: root.querySelector('[data-unit="h"]'),
+      m: root.querySelector('[data-unit="m"]'),
+    };
+    if (!units.d || !units.h || !units.m) return;
+
+    const render = (animate) => {
+      const v = currentValue();
+      setUnit(units.d, v.d, animate, 0);
+      setUnit(units.h, v.h, animate, 180);
+      setUnit(units.m, v.m, animate, 360);
+    };
+
+    if (REDUCED) {
+      render(false);
+    } else {
+      // 先归零（无动画），再翻转到目标值
+      render(false);
+      requestAnimationFrame(() => requestAnimationFrame(() => render(true)));
+    }
+
+    // 每分钟静默更新（翻转入场只播一次）
+    setInterval(() => render(false), 60000);
+  }
+
+  initSiteStats();
+  document.addEventListener('astro:page-load', initSiteStats);
+</script>
+
+<style>
+  .sitestats-card {
+    display: grid;
+    gap: 16px;
+    padding: 22px 24px 20px;
+    max-width: 680px;
+  }
+
+  .sitestats-label {
+    color: var(--paper-accent);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  .uptime-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .flip-unit {
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+  }
+
+  .flip-digits {
+    display: flex;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    background: var(--paper-surface-muted);
+  }
+
+  .flip-digit {
+    position: relative;
+    display: block;
+    width: 0.72em;
+    height: 1.15em;
+    overflow: hidden;
+    color: var(--paper-ink);
+    font-size: 1.65rem;
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .flip-strip {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  .flip-item {
+    display: block;
+    height: 1.15em;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .flip-unit-label {
+    color: var(--paper-ink-soft);
+    font-size: 0.74rem;
+    line-height: 1.2;
+  }
+
+  .uptime-sep {
+    padding-bottom: 26px;
+    color: var(--paper-ink-faint);
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .sitestats-note {
+    margin: 0;
+    color: var(--paper-ink-faint);
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 520px) {
+    .flip-digit {
+      font-size: 1.35rem;
+    }
+  }
+</style>

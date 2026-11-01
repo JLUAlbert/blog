@@ -15,7 +15,6 @@ const { profile } = Astro.props as { profile: Profile };
 <article class="profile-card">
   <div class="profile-heading">
     <h1>{profile.name}</h1>
-    <p>{profile.handle}</p>
     <span><Icon name="sparkle" /> {profile.role}</span>
   </div>
 </article>
@@ -49,6 +48,7 @@ const { profile } = Astro.props as { profile: Profile };
     align-items: center;
     gap: 8px;
     justify-content: flex-end;
+    margin-top: 4px;
     padding: 0;
     border: 0;
     border-radius: 0;
