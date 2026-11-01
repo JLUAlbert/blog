@@ -40,7 +40,7 @@ const normalizeSiteUrl = (value) => {
 
 const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
 const customSite = process.env.SITE_URL;
-// 部署目标标记：'github-pages' 用 /blog，其它（cloudflare/netlify/本地）默认根 '/'
+// 部署目标标记：'github-pages' 用 /blog，其它（cloudflare/本地）默认根 '/'
 // 用非路径字符串做标记，避免被本地运行时劫持路径型环境变量
 const deployTarget = process.env.DEPLOY_TARGET;
 const repositoryOwner = process.env.GITHUB_REPOSITORY_OWNER;
@@ -67,7 +67,7 @@ const resolvedBase =
     ? isProjectPage && repositoryName
       ? `/${repositoryName}`
       : '/'
-    : // 其它目标（cloudflare / netlify / 本地）一律根路径 '/'
+    : // 其它目标（cloudflare / 本地）一律根路径 '/'
       '/';
 
 // 站内绝对路径重写：markdown 正文里的 /images/xx.png、/blog/xx 这类以 / 开头的

@@ -254,7 +254,6 @@ async function handlePublish(request, env) {
     path: finalPath,
     githubPages: `https://${owner}.github.io/${repo}/blog/${slug}/`,
     cloudflare: `${env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev'}/blog/${slug}/`,
-    netlify: `${env.NETLIFY_SITE_URL || 'https://jlualbert-blog.netlify.app'}/blog/${slug}/`,
   });
 }
 
@@ -360,7 +359,6 @@ const FORM_HTML = `<!doctype html>
     <div class="platforms">
       <a class="plat" href="https://github.com/JLUAlbert" target="_blank" rel="noreferrer">GitHub</a>
       <a class="plat" href="https://jlualbert-blog.pages.dev" target="_blank" rel="noreferrer">Cloudflare</a>
-      <a class="plat" href="https://jlualbert-blog.netlify.app" target="_blank" rel="noreferrer">Netlify</a>
     </div>
     <div class="brand">Albert's blog <b>Publish</b><span class="dot">.</span></div>
     <div class="prompt">
@@ -374,7 +372,7 @@ const FORM_HTML = `<!doctype html>
     <div class="lockbar"><span></span><button class="relock" id="relock" type="button">🔒 锁定</button></div>
     <div class="head">
       <h1>Albert's blog <b>Publish</b></h1>
-      <p class="sub">提交后自动 commit 到 GitHub，三平台重新构建上线</p>
+      <p class="sub">提交后自动 commit 到 GitHub，两平台重新构建上线</p>
     </div>
     <form id="f">
       <input type="hidden" name="password" id="pw-field" />
@@ -541,8 +539,7 @@ const FORM_HTML = `<!doctype html>
           result.className = 'ok';
           result.innerHTML = '✅ 发布成功！\\nslug: ' + j.slug +
             '\\n<a href="' + j.githubPages + '" target="_blank">GitHub Pages</a>' +
-            ' · <a href="' + j.cloudflare + '" target="_blank">Cloudflare</a>' +
-            ' · <a href="' + j.netlify + '" target="_blank">Netlify</a>';
+            ' · <a href="' + j.cloudflare + '" target="_blank">Cloudflare</a>';
           form.reset();
         } else {
           progress.classList.remove('show');

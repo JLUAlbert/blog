@@ -38,5 +38,4 @@ node scripts/trakt-sync.mjs
 ## 部署
 
 - **GitHub Pages**：push 到 `main` 即自动构建发布（`.github/workflows/deploy-pages.yml`）。仓库 Settings → Pages → Source 选 **GitHub Actions**（只需设置一次）。
-- **Vercel / Netlify**：导入仓库即可，`vercel.json` / `netlify.toml` 已配置。
-- **Cloudflare Pages**：连接仓库，构建命令 `bun run build`，输出目录 `dist`，框架预设选 Astro。
+- **Cloudflare Pages**：push 到 `main` 即自动部署（`.github/workflows/deploy-cloudflare.yml`，用 wrangler 直接上传 `dist`，并包含 `/publish` Worker 路由）。
