@@ -1,0 +1,84 @@
+---
+// 博客运行时间记载：自 2026-10-28 16:00 (GMT+8) 起，数字从 0 平滑滚动到当前值后实时跳动。
+const start = '2026-10-28T16:00:00+08:00';
+---
+
+<section class="glass-card uptime-card" data-uptime data-start={start} aria-label="博客已运行时间">
+  <strong class="uptime-label">已运行 · Since Oct 28, 2026</strong>
+  <div class="uptime-grid">
+    <div class="uptime-unit">
+      <span class="uptime-num" data-unit="days">0</span>
+      <span class="uptime-unit-label">天</span>
+    </div>
+    <div class="uptime-unit">
+      <span class="uptime-num" data-unit="hours">00</span>
+      <span class="uptime-unit-label">时</span>
+    </div>
+    <div class="uptime-unit">
+      <span class="uptime-num" data-unit="mins">00</span>
+      <span class="uptime-unit-label">分</span>
+    </div>
+    <div class="uptime-unit">
+      <span class="uptime-num" data-unit="secs">00</span>
+      <span class="uptime-unit-label">秒</span>
+    </div>
+  </div>
+</section>
+
+<style>
+  .uptime-card {
+    display: grid;
+    gap: 16px;
+    padding: 22px 26px 24px;
+    max-width: 680px;
+  }
+
+  .uptime-label {
+    color: var(--paper-accent);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  .uptime-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .uptime-unit {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 12px 6px;
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    background: var(--paper-surface);
+  }
+
+  .uptime-num {
+    font-family: var(--font-ui-label);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--paper-ink);
+  }
+
+  .uptime-unit-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--paper-ink-soft);
+  }
+
+  @media (max-width: 480px) {
+    .uptime-grid {
+      gap: 8px;
+    }
+
+    .uptime-unit {
+      padding: 10px 4px;
+    }
+  }
+</style>

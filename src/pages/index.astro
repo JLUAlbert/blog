@@ -7,6 +7,7 @@ import ProfileCard from '../components/cards/ProfileCard.astro';
 import DashboardFlow from '../components/layout/DashboardFlow.astro';
 import BlogHeatmap from '../components/widgets/BlogHeatmap.astro';
 import RecentPosts from '../components/widgets/RecentPosts.astro';
+import BlogUptime from '../components/widgets/BlogUptime.astro';
 import { getSiteConfig } from '../data/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '@navfolio/theme-default/styles/blog-article.css';
@@ -29,6 +30,7 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
 
     <Fragment slot="doing">
       <RecentPosts count={home.latest.count} excludeDraft={home.latest.excludeDraft} />
+      <BlogUptime />
     </Fragment>
 
     <Fragment slot="latest">
@@ -230,5 +232,20 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
     .about-hint {
       margin-bottom: 44px;
     }
+  }
+
+  /* 首屏淡入上移：标题与行动按钮以微小延迟差平滑上移显现 */
+  :global(.intro-card) {
+    animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  :global(.profile-card) {
+    animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: 0.12s;
+  }
+
+  .about-hint {
+    animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: 0.24s;
   }
 </style>

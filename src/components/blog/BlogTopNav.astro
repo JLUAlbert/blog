@@ -81,6 +81,7 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
   </a>
 
   <nav class="nav-links" aria-label="Article navigation">
+    <span class="tab-pill" aria-hidden="true"></span>
     {
       links.map((link) =>
         link.disabled ? (
@@ -477,13 +478,33 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
   }
 
   .nav-links {
+    position: relative;
     display: flex;
     justify-content: center;
     gap: 4px;
   }
 
+  /* 滑动指示器药丸：绝对定位的背景高亮，随激活项以 spring 曲线弹性滑移 */
+  .tab-pill {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    z-index: 0;
+    width: 0;
+    border-radius: 8px;
+    background: var(--paper-control-hover);
+    transform: translateX(0);
+    pointer-events: none;
+    transition:
+      transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+      width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, width;
+  }
+
   .nav-link {
     position: relative;
+    z-index: 1;
     display: inline-flex;
     justify-content: center;
     min-width: 74px;
@@ -495,13 +516,15 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
   }
 
   a.nav-link:hover,
-  a.nav-link.active,
   a.nav-link[data-nav-link-pending] {
     background: var(--paper-control-hover);
     color: var(--paper-accent);
   }
 
-  .nav-link.active::after,
+  a.nav-link.active {
+    color: var(--paper-accent);
+  }
+
   .nav-link[data-nav-link-pending]::after {
     position: absolute;
     bottom: 5px;

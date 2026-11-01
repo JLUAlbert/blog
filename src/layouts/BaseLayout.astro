@@ -32,6 +32,9 @@ const htmlLang = getHtmlLang(siteConfig);
   </Fragment>
 </ThemeBaseLayout>
 
+<!-- 页面幕布转场层：transition:persist 使其在客户端导航中保持，由全局脚本驱动 -->
+<div class="page-curtain" transition:persist aria-hidden="true"></div>
+
 <script>
   // About 面板控制器：全站加载一次，仅当页面存在 #about-panel（首页）时生效。
   // 站点启用了 ClientRouter，<script is:inline> 在客户端导航后不会重新执行，
@@ -168,4 +171,250 @@ const htmlLang = getHtmlLang(siteConfig);
   document.addEventListener('astro:after-swap', () => {
     document.documentElement.classList.add('client-nav');
   });
+</script>
+
+<script>
+  // ===== 动效驱动（源自 web-motion-showcase，克制、可复用、reduced-motion 安全）=====
+  // 统一在每次页面加载（含客户端导航）后初始化；幕布转场挂在视图转场事件上。
+  const motionReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- 滑动指示器药丸 ---------- */
+  let tabResizeBound = false;
+  let tabFirstInit = false;
+  let tabLast: { w: number; x: number } | null = null;
+  function initSlidingTabs() {
+    const nav = document.querySelector('.nav-links');
+    if (!nav) return;
+    const pill = nav.querySelector('.tab-pill');
+    if (!pill) return;
+    const active = nav.querySelector('.nav-link.active');
+    if (!active) {
+      pill.style.width = '0px';
+      return;
+    }
+    const w = active.offsetWidth;
+    const x = active.offsetLeft;
+    const placeInstant = () => {
+      pill.style.transition = 'none';
+      pill.style.width = `${w}px`;
+      pill.style.transform = `translateX(${x}px)`;
+      void pill.offsetHeight;
+      pill.style.transition = '';
+    };
+    if (!tabFirstInit) {
+      placeInstant();
+      tabFirstInit = true;
+    } else if (tabLast) {
+      const last = tabLast;
+      pill.style.transition = 'none';
+      pill.style.width = `${last.w}px`;
+      pill.style.transform = `translateX(${last.x}px)`;
+      void pill.offsetHeight;
+      pill.style.transition = '';
+      pill.style.width = `${w}px`;
+      pill.style.transform = `translateX(${x}px)`;
+    } else {
+      placeInstant();
+    }
+    tabLast = { w, x };
+
+    if (!tabResizeBound) {
+      tabResizeBound = true;
+      let t = 0;
+      window.addEventListener('resize', () => {
+        clearTimeout(t);
+        t = window.setTimeout(() => {
+          const a = nav.querySelector('.nav-link.active');
+          if (!a) return;
+          pill.style.width = `${a.offsetWidth}px`;
+          pill.style.transform = `translateX(${a.offsetLeft}px)`;
+        }, 120);
+      });
+    }
+  }
+
+  /* ---------- 数字滚动（博客运行时间）---------- */
+  function initCountUp() {
+    const root = document.querySelector('[data-uptime]');
+    if (!root) return;
+    const start = new Date(root.dataset.start).getTime();
+    if (Number.isNaN(start)) return;
+    const nums = Array.from(root.querySelectorAll('.uptime-num'));
+    if (!nums.length) return;
+
+    const compute = () => {
+      const diff = Math.max(0, Date.now() - start);
+      const s = Math.floor(diff / 1000);
+      return {
+        days: Math.floor(s / 86400),
+        hours: Math.floor((s % 86400) / 3600),
+        mins: Math.floor((s % 3600) / 60),
+        secs: s % 60,
+      };
+    };
+    const setVals = (v) => {
+      nums.forEach((el) => {
+        const u = el.dataset.unit;
+        const n = Math.floor(v[u] || 0);
+        el.textContent = u === 'days' ? String(n) : String(n).padStart(2, '0');
+      });
+    };
+
+    if (motionReduced()) {
+      setVals(compute());
+      window.setInterval(() => setVals(compute()), 1000);
+      return;
+    }
+
+    let started = false;
+    const runCountUp = () => {
+      if (started) return;
+      started = true;
+      const target = compute();
+      const duration = 1500;
+      const t0 = performance.now();
+      const tick = () => {
+        const p = Math.min(1, (performance.now() - t0) / duration);
+        const e = 1 - Math.pow(1 - p, 3);
+        setVals({
+          days: target.days * e,
+          hours: target.hours * e,
+          mins: target.mins * e,
+          secs: target.secs * e,
+        });
+        if (p < 1) requestAnimationFrame(tick);
+        else {
+          setVals(target);
+          window.setInterval(() => setVals(compute()), 1000);
+        }
+      };
+      requestAnimationFrame(tick);
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting) {
+            runCountUp();
+            io.disconnect();
+          }
+        });
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(root);
+  }
+
+  /* ---------- 文字逐行显现 ---------- */
+  function initLineReveal() {
+    const targets = Array.from(
+      document.querySelectorAll('.article-content h2, .article-content h3, .prose h2, .prose h3'),
+    );
+    if (!targets.length) return;
+
+    if (motionReduced()) {
+      targets.forEach((el) => el.classList.add('is-revealed'));
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      targets.forEach((el) => {
+        if (el.dataset.lineSplit === '1') return;
+        el.dataset.lineSplit = '1';
+        el.classList.add('is-line-split');
+        const text = el.textContent;
+        el.textContent = '';
+        const words = text.split(/(\s+)/).filter((s) => s.trim().length);
+        const wordSpans = words.map((w) => {
+          const s = document.createElement('span');
+          s.style.display = 'inline-block';
+          s.style.whiteSpace = 'pre';
+          s.textContent = w;
+          return s;
+        });
+        wordSpans.forEach((s) => el.appendChild(s));
+
+        const lines = [];
+        let cur = null;
+        let lastTop = null;
+        wordSpans.forEach((s) => {
+          const top = s.offsetTop;
+          if (lastTop === null || Math.abs(top - lastTop) > 2) {
+            cur = [];
+            lines.push(cur);
+            lastTop = top;
+          }
+          cur.push(s);
+        });
+
+        el.textContent = '';
+        lines.forEach((lineSpans, i) => {
+          const lineEl = document.createElement('span');
+          lineEl.className = 'line-reveal__line';
+          const inner = document.createElement('span');
+          inner.className = 'line-reveal__inner';
+          lineSpans.forEach((s) => inner.appendChild(s));
+          lineEl.appendChild(inner);
+          el.appendChild(lineEl);
+          inner.style.transitionDelay = `${i * 0.08}s`;
+        });
+      });
+
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((en) => {
+            if (en.isIntersecting) {
+              en.target.classList.add('is-revealed');
+              io.unobserve(en.target);
+            }
+          });
+        },
+        { threshold: 0.15, rootMargin: '0px 0px -8% 0px' },
+      );
+      targets.forEach((el) => io.observe(el));
+    });
+  }
+
+  /* ---------- 页面幕布转场（进入文章页）---------- */
+  function initCurtain() {
+    const curtain = document.querySelector('.page-curtain');
+    if (!curtain || motionReduced()) return;
+
+    const isArticlePath = (pathname?: string) => {
+      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+      let p = pathname || '';
+      if (base && p.startsWith(base)) p = p.slice(base.length);
+      const seg = p.split('/').filter(Boolean);
+      if (seg[0] !== 'blog' || seg.length < 2) return false;
+      return !['page', 'categories', 'tags', 'series', 'archives'].includes(seg[1]);
+    };
+
+    document.addEventListener('astro:before-preparation', (event: any) => {
+      const to = event.to && event.to.pathname;
+      if (!to || !isArticlePath(to)) return;
+      curtain.classList.remove('is-revealing');
+      curtain.classList.add('is-covering');
+    });
+
+    document.addEventListener('astro:page-load', () => {
+      if (!curtain.classList.contains('is-covering')) return;
+      curtain.classList.remove('is-covering');
+      curtain.classList.add('is-revealing');
+      const onEnd = (e: Event) => {
+        if ((e as TransitionEvent).propertyName !== 'transform') return;
+        curtain.removeEventListener('transitionend', onEnd);
+        curtain.classList.remove('is-revealing');
+      };
+      curtain.addEventListener('transitionend', onEnd);
+    });
+  }
+
+  function initMotion() {
+    initSlidingTabs();
+    initCountUp();
+    initLineReveal();
+  }
+
+  document.addEventListener('astro:page-load', initMotion);
+  initCurtain();
 </script>
