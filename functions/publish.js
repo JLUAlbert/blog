@@ -205,7 +205,8 @@ export async function onRequestPost(context) {
   const tags = form.get('tags') || '';
   const series = form.get('series') || '';
   const draft = form.get('draft') === 'true' || form.get('draft') === 'on';
-  const section = ((form.get('section') || 'blog').toString().trim().toLowerCase() === 'vibe') ? 'vibe' : 'blog';
+  const section =
+    (form.get('section') || 'blog').toString().trim().toLowerCase() === 'vibe' ? 'vibe' : 'blog';
   let content = (form.get('content') || '').toString();
   let slug = slugify((form.get('slug') || '').toString().trim());
   if (!slug) slug = defaultSlug(title);

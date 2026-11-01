@@ -161,3 +161,11 @@ const htmlLang = getHtmlLang(siteConfig);
     reset();
   })();
 </script>
+
+<script>
+  // Paper Motion：仅在客户端导航后为 <html> 标记 client-nav，
+  // 文章页的错峰浮起动画借此区分「站内切换」与「直接打开」（后者不播放入场）。
+  document.addEventListener('astro:after-swap', () => {
+    document.documentElement.classList.add('client-nav');
+  });
+</script>
