@@ -2,21 +2,21 @@
 @import 'katex/dist/katex.min.css';
 
 /* ===== 页面切换过渡动画（ClientRouter / View Transitions API） =====
-   全站导航（movie ↔ blog ↔ vibe ↔ 文章 ↔ 首页）都套用优雅的淡入 + 轻微上移，
-   新页淡入、旧页淡出并轻微下沉，轻盈不抢戏。 */
+   全站导航（movie ↔ blog ↔ vibe ↔ 文章 ↔ 首页）套用「极简淡入 + 轻微缩放 + 模糊消散」：
+   新页放大并散焦淡入、旧页微缩淡出，干净克制有层次，手机/电脑皆顺滑。 */
 ::view-transition-old(root) {
-  animation: page-out 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: page-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 ::view-transition-new(root) {
-  animation: page-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes page-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 1; transform: scale(1); filter: blur(0); }
+  to { opacity: 0; transform: scale(0.985); filter: blur(2px); }
 }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: scale(1.012); filter: blur(6px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
 /* 为文章正文/列表主容器增加轻微入场，让内容层与页面层错开，更有层次 */
