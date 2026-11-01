@@ -377,15 +377,6 @@ href = "/vibe"
 # tooltip 留空会隐藏该链接，不想显示的直接把 tooltip 改成 ""
 # ============================================================
 
-# GitHub。
-[[config.home.links]]
-label = "GitHub"
-icon = "github"
-tooltip = "https://github.com/JLUAlbert"
-copy = false
-
-
-
 # X (Twitter)。✅ 保留：tooltip 已为空，已自动隐藏
 [[config.home.links]]
 label = "X"

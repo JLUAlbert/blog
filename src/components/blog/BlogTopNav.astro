@@ -128,11 +128,12 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
 
   <div class="nav-actions" aria-label="Page actions">
     <a
-      href="https://jlualbert-blog.pages.dev/publish"
+      class="nav-github"
+      href="https://github.com/JLUAlbert"
       target="_blank"
       rel="noreferrer"
-      aria-label="Open publish studio"
-      title="Publish"
+      aria-label="GitHub"
+      title="GitHub"
     >
       <Github size={17} stroke-width={2} />
     </a>
@@ -622,6 +623,11 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
       display: none;
     }
 
+    /* 发布台链接移除后，GitHub 图标重定位到该位置，移动端也保持可见 */
+    .nav-actions a.nav-github {
+      display: inline-grid;
+    }
+
     .nav-actions a,
     .nav-actions button,
     .mobile-menu-toggle {
@@ -818,18 +824,23 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
       return;
     }
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((en) => {
-          if (en.isIntersecting) {
-            en.target.classList.add('is-revealed');
-            io.unobserve(en.target);
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -6% 0px' },
-    );
-    items.forEach((item) => io.observe(item));
+    try {
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((en) => {
+            if (en.isIntersecting) {
+              en.target.classList.add('is-revealed');
+              io.unobserve(en.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -6% 0px' },
+      );
+      items.forEach((item) => io.observe(item));
+    } catch {
+      // 兜底：Observer 不可用时直接全部显现，避免内容被遮罩永久隐藏
+      items.forEach((item) => item.classList.add('is-revealed'));
+    }
   };
 
   document.addEventListener('astro:page-load', initVibeMaskUp);
