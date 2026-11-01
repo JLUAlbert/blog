@@ -121,6 +121,20 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
     gap: 24px;
   }
 
+  /* About 面板末尾的版权栏：容器化，与全局页脚风格一致 */
+  .about-footer-note {
+    display: block;
+    margin: 48px 0 8px;
+    padding: 14px 20px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: var(--paper-control);
+    color: var(--paper-ink-faint);
+    font-size: 0.86rem;
+    text-align: center;
+    line-height: 1.6;
+  }
+
   .about-hint {
     display: flex;
     align-items: center;

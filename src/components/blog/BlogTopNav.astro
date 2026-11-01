@@ -1,5 +1,5 @@
 ---
-import { Github, ListTree, Menu, Palette } from 'lucide-astro';
+import { ListTree, Menu, Palette } from 'lucide-astro';
 import SiteSearch from './SiteSearch.astro';
 import TocTree from './TocTree.astro';
 import { getRouteLabels, getSiteConfig, getTopNavLinks } from '../../data/site';
@@ -127,16 +127,6 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
   </nav>
 
   <div class="nav-actions" aria-label="Page actions">
-    <a
-      class="nav-github"
-      href="https://github.com/JLUAlbert"
-      target="_blank"
-      rel="noreferrer"
-      aria-label="GitHub"
-      title="GitHub"
-    >
-      <Github size={17} stroke-width={2} />
-    </a>
     <button type="button" data-palette-toggle aria-label="Change theme color">
       <Palette size={17} stroke-width={2} />
     </button>
@@ -621,11 +611,6 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
 
     .nav-actions a {
       display: none;
-    }
-
-    /* 发布台链接移除后，GitHub 图标重定位到该位置，移动端也保持可见 */
-    .nav-actions a.nav-github {
-      display: inline-grid;
     }
 
     .nav-actions a,

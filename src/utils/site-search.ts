@@ -108,7 +108,15 @@ async function loadPagefind() {
 
 function setStatus(root: HTMLElement, status: string) {
   const statusNode = querySearchSurface<HTMLElement>(root, '[data-site-search-status]');
-  if (statusNode) statusNode.textContent = status;
+  if (!statusNode) return;
+  statusNode.textContent = status;
+  statusNode.dataset.empty = status ? 'false' : 'true';
+}
+
+function getResultCountLabel(root: HTMLElement, count: number) {
+  const template = root.dataset.searchCountLabel;
+  if (!template) return `${count} result${count === 1 ? '' : 's'}`;
+  return template.replace('{count}', String(count));
 }
 
 function setExpanded(root: HTMLElement, expanded: boolean) {
@@ -152,20 +160,29 @@ function renderResults(root: HTMLElement, results: Awaited<ReturnType<PagefindRe
 
   list.replaceChildren();
 
-  for (const result of results) {
+  results.forEach((result, index) => {
     const item = document.createElement('li');
     const link = document.createElement('a');
     const title = document.createElement('span');
     const meta = document.createElement('span');
+    const kind = document.createElement('span');
+    const path = document.createElement('span');
     const match = document.createElement('span');
     const matchLabel = document.createElement('span');
     const excerpt = document.createElement('span');
+
+    item.className = 'site-search-result-item';
+    item.style.setProperty('--search-index', String(Math.min(index, 12)));
 
     link.href = normalizeResultUrl(result.url);
     title.className = 'site-search-result-title';
     title.textContent = getResultTitle(result);
     meta.className = 'site-search-result-meta';
-    meta.textContent = `${getResultKind(root, result.url)} - ${getResultPath(result.url)}`;
+    kind.className = 'site-search-result-kind';
+    kind.textContent = getResultKind(root, result.url);
+    path.className = 'site-search-result-path';
+    path.textContent = getResultPath(result.url);
+    meta.append(kind, path);
     match.className = 'site-search-result-match';
     matchLabel.className = 'site-search-result-match-label';
     matchLabel.textContent = root.dataset.searchMatchLabel || 'Matched passage';
@@ -176,7 +193,7 @@ function renderResults(root: HTMLElement, results: Awaited<ReturnType<PagefindRe
     link.append(title, meta, match);
     item.append(link);
     list.append(item);
-  }
+  });
 }
 
 function debounce<T extends (...args: any[]) => void>(callback: T, delay: number) {
@@ -215,7 +232,7 @@ export function initSiteSearch() {
       setExpanded(root, false);
       input.value = '';
       renderResults(root, []);
-      setStatus(root, root.dataset.searchIdleLabel || 'Start typing to search.');
+      setStatus(root, root.dataset.searchIdleLabel ?? 'Start typing to search.');
       lastFocusedElement?.focus?.();
     };
 
@@ -237,7 +254,7 @@ export function initSiteSearch() {
 
       if (!query) {
         renderResults(root, []);
-        setStatus(root, root.dataset.searchIdleLabel || 'Start typing to search.');
+        setStatus(root, root.dataset.searchIdleLabel ?? 'Start typing to search.');
         return;
       }
 
@@ -254,7 +271,7 @@ export function initSiteSearch() {
         setStatus(
           root,
           resultData.length > 0
-            ? `${resultData.length} result${resultData.length === 1 ? '' : 's'}`
+            ? getResultCountLabel(root, resultData.length)
             : root.dataset.searchEmptyLabel || 'No notes found.',
         );
       } catch {

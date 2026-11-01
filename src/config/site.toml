@@ -377,11 +377,11 @@ href = "/vibe"
 # tooltip 留空会隐藏该链接，不想显示的直接把 tooltip 改成 ""
 # ============================================================
 
-# X (Twitter)。✅ 保留：tooltip 已为空，已自动隐藏
+# 发布台（Publish station）。点击跳转至发布台。
 [[config.home.links]]
-label = "X"
-icon = "x"
-tooltip = "" # 留空会隐藏这个链接项。
+label = "Publish"
+icon = "send"
+tooltip = "https://jlualbert-blog.pages.dev/publish"
 copy = false
 
 # RSS。✅ 保留（站点自带 RSS，链接是 /rss.xml）
@@ -397,5 +397,12 @@ label = "Email"
 icon = "email"
 tooltip = "dongmuhanchen@gmail.com"
 copy = true
+
+# GitHub。（从导航栏移回 ConnectCard）
+[[config.home.links]]
+label = "GitHub"
+icon = "github"
+tooltip = "https://github.com/JLUAlbert"
+copy = false
 
 # “正在做的事”列表已移除：首页左侧现由“最新”文章卡片承担该位置。
