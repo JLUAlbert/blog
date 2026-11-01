@@ -122,7 +122,8 @@ const busuanziIntegration = {
 // 不依赖某个布局组件，保证文章页/列表页/详情页都跟随色盘改变背景。
 const paletteCss = fs.readFileSync(new URL('./src/styles/palette-bg.css', import.meta.url), 'utf8');
 // 顺带隐藏被清空的 kicker / subtitle 残留空元素（Notebook archive 等已置空）。
-const siteFixesCss = '\n[class*="kicker"]:empty,[class*="subtitle"]:empty{display:none!important;}';
+const siteFixesCss =
+  '\n[class*="kicker"]:empty,[class*="subtitle"]:empty{display:none!important;}';
 const paletteRuntimeCss = paletteCss + siteFixesCss;
 const paletteIntegration = {
   name: 'navfolio-palette-backgrounds',

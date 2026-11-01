@@ -7,7 +7,6 @@ import ProfileCard from '../components/cards/ProfileCard.astro';
 import DashboardFlow from '../components/layout/DashboardFlow.astro';
 import BlogHeatmap from '../components/widgets/BlogHeatmap.astro';
 import RecentPosts from '../components/widgets/RecentPosts.astro';
-import SiteStats from '../components/widgets/SiteStats.astro';
 import { getSiteConfig } from '../data/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '@navfolio/theme-default/styles/blog-article.css';
@@ -30,10 +29,6 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
 
     <Fragment slot="doing">
       <RecentPosts count={home.latest.count} excludeDraft={home.latest.excludeDraft} />
-    </Fragment>
-
-    <Fragment slot="stats">
-      <SiteStats />
     </Fragment>
 
     <Fragment slot="latest">
