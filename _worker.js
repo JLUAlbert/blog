@@ -505,16 +505,37 @@ const FORM_HTML = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Albert's blog Publish</title>
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    --bg: #0a0c10;
+    --surface: #11151c;
+    --surface-2: #161b22;
+    --border: #232a33;
+    --border-soft: rgba(255,255,255,.07);
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --muted-2: #6e7681;
+    --accent: #3dba7a;
+    --accent-hi: #4acb88;
+    --accent-soft: rgba(61,186,122,.14);
+    --danger: #e5534b;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 18px 50px rgba(0,0,0,.45);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin: 0; font: 16px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-         background: #0b0d10; color: #e8eaed; min-height: 100vh; overflow-x: hidden; }
+  body { margin: 0; font: 16px/1.6 var(--font);
+         background:
+           radial-gradient(120% 80% at 50% -10%, rgba(61,186,122,.06), transparent 60%),
+           var(--bg);
+         color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
   /* ===== 解锁门（黑屏） ===== */
   #gate { position: fixed; inset: 0; overflow: hidden; background: #07080a; display: flex; flex-direction: column;
           align-items: center; justify-content: center; padding: 24px; text-align: center;
           z-index: 50; transition: opacity .7s ease, visibility .7s ease, transform .8s cubic-bezier(.2,.7,.2,1), filter .7s ease; }
   #gate.hidden { opacity: 0; visibility: hidden; pointer-events: none; transform: scale(1.06); filter: blur(12px); }
-  /* 极光呼吸：缓慢流动的低饱和光晕 */
   #gate::before { content: ''; position: absolute; inset: -35%; z-index: 0; opacity: .9;
                   background:
                     radial-gradient(38% 38% at 28% 32%, rgba(61,186,122,.20), transparent 60%),
@@ -528,7 +549,7 @@ const FORM_HTML = `<!doctype html>
     100% { transform: translate3d(-3%, 4%, 0) scale(1.1) rotate(-6deg); }
   }
   #gate > * { position: relative; z-index: 1; }
-  .platforms { display: flex; gap: 14px; margin-bottom: 40px; flex-wrap: wrap; justify-content: center; }
+  .platforms { display: flex; gap: 14px; margin-bottom: 36px; flex-wrap: wrap; justify-content: center; }
   .plat { padding: 10px 20px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14);
           color: #d6d9de; text-decoration: none; font-size: 13px; letter-spacing: .4px;
           opacity: 0; transform: translateY(16px); animation: rise .9s cubic-bezier(.2,.7,.2,1) forwards;
@@ -537,21 +558,29 @@ const FORM_HTML = `<!doctype html>
   .plat:nth-child(1) { animation-delay: .15s; }
   .plat:nth-child(2) { animation-delay: .3s; }
   @keyframes rise { from { opacity: 0; transform: translateY(16px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
-  .brand { font-size: clamp(26px, 6vw, 40px); font-weight: 300; letter-spacing: .5px;
-           opacity: 0; animation: brandIn 1.2s cubic-bezier(.2,.7,.2,1) .4s forwards; }
+  @keyframes fadeup { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  .gate-card { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1);
+               backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+               border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column;
+               align-items: center; gap: 16px; max-width: 320px; width: 100%;
+               box-shadow: 0 20px 60px rgba(0,0,0,.5);
+               opacity: 0; animation: fadeup .9s ease .35s forwards; }
+  .gate-mono { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center;
+               font-size: 26px; font-weight: 700; color: #06210f;
+               background: linear-gradient(135deg, #4acb88, #2a9c63);
+               box-shadow: 0 8px 22px rgba(61,186,122,.35); }
+  .brand { font-size: 22px; font-weight: 300; letter-spacing: .4px; }
   .brand b { font-weight: 600; }
   .brand .dot { color: #3dba7a; animation: dotPulse 2.6s ease-in-out infinite; }
-  @keyframes brandIn {
-    from { opacity: 0; letter-spacing: .42em; transform: translateY(12px); filter: blur(8px); }
-    to   { opacity: 1; letter-spacing: .5px; transform: none; filter: blur(0); }
-  }
   @keyframes dotPulse {
     0%, 100% { opacity: .55; text-shadow: 0 0 0 rgba(61,186,122,0); }
     50%      { opacity: 1; text-shadow: 0 0 16px rgba(61,186,122,.75); }
   }
-  @keyframes fadeup { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-  .prompt { margin-top: 40px; display: flex; align-items: center; gap: 10px; opacity: 0;
-            animation: fadeup .8s ease .7s forwards; }
+  .prompt { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 10px 16px; border-radius: 12px; background: rgba(0,0,0,.28);
+            border: 1px solid rgba(255,255,255,.12); transition: border-color .25s, box-shadow .25s; }
+  .prompt:focus-within { border-color: #3dba7a; box-shadow: 0 0 0 3px rgba(61,186,122,.14); }
   .cursor { display: inline-block; width: 9px; height: 22px; border-radius: 2px; background: #3dba7a;
             animation: breathe 2.4s ease-in-out infinite; }
   @keyframes breathe {
@@ -559,9 +588,9 @@ const FORM_HTML = `<!doctype html>
     50%      { opacity: 1; box-shadow: 0 0 14px 3px rgba(61,186,122,.55); }
   }
   #gate-input { background: transparent; border: 0; outline: 0; color: #e8eaed; font-size: 20px;
-                caret-color: transparent; width: 140px; letter-spacing: 8px; text-align: left; }
+                caret-color: #3dba7a; width: 100%; letter-spacing: 8px; text-align: left; }
   #gate-input::placeholder { color: #4a4f57; letter-spacing: 2px; }
-  .gate-hint { margin-top: 16px; color: #565c66; font-size: 12px; opacity: 0; animation: fadeup .8s ease .9s forwards; }
+  .gate-hint { color: #565c66; font-size: 12px; }
   .shake { animation: shake .5s cubic-bezier(.36,.07,.19,.97); }
   @keyframes shake {
     10%, 90% { transform: translateX(-2px); }
@@ -571,96 +600,174 @@ const FORM_HTML = `<!doctype html>
   }
 
   /* ===== 发布台 ===== */
-  #studio { max-width: 640px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 18px 48px;
+  #studio { max-width: 680px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 14px 56px;
             opacity: 0; transform: translateY(18px) scale(.99); transition: opacity .7s ease .08s, transform .8s cubic-bezier(.2,.7,.2,1) .08s; }
   #studio.show { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) {
-    #gate, #gate::before, .brand, .brand .dot, .plat, .prompt, .gate-hint, .cursor, #studio { animation: none !important; }
+    #gate, #gate::before, .brand, .brand .dot, .plat, .cursor, #studio, .gate-card { animation: none !important; }
+    .brand, .plat, .gate-card { opacity: 1 !important; transform: none !important; filter: none !important; }
     #gate.hidden { transform: none; filter: none; }
     #studio { transform: none; transition: opacity .3s ease !important; }
     * { transition-duration: .2s !important; }
   }
-  .head { text-align: center; margin: 8px 0 24px; position: relative; }
-  .head h1 { font-size: 22px; font-weight: 300; margin: 0; letter-spacing: .4px; }
-  .head h1 b { font-weight: 600; }
-  .head .sub { color: #8b919b; font-size: 12.5px; margin: 6px 0 0; }
-  label { display: block; margin: 14px 0 6px; font-size: 13px; color: #c6c9ce; }
-  input, textarea, select { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px;
-         border: 1px solid #262b33; background: #14171c; color: #e8eaed; outline: none;
-         transition: border-color .25s, box-shadow .25s; }
-  input:focus, textarea:focus { border-color: #3dba7a; box-shadow: 0 0 0 3px rgba(61,186,122,.14); }
-  textarea { min-height: 40vh; resize: vertical; line-height: 1.6; }
-  input[type=checkbox] { width: auto; transform: scale(1.3); margin-right: 8px; }
-  .row { display: flex; gap: 10px; }
-  .row > div { flex: 1; }
-  button { margin-top: 24px; width: 100%; padding: 15px; font-size: 17px; font-weight: 600;
-           border: 0; border-radius: 12px; background: #3dba7a; color: #08130d; cursor: pointer;
-           transition: transform .15s, background .2s; }
-  button:hover { background: #4acb88; }
-  button:active { transform: scale(.98); }
-  button:disabled { opacity: .6; cursor: default; }
-  .hint { font-size: 12px; color: #8b919b; margin-top: 4px; }
 
-  /* ===== 进度条 & 结果 ===== */
-  #progress { display: none; margin-top: 20px; }
-  #progress.show { display: block; }
-  .bar { height: 6px; background: #1c2026; border-radius: 999px; overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 0; border-radius: 999px;
-           background: linear-gradient(90deg,#3dba7a,#62dca0,#3dba7a);
-           background-size: 200% 100%; animation: barflow 1.7s linear infinite;
-           transition: width .3s ease; }
-  @keyframes barflow { to { background-position: -200% 0; } }
-  #progress .label { font-size: 12.5px; color: #9aa0a6; margin-top: 8px; text-align: center; }
-  #result { display: none; margin-top: 18px; padding: 16px; border-radius: 12px; font-size: 14px;
-            background: #14171c; border: 1px solid #262b33; white-space: pre-wrap; }
-  #result.ok { display: block; border-color: #3dba7a; }
-  #result.err { display: block; border-color: #e5534b; }
-  #result a { color: #3dba7a; word-break: break-all; }
-  .lockbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .relock { background: transparent; border: 0; color: #8b919b; font-size: 12px; cursor: pointer;
-            padding: 4px 8px; margin: 0; width: auto; }
+  .panel { background: var(--surface); border: 1px solid var(--border);
+           border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 
-  /* ===== 历史按钮（标题右上角） ===== */
-  .hist-btn { position: absolute; top: -4px; right: 0; background: rgba(255,255,255,.06);
-              border: 1px solid rgba(255,255,255,.16); color: #c6c9ce; font-size: 12.5px;
-              padding: 6px 13px; border-radius: 999px; cursor: pointer;
-              display: inline-flex; align-items: center; gap: 5px;
+  /* 应用栏 */
+  .app-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+             border-bottom: 1px solid var(--border-soft); background: linear-gradient(180deg, rgba(255,255,255,.02), transparent); }
+  .mono { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
+          font-size: 18px; font-weight: 700; color: #06210f; flex: none;
+          background: linear-gradient(135deg, #4acb88, #2a9c63); box-shadow: 0 4px 14px rgba(61,186,122,.3); }
+  .app-bar .who { flex: 1; min-width: 0; }
+  .app-bar .who .n { font-size: 15px; font-weight: 600; line-height: 1.2; }
+  .app-bar .who .s { font-size: 11.5px; color: var(--muted); }
+  .relock { background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--muted);
+            font-size: 12.5px; border-radius: 9px; padding: 7px 12px; cursor: pointer; margin: 0; width: auto;
+            transition: border-color .2s, color .2s, background .2s; }
+  .relock:hover { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
+
+  /* 标题区 */
+  .title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+               padding: 18px 18px 4px; }
+  .title-row h1 { font-size: 21px; font-weight: 600; margin: 0; letter-spacing: .3px; }
+  .title-row .sub { color: var(--muted); font-size: 12.5px; margin: 5px 0 0; }
+  .hist-btn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
+              color: var(--text); font-size: 12.5px; padding: 7px 14px; border-radius: 999px;
+              cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex: none;
               transition: border-color .25s, color .25s, background .25s, transform .15s; }
-  .hist-btn:hover { border-color: #3dba7a; color: #fff; }
+  .hist-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
   .hist-btn:active { transform: scale(.97); }
   .hist-btn .ic { font-size: 13px; }
 
-  /* ===== 历史面板（全屏覆盖） ===== */
+  /* 分组卡片 */
+  form { padding: 14px 16px 18px; }
+  .group { background: var(--surface-2); border: 1px solid var(--border-soft);
+           border-radius: var(--radius-sm); padding: 14px 14px 16px; margin-top: 12px; }
+  .group-head { display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+                font-size: 12px; font-weight: 600; letter-spacing: .6px; color: var(--muted);
+                text-transform: uppercase; }
+  .group-head .g-ic { font-size: 14px; filter: saturate(.9); }
+  .group-head::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); margin-left: 6px; }
+
+  label { display: block; margin: 12px 0 6px; font-size: 13px; color: #c6c9ce; }
+  .group .group-head + label { margin-top: 0; }
+  input[type=text], input[type=date], input[type=password], textarea, select {
+    width: 100%; padding: 12px 13px; font-size: 16px; font-family: inherit; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: #0e1218; color: var(--text); outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s; }
+  input::placeholder, textarea::placeholder { color: #5b626c; }
+  input:hover, textarea:hover, select:hover { border-color: #303841; }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: #0c1016; }
+  textarea { min-height: 42vh; resize: vertical; line-height: 1.65; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; min-width: 0; }
+
+  /* 分段控件 */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+         background: #0e1218; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-top: 6px; }
+  .seg-btn { border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500;
+             padding: 10px 8px; border-radius: 8px; cursor: pointer; font-family: inherit;
+             transition: background .2s, color .2s; }
+  .seg-btn.active { background: var(--accent); color: #06210f; font-weight: 600;
+                    box-shadow: 0 4px 14px rgba(61,186,122,.25); }
+
+  /* 开关 */
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+                margin-top: 4px; padding: 12px 13px; background: #0e1218; border: 1px solid var(--border);
+                border-radius: var(--radius-sm); }
+  .switch-row .lbl b { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
+  .switch-row .lbl small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .switch { position: relative; width: 46px; height: 26px; flex: none; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch .track { position: absolute; inset: 0; border-radius: 999px; background: #2a323c;
+                   transition: background .2s; }
+  .switch .track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+                          border-radius: 50%; background: #cdd3da; transition: transform .2s, background .2s; }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(20px); background: #06210f; }
+
+  /* 文件上传 */
+  .file { position: relative; }
+  .file input[type=file] { padding: 11px 13px; color: var(--muted); font-size: 13px; }
+  .file input[type=file]::file-selector-button { margin-right: 12px; padding: 7px 12px; border-radius: 8px;
+        border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--text);
+        font-family: inherit; font-size: 13px; cursor: pointer; transition: border-color .2s, background .2s; }
+  .file input[type=file]::file-selector-button:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  /* 发布按钮 */
+  button.submit { margin-top: 18px; width: 100%; padding: 15px; font-size: 16px; font-weight: 600;
+           border: 0; border-radius: 12px; color: #06210f; cursor: pointer; font-family: inherit;
+           background: linear-gradient(135deg, #4acb88, #34a96d);
+           box-shadow: 0 10px 28px rgba(61,186,122,.28);
+           display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+           transition: transform .15s, box-shadow .2s, filter .2s; }
+  button.submit:hover { filter: brightness(1.05); box-shadow: 0 12px 34px rgba(61,186,122,.36); }
+  button.submit:active { transform: scale(.985); }
+  button.submit:disabled { opacity: .6; cursor: default; filter: none; }
+
+  /* 进度 & 结果 */
+  #progress { display: none; margin-top: 16px; }
+  #progress.show { display: block; }
+  .bar { height: 6px; background: #1c2026; border-radius: 999px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 999px;
+           background: linear-gradient(90deg,#3dba7a,#62dca0,#3dba7a); background-size: 200% 100%;
+           animation: barflow 1.7s linear infinite; transition: width .3s ease; }
+  @keyframes barflow { to { background-position: -200% 0; } }
+  #progress .label { font-size: 12.5px; color: #9aa0a6; margin-top: 8px; text-align: center; }
+  #result { display: none; margin-top: 16px; padding: 16px; border-radius: 12px; font-size: 14px;
+            background: var(--surface-2); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-word; }
+  #result.ok { display: block; border-color: var(--accent); }
+  #result.err { display: block; border-color: var(--danger); }
+  #result a { color: var(--accent-hi); word-break: break-all; }
+
+  /* 历史面板 */
   #history { position: fixed; inset: 0; z-index: 60; background: rgba(7,8,10,.97);
              backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-             display: none; flex-direction: column; opacity: 0;
-             transition: opacity .4s ease; }
+             display: none; flex-direction: column; opacity: 0; transition: opacity .4s ease; }
   #history.show { display: flex; opacity: 1; }
   .hist-head { display: flex; align-items: center; justify-content: space-between;
                padding: max(18px, env(safe-area-inset-top)) 18px 10px; }
-  .hist-head h2 { margin: 0; font-size: 18px; font-weight: 400; letter-spacing: .3px; }
-  .hist-head .sub { color: #8b919b; font-size: 12px; margin: 4px 0 0; }
-  .hist-close { background: transparent; border: 0; color: #8b919b; font-size: 24px; line-height: 1;
-                cursor: pointer; width: auto; margin: 0; padding: 2px 10px; }
-  .hist-close:hover { color: #fff; }
-  .hist-list { flex: 1; overflow-y: auto; padding: 6px 14px 28px; -webkit-overflow-scrolling: touch; }
-  .hist-item { display: block; width: 100%; text-align: left; background: #14171c;
-               border: 1px solid #262b33; border-radius: 12px; padding: 12px 14px;
-               margin-bottom: 10px; cursor: pointer; color: #e8eaed;
-               transition: border-color .2s, transform .12s, background .2s; }
-  .hist-item:hover { border-color: #3dba7a; }
+  .hist-head h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .3px; }
+  .hist-head .sub { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+  .hist-close { background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--muted);
+                font-size: 20px; line-height: 1; cursor: pointer; width: auto; margin: 0; padding: 4px 12px;
+                border-radius: 9px; transition: color .2s, border-color .2s; }
+  .hist-close:hover { color: #fff; border-color: var(--accent); }
+  .hist-search { padding: 0 14px 8px; }
+  .hist-search input { width: 100%; padding: 11px 14px; font-size: 14px; border-radius: 10px;
+        border: 1px solid var(--border); background: #0e1218; color: var(--text); outline: none;
+        transition: border-color .2s, box-shadow .2s; }
+  .hist-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .hist-list { flex: 1; overflow-y: auto; padding: 4px 14px 28px; -webkit-overflow-scrolling: touch; }
+  .hist-month { font-size: 11.5px; color: var(--muted-2); letter-spacing: .5px; margin: 16px 4px 8px;
+               display: flex; align-items: center; gap: 8px; }
+  .hist-month::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+  .hist-item { display: block; width: 100%; text-align: left; background: var(--surface-2);
+               border: 1px solid var(--border-soft); border-radius: 12px; padding: 13px 14px;
+               margin-bottom: 9px; cursor: pointer; color: var(--text);
+               transition: border-color .2s, transform .12s, background .2s; position: relative; }
+  .hist-item:hover { border-color: var(--accent); background: #1a212a; }
   .hist-item:active { transform: scale(.99); }
-  .hist-item .t { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 8px;
-                  flex-wrap: wrap; }
-  .hist-item .meta { font-size: 12px; color: #8b919b; margin-top: 5px; display: flex; gap: 12px;
-                     flex-wrap: wrap; align-items: center; }
-  .hist-item .meta .p { opacity: .7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
-  .badge { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .hist-item .t { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .hist-item .meta { font-size: 12px; color: var(--muted); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; min-width: 0; }
+  .hist-item .meta .p { opacity: .7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+                        max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-item .go { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted-2); font-size: 13px; opacity: 0; transition: opacity .2s, color .2s; }
+  .hist-item:hover .go { opacity: 1; color: var(--accent-hi); }
+  .badge { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; font-weight: 500; }
   .badge.blog { background: rgba(61,186,122,.16); color: #62dca0; }
   .badge.vibe { background: rgba(86,196,255,.16); color: #86c8ff; }
   .badge.draft { background: rgba(229,83,75,.18); color: #ff9a93; }
-  .hist-empty, .hist-loading { color: #8b919b; text-align: center; margin-top: 48px; font-size: 14px; }
-  .hist-editing { text-align: center; color: #62dca0; font-size: 12.5px; margin: 8px 0 0; min-height: 16px; }
+  .hist-empty, .hist-loading { color: var(--muted); text-align: center; margin-top: 48px; font-size: 14px; }
+  .hist-editing { text-align: center; color: #62dca0; font-size: 12.5px; margin: 12px 16px 16px;
+                  padding: 10px 12px; background: var(--accent-soft); border: 1px solid rgba(61,186,122,.25);
+                  border-radius: 10px; }
+  .hist-editing:empty { display: none; }
+  .hist-editing button { background: transparent; border: 1px solid rgba(255,255,255,.2); color: #c6c9ce;
+        border-radius: 8px; padding: 2px 10px; font-size: 12px; cursor: pointer; margin-left: 6px; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -670,77 +777,114 @@ const FORM_HTML = `<!doctype html>
       <a class="plat" href="https://jlualbert.github.io/blog/" target="_blank" rel="noreferrer">GitHub</a>
       <a class="plat" href="https://jlualbert-blog.pages.dev" target="_blank" rel="noreferrer">Cloudflare</a>
     </div>
-    <div class="brand">Albert's blog <b>Publish</b><span class="dot">.</span></div>
-    <div class="prompt">
-      <span class="cursor"></span>
-      <input id="gate-input" type="password" placeholder="passcode" autocomplete="off" autocapitalize="off" />
+    <div class="gate-card">
+      <div class="gate-mono">A</div>
+      <div class="brand">Albert's blog <b>Publish</b><span class="dot">.</span></div>
+      <div class="prompt">
+        <span class="cursor"></span>
+        <input id="gate-input" type="password" placeholder="passcode" autocomplete="off" autocapitalize="off" />
+      </div>
+      <div class="gate-hint">输入发布口令以进入</div>
     </div>
   </div>
 
   <!-- 发布台 -->
   <div id="studio">
-    <div class="lockbar"><span></span><button class="relock" id="relock" type="button">🔒 锁定</button></div>
-    <div class="head">
-      <button class="hist-btn" id="hist-btn" type="button"><span class="ic">🕑</span> 历史</button>
-      <h1>Albert's blog <b>Publish</b></h1>
-      <p class="sub">提交后自动 commit 到 GitHub，两平台重新构建上线</p>
-    </div>
-    <form id="f">
-      <input type="hidden" name="password" id="pw-field" />
-      <input type="hidden" name="unlock" value="false" />
-      <input type="hidden" name="editPath" id="edit-path" />
-      <input type="hidden" name="editSha" id="edit-sha" />
-
-      <label>标题 *</label>
-      <input type="text" name="title" placeholder="例如：财富自由 · 第二章" required />
-
-      <label>栏目 / 分类</label>
-      <select name="section">
-        <option value="blog" selected>博客 · Blog（长文 / 笔记）</option>
-        <option value="vibe">意境 · Vibe（诗词 / 随笔）</option>
-      </select>
-      <div class="hint">选择发布到的板块：博客为独立文章页；意境为时间线信息流。</div>
-
-      <div class="row">
-        <div>
-          <label>日期</label>
-          <input type="date" name="date" />
-          <div class="hint">留空 = 自动用发布这一刻（精确到秒）</div>
+    <div class="panel">
+      <div class="app-bar">
+        <div class="mono">A</div>
+        <div class="who">
+          <div class="n">Albert's Blog</div>
+          <div class="s">发布台 · Publish Console</div>
         </div>
-        <div>
-          <label>系列 / 笔记</label>
-          <input type="text" name="series" list="series-list" placeholder="留空 = 独立博客" />
-          <datalist id="series-list">
-            <option value="财富自由"></option>
-            <option value="摄影"></option>
-          </datalist>
-        </div>
+        <button class="relock" id="relock" type="button">🔒 锁定</button>
       </div>
 
-      <label>摘要</label>
-      <input type="text" name="description" placeholder="留空则等于标题" />
+      <div class="title-row">
+        <div>
+          <h1>写点什么</h1>
+          <p class="sub">提交后自动 commit 到 GitHub，两平台重新构建上线</p>
+        </div>
+        <button class="hist-btn" id="hist-btn" type="button"><span class="ic">🕑</span> 历史</button>
+      </div>
 
-      <label>标签（逗号分隔）</label>
-      <input type="text" name="tags" placeholder="读书, 思考" />
+      <form id="f">
+        <input type="hidden" name="password" id="pw-field" />
+        <input type="hidden" name="unlock" value="false" />
+        <input type="hidden" name="editPath" id="edit-path" />
+        <input type="hidden" name="editSha" id="edit-sha" />
 
-      <label>网址别名 slug（可选，留空自动生成）</label>
-      <input type="text" name="slug" placeholder="留空 = 日期前缀自动生成" />
-      <div class="hint">只填英文/数字/连字符，例如 wealth-freedom-ch2。</div>
+        <div class="group">
+          <div class="group-head"><span class="g-ic">✏️</span> 基本信息</div>
+          <label>标题 *</label>
+          <input type="text" name="title" placeholder="例如：财富自由 · 第二章" required />
 
-      <label>正文（Markdown）</label>
-      <textarea name="content" placeholder="在这里写内容…支持 # 标题、**加粗**、- 列表 等 Markdown 语法"></textarea>
+          <label>栏目 / 分类</label>
+          <div class="seg" id="seg">
+            <button type="button" class="seg-btn active" data-val="blog">📝 博客</button>
+            <button type="button" class="seg-btn" data-val="vibe">🌿 意境</button>
+            <input type="hidden" name="section" value="blog" />
+          </div>
+          <div class="hint">博客为独立文章页；意境为时间线信息流。</div>
+        </div>
 
-      <label>封面 / 配图（可选）</label>
-      <input type="file" name="image" accept="image/*" />
-      <div class="hint">图片会存到 public/images，并自动插入到正文顶部。</div>
+        <div class="group">
+          <div class="group-head"><span class="g-ic">🗂️</span> 归档与标签</div>
+          <div class="row">
+            <div>
+              <label>日期</label>
+              <input type="date" name="date" />
+              <div class="hint">留空 = 发布这一刻（精确到秒）</div>
+            </div>
+            <div>
+              <label>系列 / 笔记</label>
+              <input type="text" name="series" list="series-list" placeholder="留空 = 独立" />
+              <datalist id="series-list">
+                <option value="财富自由"></option>
+                <option value="摄影"></option>
+              </datalist>
+            </div>
+          </div>
 
-      <label style="display:flex;align-items:center;"><input type="checkbox" name="draft" value="true" />存为草稿（不进首页，仍可凭链接访问预览）</label>
+          <label>摘要</label>
+          <input type="text" name="description" placeholder="留空则等于标题" />
 
-      <button type="submit">发布</button>
-    </form>
-    <div id="progress"><div class="bar"><i id="bar-fill"></i></div><div class="label" id="progress-label">正在发布…</div></div>
-    <div id="result"></div>
-    <p class="hist-editing" id="hist-editing"></p>
+          <label>标签（逗号分隔）</label>
+          <input type="text" name="tags" placeholder="读书, 思考" />
+
+          <label>网址别名 slug（可选）</label>
+          <input type="text" name="slug" placeholder="留空 = 日期前缀自动生成" />
+          <div class="hint">只填英文/数字/连字符，例如 wealth-freedom-ch2。</div>
+        </div>
+
+        <div class="group">
+          <div class="group-head"><span class="g-ic">📄</span> 正文</div>
+          <label>内容（Markdown）</label>
+          <textarea name="content" placeholder="在这里写内容…支持 # 标题、**加粗**、- 列表 等 Markdown 语法"></textarea>
+        </div>
+
+        <div class="group">
+          <div class="group-head"><span class="g-ic">🚀</span> 媒体与发布</div>
+          <label>封面 / 配图（可选）</label>
+          <div class="file"><input type="file" name="image" accept="image/*" /></div>
+          <div class="hint">图片会存到 public/images，并自动插入到正文顶部。</div>
+
+          <div class="switch-row" style="margin-top:14px;">
+            <span class="lbl"><b>存为草稿</b><small>不进首页，仍可凭链接访问预览</small></span>
+            <label class="switch">
+              <input type="checkbox" name="draft" value="true" />
+              <span class="track"></span>
+            </label>
+          </div>
+
+          <button type="submit" class="submit">↑ 发布</button>
+        </div>
+      </form>
+
+      <div id="progress" style="padding:0 16px 8px;"><div class="bar"><i id="bar-fill"></i></div><div class="label" id="progress-label">正在发布…</div></div>
+      <div id="result" style="margin:0 16px 18px;"></div>
+      <p class="hist-editing" id="hist-editing"></p>
+    </div>
   </div>
 
   <!-- 历史面板 -->
@@ -748,10 +892,11 @@ const FORM_HTML = `<!doctype html>
     <div class="hist-head">
       <div>
         <h2>历史文章</h2>
-        <p class="sub">按发布时间倒序 · 点击任意一篇可编辑并重发</p>
+        <p class="sub" id="hist-count">按发布时间倒序 · 点击任意一篇可编辑并重发</p>
       </div>
       <button class="hist-close" id="hist-close" type="button" aria-label="关闭">×</button>
     </div>
+    <div class="hist-search"><input id="hist-search-input" type="text" placeholder="🔍 搜索标题…" autocomplete="off" /></div>
     <div class="hist-list" id="hist-list">
       <div class="hist-loading">加载中…</div>
     </div>
@@ -775,6 +920,8 @@ const FORM_HTML = `<!doctype html>
     const historyEl = document.getElementById('history');
     const histList = document.getElementById('hist-list');
     const histEditing = document.getElementById('hist-editing');
+    const histCount = document.getElementById('hist-count');
+    const histSearchInput = document.getElementById('hist-search-input');
 
     let passcode = '';
     let unlocking = false;
@@ -783,11 +930,24 @@ const FORM_HTML = `<!doctype html>
     const KEY = 'abp_unlocked';
     const PW_KEY = 'abp_pw';
 
+    /* 分段控件同步 */
+    const seg = document.getElementById('seg');
+    const sectionInput = form.querySelector('[name=section]');
+    const segBtns = seg.querySelectorAll('.seg-btn');
+    function syncSection() {
+      const v = sectionInput.value;
+      segBtns.forEach((b) => b.classList.toggle('active', b.dataset.val === v));
+    }
+    segBtns.forEach((b) => b.addEventListener('click', () => {
+      sectionInput.value = b.dataset.val;
+      syncSection();
+    }));
+
     async function unlock(pw) {
       pw = (pw || '').trim();
       if (!pw) return;
       if (unlocking) return;
-      if (pw === lastTried) return; // 同一个值不重复请求
+      if (pw === lastTried) return;
       lastTried = pw;
       unlocking = true;
       try {
@@ -800,7 +960,7 @@ const FORM_HTML = `<!doctype html>
           passcode = pw;
           pwField.value = pw;
           sessionStorage.setItem(KEY, '1');
-          sessionStorage.setItem(PW_KEY, pw); // 刷新后可恢复口令，避免直接进表单却发不了
+          sessionStorage.setItem(PW_KEY, pw);
           gate.classList.add('hidden');
           studio.classList.add('show');
           setTimeout(() => document.querySelector('input[name=title]').focus(), 420);
@@ -825,8 +985,6 @@ const FORM_HTML = `<!doctype html>
       lastTried = '';
     }
 
-    // 即输即验：每次输入停顿 500ms 后自动验证（无需回车）
-    // 用 lastTried 去重，避免同一残缺值反复请求；失败后保留输入内容便于纠正
     function scheduleUnlock() {
       const v = gateInput.value.trim();
       if (!v) return;
@@ -837,16 +995,13 @@ const FORM_HTML = `<!doctype html>
     gateInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); unlock(gateInput.value); }
     });
-    // 手机端某些输入法不触发 input 的 change 兜底
     gateInput.addEventListener('change', scheduleUnlock);
-    // 失焦兜底
     gateInput.addEventListener('blur', () => {
       if (gateInput.value.trim()) unlock(gateInput.value);
     });
 
     relock.addEventListener('click', relockNow);
 
-    // 若本会话已解锁则直接进入（恢复口令，刷新后也能正常发布）
     if (sessionStorage.getItem(KEY) === '1') {
       const savedPw = sessionStorage.getItem(PW_KEY) || '';
       passcode = savedPw;
@@ -863,7 +1018,6 @@ const FORM_HTML = `<!doctype html>
       btn.disabled = true; btn.textContent = '发布中…';
       result.className = ''; result.style.display = 'none';
       progress.classList.add('show');
-      // 进度条动画
       let p = 0;
       const timer = setInterval(() => {
         p = Math.min(p + Math.random() * 22, 90);
@@ -887,6 +1041,7 @@ const FORM_HTML = `<!doctype html>
           editPathField.value = '';
           editShaField.value = '';
           form.reset();
+          syncSection();
         } else {
           progress.classList.remove('show');
           result.className = 'err';
@@ -898,7 +1053,7 @@ const FORM_HTML = `<!doctype html>
         result.className = 'err';
         result.textContent = '❌ 网络错误：' + err.message;
       } finally {
-        btn.disabled = false; btn.textContent = '发布';
+        btn.disabled = false; btn.textContent = '↑ 发布';
       }
     });
 
@@ -911,6 +1066,7 @@ const FORM_HTML = `<!doctype html>
     }
 
     let histLoaded = false;
+    let allItems = [];
 
     async function openHistory() {
       if (!passcode) { relockNow(); return; }
@@ -925,26 +1081,48 @@ const FORM_HTML = `<!doctype html>
         const j = await r.json();
         if (!j.ok) { histList.innerHTML = '<div class="hist-loading">加载失败：' + escapeHtml(j.error || '') + '</div>'; return; }
         if (!j.items.length) { histList.innerHTML = '<div class="hist-empty">还没有文章</div>'; return; }
-        histList.innerHTML = '';
-        for (const it of j.items) {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'hist-item';
-          const secBadge = it.section === 'vibe'
-            ? '<span class="badge vibe">意境</span>'
-            : '<span class="badge blog">博客</span>';
-          const draftBadge = it.draft ? '<span class="badge draft">草稿</span>' : '';
-          const dateStr = it.date ? it.date.slice(0, 10) : '无日期';
-          b.innerHTML =
-            '<div class="t">' + escapeHtml(it.title) + secBadge + draftBadge + '</div>' +
-            '<div class="meta"><span>' + dateStr + '</span><span class="p">' + escapeHtml(it.path) + '</span></div>';
-          b.addEventListener('click', () => loadArticle(it));
-          histList.appendChild(b);
-        }
+        allItems = j.items;
+        histCount.textContent = '共 ' + j.items.length + ' 篇 · 点击任意一篇可编辑并重发';
+        renderHistory('');
       } catch (err) {
         histList.innerHTML = '<div class="hist-loading">网络错误：' + escapeHtml(err.message) + '</div>';
       }
     }
+
+    function renderHistory(query) {
+      const q = (query || '').trim().toLowerCase();
+      const items = q ? allItems.filter((it) => (it.title || '').toLowerCase().includes(q)) : allItems;
+      if (!items.length) { histList.innerHTML = '<div class="hist-empty">没有匹配的文章</div>'; return; }
+      histList.innerHTML = '';
+      let lastMonth = null;
+      for (const it of items) {
+        const month = (it.date || '').slice(0, 7);
+        if (month && month !== lastMonth) {
+          lastMonth = month;
+          const d = document.createElement('div');
+          d.className = 'hist-month';
+          const parts = month.split('-');
+          d.textContent = parts[0] + ' 年 ' + parseInt(parts[1], 10) + ' 月';
+          histList.appendChild(d);
+        }
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'hist-item';
+        const secBadge = it.section === 'vibe'
+          ? '<span class="badge vibe">意境</span>'
+          : '<span class="badge blog">博客</span>';
+        const draftBadge = it.draft ? '<span class="badge draft">草稿</span>' : '';
+        const dateStr = it.date ? it.date.slice(0, 10) : '无日期';
+        b.innerHTML =
+          '<div class="t">' + escapeHtml(it.title) + secBadge + draftBadge + '</div>' +
+          '<div class="meta"><span>' + dateStr + '</span><span class="p">' + escapeHtml(it.path) + '</span></div>' +
+          '<span class="go">编辑 →</span>';
+        b.addEventListener('click', () => loadArticle(it));
+        histList.appendChild(b);
+      }
+    }
+
+    histSearchInput.addEventListener('input', () => renderHistory(histSearchInput.value));
 
     async function loadArticle(it) {
       histList.innerHTML = '<div class="hist-loading">读取「' + escapeHtml(it.title) + '」中…</div>';
@@ -956,19 +1134,20 @@ const FORM_HTML = `<!doctype html>
         if (!j.ok) { alert('读取失败：' + (j.error || '')); await loadHistory(); return; }
         form.querySelector('[name=title]').value = j.title || '';
         form.querySelector('[name=section]').value = j.section === 'vibe' ? 'vibe' : 'blog';
+        syncSection();
         form.querySelector('[name=date]').value = j.date || '';
         form.querySelector('[name=series]').value = j.series || '';
         form.querySelector('[name=description]').value = j.description || '';
         form.querySelector('[name=tags]').value = j.tags || '';
         form.querySelector('[name=content]').value = j.content || '';
         form.querySelector('[name=draft]').checked = !!j.draft;
-        form.querySelector('[name=slug]').value = ''; // 编辑沿用原文件名，不重新生成 slug
+        form.querySelector('[name=slug]').value = '';
         editPathField.value = j.path;
         editShaField.value = j.sha;
         histEditing.innerHTML = '✎ 正在编辑：' + escapeHtml(j.title) +
-          '（重新发布将覆盖原文件） <button type="button" id="cancel-edit" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#c6c9ce;border-radius:8px;padding:2px 10px;font-size:12px;cursor:pointer;margin-left:4px;">取消（改为新建）</button>';
+          '（重新发布将覆盖原文件） <button type="button" id="cancel-edit">取消（改为新建）</button>';
         historyEl.classList.remove('show');
-        histLoaded = false; // 内容可能已变，下次打开重新拉取
+        histLoaded = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => form.querySelector('[name=title]').focus(), 320);
       } catch (err) {
@@ -989,4 +1168,5 @@ const FORM_HTML = `<!doctype html>
     });
   </script>
 </body>
-</html>`;
+</html>
+`;
