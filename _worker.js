@@ -104,7 +104,7 @@ function buildFrontmatter({ title, description, date, tags, series, draft, secti
   return lines.join('\n');
 }
 
-async function gh(path, { method = 'GET', body, token } = {}) {
+async function gh(path, { method = 'GET', body, token, signal } = {}) {
   const res = await fetch(API + path, {
     method,
     headers: {
@@ -114,6 +114,7 @@ async function gh(path, { method = 'GET', body, token } = {}) {
       Accept: 'application/vnd.github+json',
     },
     body: body ? JSON.stringify(body) : undefined,
+    signal,
   });
   const text = await res.text();
   let json;
@@ -215,6 +216,41 @@ function decodeBase64(b64) {
 
 /* ---------------- 历史：列出全部文章（blog + vibe），按时间倒序 ---------------- */
 
+/* ---------------- 超时控制 + 并发限制（历史列表要拉很多文件，必须可中断） ---------------- */
+
+// 用 AbortController 给异步调用加超时：超时/网络错误一律返回 null，由调用方跳过
+async function withTimeout(fn, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fn(ctrl.signal);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// 限制并发数的 map：避免一次性对 GitHub 发上百个请求触发限流或拖垮整体耗时
+async function mapLimit(arr, limit, fn) {
+  const out = new Array(arr.length);
+  let i = 0;
+  const workers = [];
+  const n = Math.min(limit, arr.length);
+  for (let k = 0; k < n; k++) {
+    workers.push(
+      (async () => {
+        while (i < arr.length) {
+          const idx = i++;
+          out[idx] = await fn(arr[idx]);
+        }
+      })(),
+    );
+  }
+  await Promise.all(workers);
+  return out;
+}
+
 async function handleList(request, env) {
   const token = env.GH_TOKEN;
   const password = passwordOf(env);
@@ -229,32 +265,47 @@ async function handleList(request, env) {
   const items = [];
 
   for (const section of sections) {
-    const listRes = await gh(
-      `/repos/${owner}/${repo}/contents/src/content/${section}?ref=${branch}`,
-      {
-        token,
-      },
+    const listRes = await withTimeout(
+      (signal) =>
+        gh(`/repos/${owner}/${repo}/contents/src/content/${section}?ref=${branch}`, {
+          token,
+          signal,
+        }),
+      8000,
     );
-    if (!listRes.ok || !Array.isArray(listRes.json)) continue;
+    if (!listRes || !listRes.ok || !Array.isArray(listRes.json)) continue;
     const files = listRes.json.filter((f) => f.name && f.name.endsWith('.md'));
-    // 并发拉取每个文件内容，取出标题/日期/sha（按 frontmatter 的 date 排序）
-    const got = await Promise.all(
-      files.map((f) =>
-        gh(`/repos/${owner}/${repo}/contents/${encodeURI(f.path)}?ref=${branch}`, { token })
-          .then((r) => ({ f, r }))
-          .catch(() => ({ f, r: null })),
-      ),
-    );
-    for (const { f, r } of got) {
-      if (!r || !r.ok || !r.json || !r.json.content) continue;
-      const { data } = parseFrontmatter(decodeBase64(r.json.content));
+
+    // 并发（上限 10）拉取每个文件内容，取出标题/日期/sha；单文件 5s 超时则跳过
+    const got = await mapLimit(files, 10, async (f) => {
+      const r = await withTimeout(
+        (signal) =>
+          gh(`/repos/${owner}/${repo}/contents/${encodeURI(f.path)}?ref=${branch}`, {
+            token,
+            signal,
+          }),
+        5000,
+      );
+      if (!r || !r.ok || !r.json || !r.json.content) return null;
+      return { f, raw: decodeBase64(r.json.content), sha: r.json.sha };
+    });
+
+    for (const g of got) {
+      if (!g) continue;
+      const { data } = parseFrontmatter(g.raw);
+      // 优先用 frontmatter 日期；否则回退到文件名里的日期前缀（发布台生成的文件都有）
+      let date = data.date || '';
+      if (!date) {
+        const m = g.f.name.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (m) date = m[1];
+      }
       items.push({
         section,
-        slug: f.name.replace(/\.md$/, ''),
-        path: f.path,
-        sha: r.json.sha,
-        title: data.title || f.name,
-        date: data.date || '',
+        slug: g.f.name.replace(/\.md$/, ''),
+        path: g.f.path,
+        sha: g.sha,
+        title: data.title || g.f.name.replace(/\.md$/, ''),
+        date,
         tags: Array.isArray(data.tags) ? data.tags : [],
         draft: data.draft === true || data.draft === 'true',
       });
