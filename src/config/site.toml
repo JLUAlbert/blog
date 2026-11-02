@@ -219,10 +219,10 @@ reactions_enabled = "1"
 emit_metadata = "0"
 # 输入框位置。✅ 保留
 input_position = "top"
-# 浅色主题。✅ 保留
-light_theme = "light"
-# 深色主题。✅ 保留
-dark_theme = "dark"
+# 浅色主题：透明化（透出博客 paper 卡片底色）。
+light_theme = "https://jlualbert-blog.pages.dev/giscus-light-transparent.css"
+# 深色主题：原生透明（transparent_dark，浅色文字适配暗底）。
+dark_theme = "transparent_dark"
 # 界面语言。✅ 保留
 lang = "zh-CN"
 # 是否懒加载。✅ 保留

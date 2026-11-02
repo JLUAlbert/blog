@@ -30,12 +30,9 @@ const shouldRender = provider ? canRenderProvider(comments, provider) : false;
             </svg>
           </span>
           <h2>
-            评论 <span class="comment-head-en">Comments</span>
+            <span class="comment-head-en">Comments</span>
           </h2>
         </div>
-        <p class="comment-head-hint">
-          使用 GitHub 账号登录后即可发表评论，内容保存在本仓库的 Discussions 中。
-        </p>
       </header>
 
       <div class="comment-body">
@@ -67,10 +64,11 @@ const shouldRender = provider ? canRenderProvider(comments, provider) : false;
   }
 
   .comment-head {
-    display: grid;
-    gap: 8px;
-    margin-bottom: 22px;
-    padding-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--paper-line);
   }
 
@@ -95,25 +93,10 @@ const shouldRender = provider ? canRenderProvider(comments, provider) : false;
   .comment-head-title h2 {
     margin: 0;
     font-family: var(--font-meta);
-    font-size: 1.18rem;
+    font-size: 1.12rem;
     font-weight: 700;
-    letter-spacing: 0.01em;
-    color: var(--paper-ink, #272d28);
-  }
-
-  .comment-head-en {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: var(--paper-ink-faint, #899487);
     letter-spacing: 0.04em;
-  }
-
-  .comment-head-hint {
-    margin: 0;
-    font-family: var(--font-meta);
-    font-size: 0.82rem;
-    line-height: 1.6;
-    color: var(--paper-ink-soft, #667066);
+    color: var(--paper-ink, #272d28);
   }
 
   .comment-body {
