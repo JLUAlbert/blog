@@ -164,6 +164,149 @@ function json(obj, status = 200) {
   });
 }
 
+/* ---------------- 读取文章：frontmatter 解析 ---------------- */
+
+function unquote(s) {
+  s = (s || '').trim();
+  if (s.startsWith("'") && s.endsWith("'") && s.length >= 2) {
+    return s.slice(1, -1).replace(/''/g, "'");
+  }
+  return s;
+}
+
+// 解析 Markdown 文件的 frontmatter 与正文，兼容标量与列表字段
+function parseFrontmatter(raw) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!m) return { data: {}, body: raw };
+  const fmText = m[1];
+  const body = m[2] || '';
+  const data = {};
+  let curKey = null;
+  const lines = fmText.split(/\r?\n/);
+  for (const line of lines) {
+    const kv = line.match(/^([A-Za-z0-9_-]+):\s?(.*)$/);
+    if (kv && !/^\s/.test(line)) {
+      const key = kv[1];
+      const val = kv[2];
+      if (val.trim() === '') {
+        data[key] = [];
+        curKey = key;
+      } else {
+        data[key] = unquote(val);
+        curKey = null;
+      }
+    } else if (/^\s+-\s+/.test(line) && curKey && Array.isArray(data[curKey])) {
+      data[curKey].push(unquote(line.replace(/^\s+-\s+/, '')));
+    } else {
+      curKey = null;
+    }
+  }
+  return { data, body: body.trim() };
+}
+
+// GitHub contents API 返回带换行的标准 base64，需清理后按 UTF-8 解码（保中文）
+function decodeBase64(b64) {
+  const clean = String(b64 || '').replace(/\s+/g, '');
+  const bin = atob(clean);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+/* ---------------- 历史：列出全部文章（blog + vibe），按时间倒序 ---------------- */
+
+async function handleList(request, env) {
+  const token = env.GH_TOKEN;
+  const password = passwordOf(env);
+  const pw = request.headers.get('x-publish-pw') || '';
+  if (!password || pw !== password) return json({ error: '口令错误' }, 401);
+  if (!token) return json({ error: '服务端未配置 GH_TOKEN' }, 500);
+
+  const owner = ownerOf(env);
+  const repo = repoOf(env);
+  const branch = branchOf(env);
+  const sections = ['blog', 'vibe'];
+  const items = [];
+
+  for (const section of sections) {
+    const listRes = await gh(
+      `/repos/${owner}/${repo}/contents/src/content/${section}?ref=${branch}`,
+      {
+        token,
+      },
+    );
+    if (!listRes.ok || !Array.isArray(listRes.json)) continue;
+    const files = listRes.json.filter((f) => f.name && f.name.endsWith('.md'));
+    // 并发拉取每个文件内容，取出标题/日期/sha（按 frontmatter 的 date 排序）
+    const got = await Promise.all(
+      files.map((f) =>
+        gh(`/repos/${owner}/${repo}/contents/${encodeURI(f.path)}?ref=${branch}`, { token })
+          .then((r) => ({ f, r }))
+          .catch(() => ({ f, r: null })),
+      ),
+    );
+    for (const { f, r } of got) {
+      if (!r || !r.ok || !r.json || !r.json.content) continue;
+      const { data } = parseFrontmatter(decodeBase64(r.json.content));
+      items.push({
+        section,
+        slug: f.name.replace(/\.md$/, ''),
+        path: f.path,
+        sha: r.json.sha,
+        title: data.title || f.name,
+        date: data.date || '',
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        draft: data.draft === true || data.draft === 'true',
+      });
+    }
+  }
+
+  items.sort((a, b) => {
+    const d = (b.date || '').localeCompare(a.date || '');
+    return d !== 0 ? d : b.path.localeCompare(a.path);
+  });
+  return json({ ok: true, items });
+}
+
+/* ---------------- 单篇：按路径读取，供编辑回填 ---------------- */
+
+async function handleArticle(request, env) {
+  const token = env.GH_TOKEN;
+  const password = passwordOf(env);
+  const pw = request.headers.get('x-publish-pw') || '';
+  if (!password || pw !== password) return json({ error: '口令错误' }, 401);
+  if (!token) return json({ error: '服务端未配置 GH_TOKEN' }, 500);
+
+  const url = new URL(request.url);
+  const path = (url.searchParams.get('path') || '').trim();
+  if (!/^src\/content\/(blog|vibe)\/[^/]+\.md$/.test(path)) {
+    return json({ error: '无效的文章路径' }, 400);
+  }
+  const owner = ownerOf(env);
+  const repo = repoOf(env);
+  const branch = branchOf(env);
+  const cr = await gh(`/repos/${owner}/${repo}/contents/${encodeURI(path)}?ref=${branch}`, {
+    token,
+  });
+  if (!cr.ok || !cr.json || !cr.json.content) return json({ error: '文章读取失败' }, 404);
+
+  const { data, body } = parseFrontmatter(decodeBase64(cr.json.content));
+  const join = (v) => (Array.isArray(v) ? v.join(', ') : String(v || ''));
+  return json({
+    ok: true,
+    path,
+    sha: cr.json.sha,
+    section: path.includes('/vibe/') ? 'vibe' : 'blog',
+    title: data.title || '',
+    description: data.description || '',
+    date: String(data.date || '').slice(0, 10),
+    tags: join(data.tags),
+    series: join(data.series),
+    draft: data.draft === true || data.draft === 'true',
+    content: body,
+  });
+}
+
 async function handlePublish(request, env) {
   const token = env.GH_TOKEN;
   const password = passwordOf(env);
@@ -231,23 +374,36 @@ async function handlePublish(request, env) {
     content = `![${title}](/images/${imgName})\n\n` + content;
   }
 
+  // 编辑模式：直接覆盖原文件（用最新 sha，避免并发冲突）
+  const editPath = (form.get('editPath') || '').toString().trim();
+  const isEdit = /^src\/content\/(blog|vibe)\/[^\/]+\.md$/.test(editPath);
+  // 编辑时锁定板块为原文件所在目录，避免误改 section 导致 frontmatter 字段（description/series）丢失
+  if (isEdit) section = editPath.includes('/vibe/') ? 'vibe' : 'blog';
+
   const fm = buildFrontmatter({ title, description, date, tags, series, draft, section });
   const fileContent = `---\n${fm}\n---\n\n${content}\n`;
 
-  let sha = await getSha(owner, repo, branch, `src/content/${section}/${slug}.md`, token);
-  if (sha && !form.get('overwrite')) {
-    // 已存在同名文章：加随机短码避免覆盖（同一天同标题也能区分）
-    slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+  let finalPath, message;
+  if (isEdit) {
+    finalPath = editPath;
+    message = `update: ${title}`;
+  } else {
+    let sha = await getSha(owner, repo, branch, `src/content/${section}/${slug}.md`, token);
+    if (sha && !form.get('overwrite')) {
+      // 已存在同名文章：加随机短码避免覆盖（同一天同标题也能区分）
+      slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+    }
+    finalPath = `src/content/${section}/${slug}.md`;
+    message = `publish: ${title}`;
   }
-  const finalPath = `src/content/${section}/${slug}.md`;
-  sha = await getSha(owner, repo, branch, finalPath, token);
+  const sha = await getSha(owner, repo, branch, finalPath, token);
   const r = await commit(
     owner,
     repo,
     branch,
     finalPath,
     toBase64(fileContent),
-    `publish: ${title}`,
+    message,
     token,
     sha,
   );
@@ -255,16 +411,22 @@ async function handlePublish(request, env) {
 
   const baseGh = `https://${owner}.github.io/${repo}`;
   const baseCf = env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev';
-  // 意境(Vibe) 没有独立详情页，只渲染在 /vibe 时间线；博客则有独立文章页
+  // 实际落盘路径决定板块：意境(Vibe) 无独立详情页，只渲染在 /vibe 时间线；博客有独立文章页
+  const actualSection = finalPath.includes('/vibe/') ? 'vibe' : 'blog';
+  const displaySlug = finalPath.split('/').pop().replace(/\.md$/, '');
   const links =
-    section === 'vibe'
+    actualSection === 'vibe'
       ? { githubPages: `${baseGh}/vibe/`, cloudflare: `${baseCf}/vibe/` }
-      : { githubPages: `${baseGh}/blog/${slug}/`, cloudflare: `${baseCf}/blog/${slug}/` };
+      : {
+          githubPages: `${baseGh}/blog/${displaySlug}/`,
+          cloudflare: `${baseCf}/blog/${displaySlug}/`,
+        };
   return json({
     ok: true,
-    slug,
+    slug: displaySlug,
     path: finalPath,
-    section,
+    section: actualSection,
+    edited: isEdit,
     ...links,
   });
 }
@@ -273,6 +435,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/publish' || url.pathname === '/publish/') {
+      if (request.method === 'GET') {
+        const action = url.searchParams.get('action');
+        if (action === 'history') return handleList(request, env);
+        if (action === 'article') return handleArticle(request, env);
+      }
       return handlePublish(request, env);
     }
     // 其它路径交给静态资产
@@ -362,7 +529,7 @@ const FORM_HTML = `<!doctype html>
     #studio { transform: none; transition: opacity .3s ease !important; }
     * { transition-duration: .2s !important; }
   }
-  .head { text-align: center; margin: 8px 0 24px; }
+  .head { text-align: center; margin: 8px 0 24px; position: relative; }
   .head h1 { font-size: 22px; font-weight: 300; margin: 0; letter-spacing: .4px; }
   .head h1 b { font-weight: 600; }
   .head .sub { color: #8b919b; font-size: 12.5px; margin: 6px 0 0; }
@@ -401,6 +568,48 @@ const FORM_HTML = `<!doctype html>
   .lockbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
   .relock { background: transparent; border: 0; color: #8b919b; font-size: 12px; cursor: pointer;
             padding: 4px 8px; margin: 0; width: auto; }
+
+  /* ===== 历史按钮（标题右上角） ===== */
+  .hist-btn { position: absolute; top: -4px; right: 0; background: rgba(255,255,255,.06);
+              border: 1px solid rgba(255,255,255,.16); color: #c6c9ce; font-size: 12.5px;
+              padding: 6px 13px; border-radius: 999px; cursor: pointer;
+              display: inline-flex; align-items: center; gap: 5px;
+              transition: border-color .25s, color .25s, background .25s, transform .15s; }
+  .hist-btn:hover { border-color: #3dba7a; color: #fff; }
+  .hist-btn:active { transform: scale(.97); }
+  .hist-btn .ic { font-size: 13px; }
+
+  /* ===== 历史面板（全屏覆盖） ===== */
+  #history { position: fixed; inset: 0; z-index: 60; background: rgba(7,8,10,.97);
+             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+             display: none; flex-direction: column; opacity: 0;
+             transition: opacity .4s ease; }
+  #history.show { display: flex; opacity: 1; }
+  .hist-head { display: flex; align-items: center; justify-content: space-between;
+               padding: max(18px, env(safe-area-inset-top)) 18px 10px; }
+  .hist-head h2 { margin: 0; font-size: 18px; font-weight: 400; letter-spacing: .3px; }
+  .hist-head .sub { color: #8b919b; font-size: 12px; margin: 4px 0 0; }
+  .hist-close { background: transparent; border: 0; color: #8b919b; font-size: 24px; line-height: 1;
+                cursor: pointer; width: auto; margin: 0; padding: 2px 10px; }
+  .hist-close:hover { color: #fff; }
+  .hist-list { flex: 1; overflow-y: auto; padding: 6px 14px 28px; -webkit-overflow-scrolling: touch; }
+  .hist-item { display: block; width: 100%; text-align: left; background: #14171c;
+               border: 1px solid #262b33; border-radius: 12px; padding: 12px 14px;
+               margin-bottom: 10px; cursor: pointer; color: #e8eaed;
+               transition: border-color .2s, transform .12s, background .2s; }
+  .hist-item:hover { border-color: #3dba7a; }
+  .hist-item:active { transform: scale(.99); }
+  .hist-item .t { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 8px;
+                  flex-wrap: wrap; }
+  .hist-item .meta { font-size: 12px; color: #8b919b; margin-top: 5px; display: flex; gap: 12px;
+                     flex-wrap: wrap; align-items: center; }
+  .hist-item .meta .p { opacity: .7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+  .badge { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .badge.blog { background: rgba(61,186,122,.16); color: #62dca0; }
+  .badge.vibe { background: rgba(86,196,255,.16); color: #86c8ff; }
+  .badge.draft { background: rgba(229,83,75,.18); color: #ff9a93; }
+  .hist-empty, .hist-loading { color: #8b919b; text-align: center; margin-top: 48px; font-size: 14px; }
+  .hist-editing { text-align: center; color: #62dca0; font-size: 12.5px; margin: 8px 0 0; min-height: 16px; }
 </style>
 </head>
 <body>
@@ -421,12 +630,15 @@ const FORM_HTML = `<!doctype html>
   <div id="studio">
     <div class="lockbar"><span></span><button class="relock" id="relock" type="button">🔒 锁定</button></div>
     <div class="head">
+      <button class="hist-btn" id="hist-btn" type="button"><span class="ic">🕑</span> 历史</button>
       <h1>Albert's blog <b>Publish</b></h1>
       <p class="sub">提交后自动 commit 到 GitHub，两平台重新构建上线</p>
     </div>
     <form id="f">
       <input type="hidden" name="password" id="pw-field" />
       <input type="hidden" name="unlock" value="false" />
+      <input type="hidden" name="editPath" id="edit-path" />
+      <input type="hidden" name="editSha" id="edit-sha" />
 
       <label>标题 *</label>
       <input type="text" name="title" placeholder="例如：财富自由 · 第二章" required />
@@ -477,6 +689,21 @@ const FORM_HTML = `<!doctype html>
     </form>
     <div id="progress"><div class="bar"><i id="bar-fill"></i></div><div class="label" id="progress-label">正在发布…</div></div>
     <div id="result"></div>
+    <p class="hist-editing" id="hist-editing"></p>
+  </div>
+
+  <!-- 历史面板 -->
+  <div id="history">
+    <div class="hist-head">
+      <div>
+        <h2>历史文章</h2>
+        <p class="sub">按发布时间倒序 · 点击任意一篇可编辑并重发</p>
+      </div>
+      <button class="hist-close" id="hist-close" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="hist-list" id="hist-list">
+      <div class="hist-loading">加载中…</div>
+    </div>
   </div>
 
   <script>
@@ -490,6 +717,13 @@ const FORM_HTML = `<!doctype html>
     const progress = document.getElementById('progress');
     const barFill = document.getElementById('bar-fill');
     const progressLabel = document.getElementById('progress-label');
+    const editPathField = document.getElementById('edit-path');
+    const editShaField = document.getElementById('edit-sha');
+    const histBtn = document.getElementById('hist-btn');
+    const histClose = document.getElementById('hist-close');
+    const historyEl = document.getElementById('history');
+    const histList = document.getElementById('hist-list');
+    const histEditing = document.getElementById('hist-editing');
 
     let passcode = '';
     let unlocking = false;
@@ -591,12 +825,16 @@ const FORM_HTML = `<!doctype html>
         clearInterval(timer);
         if (j.ok) {
           barFill.style.width = '100%';
-          progressLabel.textContent = '已发布';
+          const verb = j.edited ? '更新' : '发布';
+          progressLabel.textContent = j.edited ? '已更新' : '已发布';
           setTimeout(() => progress.classList.remove('show'), 600);
           result.className = 'ok';
-          result.innerHTML = '✅ 发布成功！\\nslug: ' + j.slug +
+          result.innerHTML = '✅ ' + verb + '成功！\\nslug: ' + j.slug +
             '\\n<a href="' + j.githubPages + '" target="_blank">GitHub Pages</a>' +
             ' · <a href="' + j.cloudflare + '" target="_blank">Cloudflare</a>';
+          histEditing.textContent = '';
+          editPathField.value = '';
+          editShaField.value = '';
           form.reset();
         } else {
           progress.classList.remove('show');
@@ -610,6 +848,92 @@ const FORM_HTML = `<!doctype html>
         result.textContent = '❌ 网络错误：' + err.message;
       } finally {
         btn.disabled = false; btn.textContent = '发布';
+      }
+    });
+
+    /* ---------------- 历史：列表 + 编辑回填 ---------------- */
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    let histLoaded = false;
+
+    async function openHistory() {
+      if (!passcode) { relockNow(); return; }
+      historyEl.classList.add('show');
+      if (!histLoaded) { await loadHistory(); histLoaded = true; }
+    }
+
+    async function loadHistory() {
+      histList.innerHTML = '<div class="hist-loading">加载中…</div>';
+      try {
+        const r = await fetch('/publish?action=history', { headers: { 'x-publish-pw': passcode } });
+        const j = await r.json();
+        if (!j.ok) { histList.innerHTML = '<div class="hist-loading">加载失败：' + escapeHtml(j.error || '') + '</div>'; return; }
+        if (!j.items.length) { histList.innerHTML = '<div class="hist-empty">还没有文章</div>'; return; }
+        histList.innerHTML = '';
+        for (const it of j.items) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'hist-item';
+          const secBadge = it.section === 'vibe'
+            ? '<span class="badge vibe">意境</span>'
+            : '<span class="badge blog">博客</span>';
+          const draftBadge = it.draft ? '<span class="badge draft">草稿</span>' : '';
+          const dateStr = it.date ? it.date.slice(0, 10) : '无日期';
+          b.innerHTML =
+            '<div class="t">' + escapeHtml(it.title) + secBadge + draftBadge + '</div>' +
+            '<div class="meta"><span>' + dateStr + '</span><span class="p">' + escapeHtml(it.path) + '</span></div>';
+          b.addEventListener('click', () => loadArticle(it));
+          histList.appendChild(b);
+        }
+      } catch (err) {
+        histList.innerHTML = '<div class="hist-loading">网络错误：' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    async function loadArticle(it) {
+      histList.innerHTML = '<div class="hist-loading">读取「' + escapeHtml(it.title) + '」中…</div>';
+      try {
+        const r = await fetch('/publish?action=article&path=' + encodeURIComponent(it.path), {
+          headers: { 'x-publish-pw': passcode },
+        });
+        const j = await r.json();
+        if (!j.ok) { alert('读取失败：' + (j.error || '')); await loadHistory(); return; }
+        form.querySelector('[name=title]').value = j.title || '';
+        form.querySelector('[name=section]').value = j.section === 'vibe' ? 'vibe' : 'blog';
+        form.querySelector('[name=date]').value = j.date || '';
+        form.querySelector('[name=series]').value = j.series || '';
+        form.querySelector('[name=description]').value = j.description || '';
+        form.querySelector('[name=tags]').value = j.tags || '';
+        form.querySelector('[name=content]').value = j.content || '';
+        form.querySelector('[name=draft]').checked = !!j.draft;
+        form.querySelector('[name=slug]').value = ''; // 编辑沿用原文件名，不重新生成 slug
+        editPathField.value = j.path;
+        editShaField.value = j.sha;
+        histEditing.innerHTML = '✎ 正在编辑：' + escapeHtml(j.title) +
+          '（重新发布将覆盖原文件） <button type="button" id="cancel-edit" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#c6c9ce;border-radius:8px;padding:2px 10px;font-size:12px;cursor:pointer;margin-left:4px;">取消（改为新建）</button>';
+        historyEl.classList.remove('show');
+        histLoaded = false; // 内容可能已变，下次打开重新拉取
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => form.querySelector('[name=title]').focus(), 320);
+      } catch (err) {
+        alert('网络错误：' + err.message);
+        await loadHistory();
+      }
+    }
+
+    histBtn.addEventListener('click', openHistory);
+    histClose.addEventListener('click', () => historyEl.classList.remove('show'));
+    histEditing.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'cancel-edit') {
+        editPathField.value = '';
+        editShaField.value = '';
+        histEditing.textContent = '';
+        form.querySelector('[name=slug]').value = '';
       }
     });
   </script>
