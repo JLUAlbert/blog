@@ -29,6 +29,8 @@ AGENTS.md
 # generated font files
 scripts/fonts/ui-chars.txt
 public/fonts/*-subset.woff2
+# 例外：界面子集必须提交，否则线上 404、界面会回退去加载 880KB 全量字体
+!public/fonts/LXGWWenKai-ui-subset.woff2
 public/friend-circle.json
 
 # Trakt sync credentials & cache

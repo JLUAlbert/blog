@@ -100,8 +100,8 @@ const defaultMathConfig = {
 const defaultFontConfig = {
   en: 'Maple Mono',
   code: 'Monaco',
-  zh: 'ChillRoundM',
-  file: '/fonts/ChillRoundM.ttf',
+  zh: 'LXGW WenKai',
+  file: '/fonts/LXGWWenKai.woff2',
 };
 
 const nonEmptyStringSchema = (fallback: string) =>

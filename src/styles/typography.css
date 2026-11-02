@@ -1,0 +1,69 @@
+/* ===== 中文正文排版（霞鹜文楷） =====
+   设计意图：楷体骨架 + 舒展的字距与行高，让长文读起来像翻书而不像刷网页。
+   选择器用 .article-content.article-content 自我加倍权重，稳定覆盖主题默认值。 */
+
+.article-content.article-content {
+  /* 19px 是楷体的舒适下限：再小笔画会发虚，再大则一行字数不足、断句频繁 */
+  font-size: 19px;
+  /* 中文无小写字母、字身满格，行高需比西文更大才不压抑 */
+  line-height: 1.9;
+  /* 微字距是"呼吸感"的关键：方块字紧贴会糊成一片 */
+  letter-spacing: 0.02em;
+  /* 中文断行规则：标点不落在行首、不在词中硬断 */
+  line-break: strict;
+  word-break: normal;
+  overflow-wrap: break-word;
+  /* 标点悬挂（Safari 生效，其它浏览器忽略，无副作用） */
+  hanging-punctuation: allow-end;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+/* 标题：行高放宽到 1.35（主题是 1.2，中文标题会显得挤），并加一丝字距显稳重 */
+.article-content.article-content :is(h1, h2, h3, h4, h5, h6) {
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+/* 段落间距收到 1.6em：行高加大后，段间不必再留 2em 那么大的空白 */
+.article-content.article-content p {
+  margin-bottom: 1.6em;
+}
+
+/* 引文比正文更疏朗一点，读起来有"离题片刻"的停顿感 */
+.article-content.article-content blockquote {
+  letter-spacing: 0.03em;
+  line-height: 1.85;
+}
+
+/* 列表与正文同节奏，避免条目挤在一起 */
+.article-content.article-content :is(li) {
+  line-height: 1.85;
+  margin-bottom: 0.35em;
+}
+
+/* 图注、表格说明等小字：字距略收，避免小字号下松散 */
+.article-content.article-content :is(figcaption, .caption, table) {
+  letter-spacing: 0.005em;
+}
+
+/* 移动端：字号回落到 17.5px，行高与字距同步微调，保持每行 18–22 字的舒适区 */
+@media (max-width: 640px) {
+  .article-content.article-content {
+    font-size: 17.5px;
+    line-height: 1.85;
+    letter-spacing: 0.015em;
+  }
+
+  .article-content.article-content p {
+    margin-bottom: 1.45em;
+  }
+}
+
+/* 尊重「减少动态效果」以外的可读性偏好：字号偏好放大时按比例走，不锁死 */
+@media (prefers-contrast: more) {
+  .article-content.article-content {
+    letter-spacing: 0.025em;
+  }
+}

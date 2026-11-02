@@ -1,5 +1,6 @@
 @import './fonts.css';
 @import 'katex/dist/katex.min.css';
+@import './typography.css';
 
 /* ===== Caslon 字体栈（《独立宣言》字体） =====
    优先 Libre Caslon Text（开源复刻），其次系统内置 Caslon，最后退回通用衬线。 */

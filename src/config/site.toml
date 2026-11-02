@@ -45,11 +45,12 @@ en = "Libre Baskerville"
 # 代码字体。✅ 保留（Monaco 是系统经典等宽字体）
 code = "Monaco"
 
-# 中文正文字体。开源仿宋字体：朱雀仿宋（TrionesType/zhuque, SIL OFL 1.1）
-zh = "Zhuque Fangsong"
+# 中文正文字体。霞鹜文楷（LXGW WenKai，SIL OFL 1.1）——楷体书卷气，长文阅读比仿宋扎实
+zh = "LXGW WenKai"
 
-# 中文完整字体文件路径。✅ 保留（与上面的 zh 字体对应；切换字体时记得同步改这个路径）
-file = "/fonts/ZhuqueFangsong-Regular.ttf"
+# 中文完整字体文件路径。已做子集化：880KB woff2，覆盖 4031 个常用汉字 + ASCII + 标点
+# （原朱雀仿宋是 8.5MB 全量 TTF，加载慢且小字号笔画发虚）
+file = "/fonts/LXGWWenKai.woff2"
 
 # ============================================================
 # [config.code] —— 代码块渲染
