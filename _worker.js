@@ -276,8 +276,8 @@ async function handleList(request, env) {
     if (!listRes || !listRes.ok || !Array.isArray(listRes.json)) continue;
     const files = listRes.json.filter((f) => f.name && f.name.endsWith('.md'));
 
-    // 并发（上限 10）拉取每个文件内容，取出标题/日期/sha；单文件 5s 超时则跳过
-    const got = await mapLimit(files, 10, async (f) => {
+    // 并发（上限 20）拉取每个文件内容，取出标题/日期/sha；单文件 5s 超时则跳过
+    const got = await mapLimit(files, 20, async (f) => {
       const r = await withTimeout(
         (signal) =>
           gh(`/repos/${owner}/${repo}/contents/${encodeURI(f.path)}?ref=${branch}`, {
