@@ -9,6 +9,7 @@ import { getSiteConfig } from '../../../data/site';
 import { slugifyGroupName } from '../../../utils/content-groups';
 import { sortByDateDesc } from '../../../utils/content-dates';
 import { getUiText } from '../../../utils/ui-text';
+import { getPostPath } from '../../../utils/post-path';
 
 const siteConfig = await getSiteConfig();
 const { site, theme, pages } = siteConfig;
@@ -207,7 +208,7 @@ function formatMonthDay(date: Date) {
                 <ol class="archive-list">
                   {yearPosts.map((post) => (
                     <li>
-                      <a class="archive-row" href={`${basePath}/blog/${post.id}/`}>
+                      <a class="archive-row" href={`${basePath}${getPostPath(post)}`}>
                         <time class="archive-date" datetime={post.data.date.toISOString()}>
                           {formatMonthDay(post.data.date)}
                         </time>

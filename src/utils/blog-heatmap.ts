@@ -1,5 +1,6 @@
 import type { CollectionEntry } from 'astro:content';
 import { sortByDateDesc } from './content-dates';
+import { getPostPath } from './post-path';
 
 export interface HeatmapPost {
   title: string;
@@ -61,7 +62,7 @@ export function getLatestPosts(posts: BlogPost[], count = 1): LatestPost[] {
     .slice(0, Math.max(1, count))
     .map((post) => ({
       title: post.data.title,
-      href: `${BASE}/blog/${post.id}/`,
+      href: `${BASE}${getPostPath(post)}`,
       date: post.data.date,
     }));
 }
@@ -96,7 +97,7 @@ function getPostsByDate(posts: BlogPost[]) {
     const existingPosts = postsByDate.get(key) ?? [];
     existingPosts.push({
       title: post.data.title,
-      href: `${BASE}/blog/${post.id}/`,
+      href: `${BASE}${getPostPath(post)}`,
     });
     postsByDate.set(key, existingPosts);
   }

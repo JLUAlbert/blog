@@ -4,6 +4,7 @@ import FormattedDate from '../FormattedDate.astro';
 import SmartImage from '../SmartImage.astro';
 import { getSiteConfig } from '../../data/site';
 import { getUiText } from '../../utils/ui-text';
+import { getPostPath } from '../../utils/post-path';
 import '@navfolio/theme-default/styles/blog-related-posts.css';
 
 interface Props {
@@ -32,7 +33,7 @@ function withBase(href: string) {
       posts.map((post) => (
         <a
           class:list={[{ 'has-thumbnail': Boolean(post.data.heroImage) }]}
-          href={withBase(`/blog/${post.id}/`)}
+          href={withBase(getPostPath(post))}
         >
           {post.data.heroImage && (
             <SmartImage width={88} height={64} src={post.data.heroImage} alt="" />

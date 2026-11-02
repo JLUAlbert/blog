@@ -4,6 +4,7 @@ import FormattedDate from '../FormattedDate.astro';
 import SeriesProgress from './SeriesProgress.astro';
 import { getSiteConfig } from '../../data/site';
 import { getUiText } from '../../utils/ui-text';
+import { getPostPath } from '../../utils/post-path';
 import '@navfolio/theme-default/styles/blog-series-card.css';
 
 interface Props {
@@ -31,7 +32,7 @@ const ui = getUiText(await getSiteConfig());
     {
       posts.slice(0, 5).map((post) => (
         <li>
-          <a href={`${basePath}/blog/${post.id}/`}>
+          <a href={`${basePath}${getPostPath(post)}`}>
             <span>{post.data.title}</span>
             <small>
               <FormattedDate date={post.data.date} />

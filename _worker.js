@@ -55,15 +55,14 @@ function todayCn() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
-// 默认 slug：日期前缀，避免纯中文 URL（纯中文在部分 CDN/GitHub 上有编码兼容问题）
-function defaultSlug(title) {
-  const d = todayCn();
-  const t = slugify(title);
-  // 若标题转出的是纯中文（无 a-z0-9），用日期+随机短码
-  if (!/[a-z0-9]/.test(t)) {
-    return `${d}-${Math.random().toString(36).slice(2, 6)}`;
-  }
-  return `${d}-${t}`;
+// 默认 URL / 文件名：发布日期（YYYY-MM-DD）
+// 站点侧规则是「文章地址默认等于发布日期」，发布台落盘的文件名与之一致，
+// 于是不需要额外维护 slug 映射；同一天再发一篇时才追加 -2 / -3 并把 slug 写进 frontmatter。
+function dateSlugOf(dateValue) {
+  const m = String(dateValue || '')
+    .trim()
+    .match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : todayCn();
 }
 
 // 当前时刻的完整 ISO 时间戳（北京时间 UTC+8），留空日期时使用，精确到“发布那刻”
@@ -87,7 +86,7 @@ function nowIso() {
   );
 }
 
-function buildFrontmatter({ title, description, date, tags, series, draft, section }) {
+function buildFrontmatter({ title, description, date, tags, series, draft, section, slug }) {
   const lines = [];
   lines.push('title: ' + quoteScalar(title || 'Untitled'));
   // 意境(Vibe) 集合只需 title/date/tags/draft，不写 description / series
@@ -98,6 +97,8 @@ function buildFrontmatter({ title, description, date, tags, series, draft, secti
   }
   // 日期留空 → 自动取发布时刻（精确到秒）；否则用用户填写的值
   lines.push('date: ' + quoteScalar((date || '').toString().trim() || nowIso()));
+  // 仅当 URL 不等于发布日期时才显式写 slug（默认就是日期，保持 frontmatter 干净）
+  if (slug) lines.push('slug: ' + quoteScalar(slug));
   const tagArr = normalizeTags(tags);
   if (tagArr.length) lines.push('tags:', ...tagArr.map((t) => '  - ' + quoteListItem(t)));
   lines.push('draft: ' + (draft ? 'true' : 'false'));
@@ -301,7 +302,8 @@ async function handleList(request, env) {
       }
       items.push({
         section,
-        slug: g.f.name.replace(/\.md$/, ''),
+        // 展示真实 URL 段：显式 slug 优先，否则发布日期
+        slug: data.slug || String(date || '').slice(0, 10) || g.f.name.replace(/\.md$/, ''),
         path: g.f.path,
         sha: g.sha,
         title: data.title || g.f.name.replace(/\.md$/, ''),
@@ -351,6 +353,7 @@ async function handleArticle(request, env) {
     title: data.title || '',
     description: data.description || '',
     date: String(data.date || '').slice(0, 10),
+    slug: data.slug || '',
     tags: join(data.tags),
     series: join(data.series),
     draft: data.draft === true || data.draft === 'true',
@@ -395,9 +398,11 @@ async function handlePublish(request, env) {
   let section =
     (form.get('section') || 'blog').toString().trim().toLowerCase() === 'vibe' ? 'vibe' : 'blog';
   let content = (form.get('content') || '').toString();
+  // URL 段：手动填了就用它，否则等于发布日期（与站点侧默认规则一致）
+  const dateSlug = dateSlugOf(date);
   let slug = slugify((form.get('slug') || '').toString().trim());
-  if (!slug) slug = defaultSlug(title);
-  if (!slug) return json({ error: '无法生成 slug' }, 400);
+  const customSlug = Boolean(slug);
+  if (!slug) slug = dateSlug;
 
   const owner = ownerOf(env);
   const repo = repoOf(env);
@@ -431,22 +436,46 @@ async function handlePublish(request, env) {
   // 编辑时锁定板块为原文件所在目录，避免误改 section 导致 frontmatter 字段（description/series）丢失
   if (isEdit) section = editPath.includes('/vibe/') ? 'vibe' : 'blog';
 
-  const fm = buildFrontmatter({ title, description, date, tags, series, draft, section });
-  const fileContent = `---\n${fm}\n---\n\n${content}\n`;
-
   let finalPath, message;
   if (isEdit) {
     finalPath = editPath;
     message = `update: ${title}`;
   } else {
-    let sha = await getSha(owner, repo, branch, `src/content/${section}/${slug}.md`, token);
-    if (sha && !form.get('overwrite')) {
-      // 已存在同名文章：加随机短码避免覆盖（同一天同标题也能区分）
-      slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+    if (!customSlug && !form.get('overwrite')) {
+      // 同一天再发一篇：日期已被占用时顺延 -2 / -3，避免覆盖上一篇
+      let n = 1;
+      let candidate = slug;
+      while (n <= 50) {
+        const taken = await getSha(
+          owner,
+          repo,
+          branch,
+          `src/content/${section}/${candidate}.md`,
+          token,
+        );
+        if (!taken) break;
+        n += 1;
+        candidate = `${dateSlug}-${n}`;
+      }
+      slug = candidate;
     }
     finalPath = `src/content/${section}/${slug}.md`;
     message = `publish: ${title}`;
   }
+
+  // 只有 URL 段不等于发布日期时才把 slug 写进 frontmatter，默认保持干净
+  const fmSlug = isEdit || slug !== dateSlug ? slug : '';
+  const fm = buildFrontmatter({
+    title,
+    description,
+    date,
+    tags,
+    series,
+    draft,
+    section,
+    slug: fmSlug,
+  });
+  const fileContent = `---\n${fm}\n---\n\n${content}\n`;
   const sha = await getSha(owner, repo, branch, finalPath, token);
   const r = await commit(
     owner,
@@ -464,7 +493,8 @@ async function handlePublish(request, env) {
   const baseCf = env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev';
   // 实际落盘路径决定板块：意境(Vibe) 无独立详情页，只渲染在 /vibe 时间线；博客有独立文章页
   const actualSection = finalPath.includes('/vibe/') ? 'vibe' : 'blog';
-  const displaySlug = finalPath.split('/').pop().replace(/\.md$/, '');
+  // 文章真实地址由 frontmatter 的 slug / date 决定，不一定等于文件名（编辑旧文时可能不同）
+  const displaySlug = fmSlug || dateSlug;
   const links =
     actualSection === 'vibe'
       ? { githubPages: `${baseGh}/vibe/`, cloudflare: `${baseCf}/vibe/` }
@@ -853,8 +883,8 @@ const FORM_HTML = `<!doctype html>
           <input type="text" name="tags" placeholder="读书, 思考" />
 
           <label>网址别名 slug（可选）</label>
-          <input type="text" name="slug" placeholder="留空 = 日期前缀自动生成" />
-          <div class="hint">只填英文/数字/连字符，例如 wealth-freedom-ch2。</div>
+          <input type="text" name="slug" placeholder="留空 = 发布日期（如 2026-11-02）" />
+          <div class="hint">默认就是日期地址 /blog/日期/；想自定义才填，例如 wealth-freedom-ch2。</div>
         </div>
 
         <div class="group">
@@ -1141,7 +1171,8 @@ const FORM_HTML = `<!doctype html>
         form.querySelector('[name=tags]').value = j.tags || '';
         form.querySelector('[name=content]').value = j.content || '';
         form.querySelector('[name=draft]').checked = !!j.draft;
-        form.querySelector('[name=slug]').value = '';
+        // 回填已有 slug，避免重发时丢掉自定义地址（默认日期地址的文章此处为空）
+        form.querySelector('[name=slug]').value = j.slug || '';
         editPathField.value = j.path;
         editShaField.value = j.sha;
         histEditing.innerHTML = '✎ 正在编辑：' + escapeHtml(j.title) +

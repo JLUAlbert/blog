@@ -2,6 +2,8 @@
 title: '从《乡土中国》看中国'
 description: '两天囫囵读完费孝通《乡土中国》，记下十一条最受触动的观点：礼俗社会、差序格局、礼治与教化权力，以及农业如何支撑起王朝的周期律。'
 date: '2023-11-17'
+# 与《权力、市场与乌托邦》同日发布，显式指定 URL 避免日期后缀冲突
+slug: 'xiangtu-zhongguo'
 draft: false
 showHeroImage: false
 tags:

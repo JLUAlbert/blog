@@ -39,6 +39,8 @@ const articleSchema = ({ image }: Parameters<CollectionSchemaFactory>[0]) =>
     description: z.string(),
     // Creation date. Accepts ISO 8601 strings and plain dates such as YYYY-MM-DD.
     date: z.coerce.date(),
+    // 可选：显式指定 URL 段。留空时文章地址默认为 /blog/<date YYYY-MM-DD>/。
+    slug: z.string().trim().optional(),
     draft: z.boolean().optional().default(false),
     heroImage: z.optional(contentImageSchema({ image })),
     showHeroImage: z.boolean().optional().default(true),

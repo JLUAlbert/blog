@@ -2,11 +2,14 @@
 import { type CollectionEntry, getCollection, render } from 'astro:content';
 import BlogArticle from '../../layouts/BlogArticle.astro';
 import ZoomableImage from '@navfolio/mdx-components/ZoomableImage.astro';
+import { assertUniquePostSlugs, getPostSlug } from '../../utils/post-path';
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog', ({ data }) => !data.draft);
+  assertUniquePostSlugs(posts);
   return posts.map((post) => ({
-    params: { slug: post.id },
+    // 默认地址 = 发布日期（/blog/2026-11-02/）；frontmatter 显式写了 slug 时以该值为准
+    params: { slug: getPostSlug(post) },
     props: post,
   }));
 }

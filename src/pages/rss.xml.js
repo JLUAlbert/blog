@@ -2,6 +2,7 @@ import { getCollection } from 'astro:content';
 import rss from '@astrojs/rss';
 import { getSiteConfig } from '../data/site';
 import { sortByDateDesc } from '../utils/content-dates';
+import { getPostPath } from '../utils/post-path';
 
 export async function GET(context) {
   const { site } = await getSiteConfig();
@@ -22,7 +23,7 @@ export async function GET(context) {
           ...(post.data.series ?? []),
         ]),
       ],
-      link: `/blog/${post.id}/`,
+      link: getPostPath(post),
     })),
   });
 }

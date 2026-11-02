@@ -13,6 +13,7 @@ import { getThemePalette, getSiteConfig } from '../data/site';
 import { resolveCommentsConfig, supportsCommentSection } from '../utils/comments';
 import { sortByDateDesc } from '../utils/content-dates';
 import { getSeriesContext, slugifyGroupName } from '../utils/content-groups';
+import { getPostPath } from '../utils/post-path';
 import { buildTocTree, countTocItems } from '../utils/toc-tree';
 import { getUiText } from '../utils/ui-text';
 import '@navfolio/theme-default/styles/blog-article.css';
@@ -196,7 +197,7 @@ const hasSidebar = shouldRenderSidebar && hasToc;
                 aria-label={ui.article.moreInSeries(seriesContext.name)}
               >
                 {seriesContext.prev ? (
-                  <a href={`${basePath}/blog/${seriesContext.prev.id}/`}>
+                  <a href={`${basePath}${getPostPath(seriesContext.prev)}`}>
                     <small>{ui.article.previousInSeries(seriesContext.name)}</small>
                     <span>{seriesContext.prev.data.title}</span>
                   </a>
@@ -204,7 +205,7 @@ const hasSidebar = shouldRenderSidebar && hasToc;
                   <span />
                 )}
                 {seriesContext.next ? (
-                  <a href={`${basePath}/blog/${seriesContext.next.id}/`} class="next">
+                  <a href={`${basePath}${getPostPath(seriesContext.next)}`} class="next">
                     <small>{ui.article.nextInSeries(seriesContext.name)}</small>
                     <span>{seriesContext.next.data.title}</span>
                   </a>
