@@ -213,8 +213,8 @@ category_id = "DIC_kwDOVYiHtc4DJs6w"
 mapping = "pathname"
 # 严格匹配。✅ 保留
 strict = "0"
-# 是否启用表情。✅ 保留
-reactions_enabled = "1"
+# 是否启用表情回应栏（"N 个表情"）。用户要求隐藏，故关闭。
+reactions_enabled = "0"
 # 是否输出元数据。✅ 保留
 emit_metadata = "0"
 # 输入框位置。✅ 保留
