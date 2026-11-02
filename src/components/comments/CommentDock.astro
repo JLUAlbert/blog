@@ -1,0 +1,575 @@
+---
+/**
+ * 文章页底部浮动交互栏（胶囊形）
+ * - 伪输入框「说点什么…」：点击平滑滚到评论区（Giscus 会自然要求 GitHub 登录）
+ * - 表情按钮：弹出表情面板，点选即复制到剪贴板并提示去评论区粘贴
+ * - 评论按钮：滚动到评论区
+ * - 书签按钮：本地收藏（localStorage），刷新后保留
+ * - 分享按钮：复制当前网页链接（移动端优先调用系统分享）
+ * 评论区进入视口时自动隐藏本栏，避免与 Giscus 输入框重复。
+ */
+interface Props {
+  pathname: string;
+}
+
+const { pathname } = Astro.props;
+
+// 一组常用表情
+const emojis = [
+  '😀',
+  '😂',
+  '🤣',
+  '😊',
+  '😍',
+  '😘',
+  '🤔',
+  '😎',
+  '🥳',
+  '😭',
+  '😅',
+  '🙃',
+  '😴',
+  '🤩',
+  '😇',
+  '🤗',
+  '👍',
+  '👏',
+  '🙌',
+  '🤝',
+  '💪',
+  '👌',
+  '🫶',
+  '✌️',
+  '❤️',
+  '🧡',
+  '💛',
+  '💚',
+  '💙',
+  '💜',
+  '🖤',
+  '🤍',
+  '🔥',
+  '⭐',
+  '✨',
+  '💡',
+  '🎉',
+  '🌟',
+  '💯',
+  '🚀',
+  '🌈',
+  '☕',
+  '🍻',
+  '📚',
+  '🎯',
+  '💰',
+  '🌍',
+  '🍀',
+];
+---
+
+<div class="comment-dock" data-comment-dock data-path={pathname} aria-label="互动栏">
+  <button type="button" class="dock-input" data-dock-comment aria-label="说点什么，去评论">
+    <span class="dock-input-icon"
+      ><slot name="pen"
+        ><svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          ><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"
+          ></path></svg
+        ></slot
+      ></span
+    >
+    <span class="dock-input-text">说点什么…</span>
+  </button>
+
+  <div class="dock-actions">
+    <button
+      type="button"
+      class="dock-btn"
+      data-dock-emoji
+      aria-label="表情"
+      aria-haspopup="true"
+      aria-expanded="false"
+    >
+      <slot name="smile"
+        ><svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          ><circle cx="12" cy="12" r="9"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line
+            x1="9"
+            y1="9"
+            x2="9.01"
+            y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg
+        ></slot
+      >
+    </button>
+    <button type="button" class="dock-btn" data-dock-comment-icon aria-label="查看评论">
+      <slot name="message"
+        ><svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          ><path
+            d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+          ></path></svg
+        ></slot
+      >
+    </button>
+    <button
+      type="button"
+      class="dock-btn"
+      data-dock-bookmark
+      aria-label="收藏"
+      aria-pressed="false"
+    >
+      <slot name="bookmark"
+        ><svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          ><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg
+        ></slot
+      >
+    </button>
+    <button type="button" class="dock-btn" data-dock-share aria-label="分享">
+      <slot name="share"
+        ><svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          ><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline
+            points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg
+        ></slot
+      >
+    </button>
+  </div>
+
+  <div class="dock-emoji-panel" data-dock-emoji-panel hidden role="dialog" aria-label="选择表情">
+    <div class="dock-emoji-grid">
+      {
+        emojis.map((e) => (
+          <button type="button" class="dock-emoji" data-emoji={e} aria-label={`表情 ${e}`}>
+            {e}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<div class="dock-toast" data-dock-toast role="status" aria-live="polite" hidden></div>
+
+<style>
+  .comment-dock {
+    position: fixed;
+    left: 50%;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(0);
+    z-index: 46;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(560px, calc(100vw - 96px));
+    padding: 7px 8px 7px 12px;
+    border: 1px solid var(--paper-line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--paper-nav), transparent 18%);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    box-shadow:
+      0 10px 34px -12px rgba(20, 22, 28, 0.42),
+      0 2px 8px -4px rgba(20, 22, 28, 0.28);
+    transition:
+      opacity 220ms ease,
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  :global([data-palette='dark']) .comment-dock {
+    background: color-mix(in srgb, var(--paper-nav), transparent 26%);
+    box-shadow:
+      0 12px 38px -10px rgba(0, 0, 0, 0.6),
+      0 2px 10px -4px rgba(0, 0, 0, 0.5);
+  }
+
+  .comment-dock[data-hidden='true'] {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(16px);
+  }
+
+  .dock-input {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--paper-line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--paper-control), transparent 40%);
+    color: var(--paper-ink-faint);
+    font: inherit;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      color 160ms ease;
+  }
+
+  .dock-input:hover,
+  .dock-input:focus-visible {
+    border-color: var(--paper-accent);
+    color: var(--paper-ink-soft);
+    background: color-mix(in srgb, var(--paper-control), transparent 18%);
+    outline: none;
+  }
+
+  .dock-input:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--paper-accent), transparent 62%);
+  }
+
+  .dock-input-icon {
+    display: inline-grid;
+    place-items: center;
+    color: var(--paper-ink-soft);
+  }
+
+  .dock-input-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dock-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+  }
+
+  .dock-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--paper-ink-soft);
+    cursor: pointer;
+    transition:
+      background 150ms ease,
+      color 150ms ease,
+      transform 150ms ease;
+  }
+
+  .dock-btn:hover,
+  .dock-btn:focus-visible {
+    background: color-mix(in srgb, var(--paper-accent), transparent 86%);
+    color: var(--paper-accent);
+    outline: none;
+  }
+
+  .dock-btn:active {
+    transform: scale(0.92);
+  }
+
+  .dock-btn[aria-pressed='true'] {
+    color: var(--paper-accent);
+  }
+
+  .dock-btn[aria-pressed='true'] :global(svg) {
+    fill: color-mix(in srgb, var(--paper-accent), transparent 78%);
+  }
+
+  .dock-emoji-panel {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    transform: translateX(-50%);
+    width: min(320px, calc(100vw - 28px));
+    padding: 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 16px;
+    background: var(--paper-nav);
+    box-shadow: 0 16px 40px -14px rgba(20, 22, 28, 0.5);
+    z-index: 2;
+  }
+
+  .dock-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+  }
+
+  .dock-emoji {
+    display: inline-grid;
+    place-items: center;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background 120ms ease,
+      transform 120ms ease;
+  }
+
+  .dock-emoji:hover,
+  .dock-emoji:focus-visible {
+    background: color-mix(in srgb, var(--paper-accent), transparent 86%);
+    transform: scale(1.18);
+    outline: none;
+  }
+
+  .dock-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 70px);
+    transform: translateX(-50%) translateY(8px);
+    z-index: 60;
+    padding: 9px 16px;
+    border: 1px solid var(--paper-line);
+    border-radius: 999px;
+    background: var(--paper-nav);
+    color: var(--paper-ink);
+    font-size: 0.86rem;
+    box-shadow: 0 10px 28px -12px rgba(20, 22, 28, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 200ms ease,
+      transform 200ms ease;
+  }
+
+  .dock-toast[data-show='true'] {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 520px) {
+    .comment-dock {
+      width: calc(100vw - 28px);
+      gap: 4px;
+      padding: 6px 6px 6px 10px;
+    }
+    .dock-input-text {
+      font-size: 0.85rem;
+    }
+    .dock-btn {
+      width: 34px;
+      height: 34px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .comment-dock,
+    .dock-toast,
+    .dock-btn,
+    .dock-emoji {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  type DockState = {
+    ready: boolean;
+    toastTimer?: number;
+  };
+  const dockWindow = window as Window & { __commentDockState?: DockState };
+  const dockState = (dockWindow.__commentDockState ??= { ready: false });
+
+  const initCommentDock = () => {
+    const docks = document.querySelectorAll<HTMLElement>('[data-comment-dock]');
+    if (docks.length === 0) return;
+
+    const toast = document.querySelector<HTMLElement>('[data-dock-toast]');
+    let toastTimer: number | undefined;
+
+    const showToast = (msg: string) => {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.hidden = false;
+      // 强制回流以触发过渡
+      void toast.offsetWidth;
+      toast.dataset.show = 'true';
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toast.dataset.show = 'false';
+        window.setTimeout(() => {
+          toast.hidden = true;
+        }, 220);
+      }, 1800);
+    };
+
+    const scrollToComments = () => {
+      const section = document.querySelector<HTMLElement>('[data-comment-path]');
+      if (!section) return;
+      const top = section.getBoundingClientRect().top + window.scrollY - 90;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' });
+    };
+
+    const copyText = async (text: string, okMsg: string) => {
+      try {
+        if (navigator.share) {
+          await navigator.share({ url: text, title: document.title });
+          return;
+        }
+      } catch {
+        // 用户取消分享，回退到复制
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(okMsg);
+      } catch {
+        // 剪贴板不可用时，退回传统方法
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showToast(okMsg);
+        } catch {
+          showToast('复制失败，请手动复制');
+        }
+        document.body.removeChild(ta);
+      }
+    };
+
+    for (const dock of docks) {
+      if (dock.dataset.dockReady === 'true') continue;
+      dock.dataset.dockReady = 'true';
+
+      const path = dock.dataset.path || location.pathname;
+      const input = dock.querySelector<HTMLButtonElement>('[data-dock-comment]');
+      const emojiBtn = dock.querySelector<HTMLButtonElement>('[data-dock-emoji]');
+      const emojiPanel = dock.querySelector<HTMLElement>('[data-dock-emoji-panel]');
+      const commentIcon = dock.querySelector<HTMLButtonElement>('[data-dock-comment-icon]');
+      const bookmarkBtn = dock.querySelector<HTMLButtonElement>('[data-dock-bookmark]');
+      const shareBtn = dock.querySelector<HTMLButtonElement>('[data-dock-share]');
+
+      input?.addEventListener('click', scrollToComments);
+      commentIcon?.addEventListener('click', scrollToComments);
+
+      // 表情面板开关
+      const closeEmoji = () => {
+        emojiPanel?.setAttribute('hidden', '');
+        emojiBtn?.setAttribute('aria-expanded', 'false');
+      };
+      emojiBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = emojiPanel?.hasAttribute('hidden') === false;
+        if (open) {
+          closeEmoji();
+        } else {
+          emojiPanel?.removeAttribute('hidden');
+          emojiBtn.setAttribute('aria-expanded', 'true');
+        }
+      });
+      emojiPanel?.addEventListener('click', (e) => {
+        const target = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-emoji]');
+        if (!target) return;
+        const emoji = target.dataset.emoji || '';
+        closeEmoji();
+        navigator.clipboard?.writeText(emoji).then(
+          () => showToast('表情已复制，去评论区粘贴 💬'),
+          () => showToast('复制失败，请手动复制'),
+        );
+        scrollToComments();
+      });
+      document.addEventListener('click', (e) => {
+        if (!dock.contains(e.target as Node)) closeEmoji();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeEmoji();
+      });
+
+      // 书签（本地收藏）
+      const bmKey = 'blog-bookmark:' + path;
+      const syncBookmark = () => {
+        const saved = localStorage.getItem(bmKey) === '1';
+        bookmarkBtn?.setAttribute('aria-pressed', String(saved));
+      };
+      syncBookmark();
+      bookmarkBtn?.addEventListener('click', () => {
+        const saved = localStorage.getItem(bmKey) === '1';
+        if (saved) {
+          localStorage.removeItem(bmKey);
+          showToast('已取消收藏');
+        } else {
+          localStorage.setItem(bmKey, '1');
+          showToast('已收藏这篇文章 ⭐');
+        }
+        syncBookmark();
+      });
+
+      // 分享
+      shareBtn?.addEventListener('click', () => {
+        copyText(location.href, '链接已复制，去分享吧 🔗');
+      });
+
+      // 评论区进入视口时隐藏本栏
+      const section = document.querySelector<HTMLElement>('[data-comment-path]');
+      if (section) {
+        const io = new IntersectionObserver(
+          ([entry]) => {
+            dock.dataset.hidden = entry.isIntersecting ? 'true' : 'false';
+          },
+          { rootMargin: '0px 0px -12% 0px' },
+        );
+        io.observe(section);
+      }
+    }
+
+    dockState.toastTimer = toastTimer;
+  };
+
+  initCommentDock();
+  if (!dockState.ready) {
+    dockState.ready = true;
+    document.addEventListener('astro:page-load', initCommentDock);
+  }
+</script>
