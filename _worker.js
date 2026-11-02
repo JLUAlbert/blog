@@ -341,7 +341,7 @@ async function handlePublish(request, env) {
   const tags = form.get('tags') || '';
   const series = form.get('series') || '';
   const draft = form.get('draft') === 'true' || form.get('draft') === 'on';
-  const section =
+  let section =
     (form.get('section') || 'blog').toString().trim().toLowerCase() === 'vibe' ? 'vibe' : 'blog';
   let content = (form.get('content') || '').toString();
   let slug = slugify((form.get('slug') || '').toString().trim());
