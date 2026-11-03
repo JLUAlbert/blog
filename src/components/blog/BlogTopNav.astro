@@ -396,10 +396,25 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
     box-shadow: var(--paper-shadow);
     opacity: 1;
     transform: translateY(0);
+    /* transform 同时服务于滚动隐藏/显示；统一为全站 Hover Lift 的 280ms 缓动，
+       悬停浮起、移开落回、滚动滑出滑入都是同一套手感 */
     transition:
       opacity 180ms ease,
-      transform 220ms ease;
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 280ms ease;
     will-change: transform;
+  }
+
+  /* 整条导航栏整体悬停上浮（Hover Lift）：鼠标悬停或键盘聚焦在栏内任意位置
+     （品牌名 / 标签 / 图标按钮）时，整条栏作为一个整体浮起，并在原有阴影之上
+     叠一层墨色阴影；移开时整条平滑落回还原。
+     必须声明在 [data-nav-hidden] 之前：滚动隐藏状态优先于悬停浮起。 */
+  .blog-top-nav:hover,
+  .blog-top-nav:focus-within {
+    transform: translateY(-3px);
+    box-shadow:
+      var(--paper-shadow),
+      0 16px 32px color-mix(in srgb, var(--paper-ink) 12%, transparent);
   }
 
   .blog-top-nav::after {
@@ -757,6 +772,11 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
   @media (prefers-reduced-motion: reduce) {
     .blog-top-nav {
       transition: none;
+    }
+
+    .blog-top-nav:hover,
+    .blog-top-nav:focus-within {
+      transform: none;
     }
 
     .blog-top-nav[data-nav-pending='true']::after {
