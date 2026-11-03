@@ -92,32 +92,6 @@ const rewriteInternalPaths = () => (tree) => {
   walk(tree);
 };
 
-// 不蒜子访问统计：每个页面加载统计脚本，并把访问量/访客数追加到页脚
-const busuanziIntegration = {
-  name: 'busuanzi-analytics',
-  hooks: {
-    'astro:config:setup': ({ injectScript }) => {
-      injectScript(
-        'page',
-        `window.addEventListener('DOMContentLoaded', () => {
-          const footer = document.querySelector('footer');
-          if (!footer) return;
-          const span = document.createElement('span');
-          span.style.cssText = 'margin-left:.75rem;opacity:.65;font-size:.85em;white-space:nowrap;';
-          span.innerHTML =
-            '\u00b7 <span id="busuanzi_container_site_pv">Views <b id="busuanzi_value_site_pv"></b></span>' +
-            ' / <span id="busuanzi_container_site_uv">Visitors <b id="busuanzi_value_site_uv"></b></span>';
-          footer.appendChild(span);
-          const s = document.createElement('script');
-          s.async = true;
-          s.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
-          document.head.appendChild(s);
-        });`,
-      );
-    },
-  },
-};
-
 // 色盘背景：把调色盘 CSS 与循环切换脚本注入到每个页面的 <head>，
 // 不依赖某个布局组件，保证文章页/列表页/详情页都跟随色盘改变背景。
 const paletteCss = fs.readFileSync(new URL('./src/styles/palette-bg.css', import.meta.url), 'utf8');
@@ -204,43 +178,14 @@ const paletteIntegration = {
 };
 
 // 动效增强（全局注入，覆盖 navfolio 主题生成的所有页面，含 vibe）：
-// 1) head-inline 注入 `html.js` 标记（Blug-In 在无 JS 时保持可见）与 vibe 流光光柱所需 CSS；
-// 2) page 注入 blur-in 与 vibe-beam 的客户端逻辑。
-const motionCss = `
-.vibe-beam{position:absolute;inset:-28px 0 -24px;width:100%;height:calc(100% + 52px);overflow:visible;pointer-events:none;z-index:2}
-.vibe-beam-path{fill:none;stroke-width:4;stroke-linecap:round;vector-effect:non-scaling-stroke;filter:blur(6px);opacity:0;transition:opacity 600ms ease}
-.vibe-beam-core{fill:none;stroke-width:1.5;stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:0;transition:opacity 600ms ease}
-.vibe-beam.is-running .vibe-beam-path,.vibe-beam.is-running .vibe-beam-core{opacity:1}
-.vibe-beam-active .vibe-item{animation:none!important}
-html.js .vibe-beam-active .vibe-item{transition:opacity 700ms ease,filter 760ms ease}
-html.js .vibe-beam-active .vibe-item.vibe-pending-beam{opacity:0!important;filter:blur(12px)!important}
-html.js .vibe-beam-active .vibe-item.is-revealed-by-beam{opacity:1!important;filter:none!important}
-@media (prefers-reduced-motion: reduce){.vibe-beam{display:none!important}}
-@media (max-width:720px){.vibe-beam{display:none!important}}
-`;
-
+// 注入 `html.js` 标记（Blur In 在无 JS 时保持可见），并挂载 blur-in 客户端逻辑。
 const motionEnhancementIntegration = {
   name: 'navfolio-motion-enhancements',
   hooks: {
     'astro:config:setup': ({ injectScript }) => {
-      injectScript(
-        'head-inline',
-        `(() => {
-  document.documentElement.classList.add('js');
-  if (!document.getElementById('motion-extras')) {
-    const s = document.createElement('style');
-    s.id = 'motion-extras';
-    s.textContent = ${JSON.stringify(motionCss)};
-    document.head.appendChild(s);
-  }
-})();`,
-      );
+      injectScript('head-inline', `document.documentElement.classList.add('js');`);
       const blurInPath = fileURLToPath(new URL('./src/scripts/blur-in.ts', import.meta.url));
-      const vibeBeamPath = fileURLToPath(new URL('./src/scripts/vibe-beam.ts', import.meta.url));
-      injectScript(
-        'page',
-        `import ${JSON.stringify(blurInPath)};\nimport ${JSON.stringify(vibeBeamPath)};`,
-      );
+      injectScript('page', `import ${JSON.stringify(blurInPath)};`);
     },
   },
 };
@@ -257,7 +202,6 @@ export default defineConfig({
     ...astroPluginConfig.integrations,
     mdx(),
     sitemap(),
-    busuanziIntegration,
     paletteIntegration,
     motionEnhancementIntegration,
   ],

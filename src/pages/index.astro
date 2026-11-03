@@ -3,30 +3,35 @@ import { getCollection, render } from 'astro:content';
 import IntroCard from '../components/cards/IntroCard.astro';
 import ConnectCard from '../components/cards/ConnectCard.astro';
 import NavigationCard from '../components/cards/NavigationCard.astro';
-import ProfileCard from '../components/cards/ProfileCard.astro';
 import DashboardFlow from '../components/layout/DashboardFlow.astro';
-import BlogHeatmap from '../components/widgets/BlogHeatmap.astro';
 import RecentPosts from '../components/widgets/RecentPosts.astro';
 import BlogUptime from '../components/widgets/BlogUptime.astro';
-import StatsCard from '../components/widgets/StatsCard.astro';
 import { getSiteConfig } from '../data/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '@navfolio/theme-default/styles/blog-article.css';
 
-const { home, profile, site } = await getSiteConfig();
+const { home, site } = await getSiteConfig();
 const [aboutEntry] = await getCollection('about');
 const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Content: null };
+
+// 首页导航卡上的内容计数：Blog / Vibe / Movies 的非草稿条目数
+const [blogPosts, vibePosts, moviePosts] = await Promise.all([
+  getCollection('blog', ({ data }) => !data.draft),
+  getCollection('vibe', ({ data }) => !data.draft),
+  getCollection('movie', ({ data }) => !data.draft),
+]);
+const navCounts: Record<string, number> = {
+  '/blog': blogPosts.length,
+  '/vibe': vibePosts.length,
+  '/movie': moviePosts.length,
+};
 ---
 
 <BaseLayout title={site.pageTitle} description={site.pageDescription}>
   <div class="publication-bg" aria-hidden="true"></div>
   <DashboardFlow>
-    <Fragment slot="profile">
-      <ProfileCard profile={profile} />
-    </Fragment>
-
     <Fragment slot="intro">
-      <IntroCard intro={home.intro} quote={home.quote} />
+      <IntroCard intro={home.intro} />
     </Fragment>
 
     <Fragment slot="doing">
@@ -36,23 +41,19 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
       </div>
     </Fragment>
 
-    <Fragment slot="latest">
-      <BlogHeatmap
-        weeks={home.latest.heatmapWeeks}
-        showLatest={home.latest.showHeatmapLatest}
-        latestCount={home.latest.count}
-        excludeDraft={home.latest.excludeDraft}
-        startDate={home.latest.startDate || null}
-        dateArchiveBaseHref={home.latest.dateArchiveBaseHref || undefined}
-      />
-    </Fragment>
-
-    <Fragment slot="stats">
-      <StatsCard />
+    <Fragment slot="quote">
+      {
+        home.quote && (
+          <blockquote class="home-quote blur-in">
+            <span>- {home.quote.text.slice(0, 2).join(' ')}</span>
+            <span>{home.quote.text.slice(2).join(' ')}</span>
+          </blockquote>
+        )
+      }
     </Fragment>
 
     <Fragment slot="navigation">
-      <NavigationCard items={home.navigation} />
+      <NavigationCard items={home.navigation} counts={navCounts} />
     </Fragment>
 
     <Fragment slot="connect">
@@ -124,6 +125,25 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
   .doing-stack {
     display: grid;
     gap: 24px;
+  }
+
+  /* 右栏顶部标语：斜体衬线小宣言，下缘一条发丝分隔线与导航区隔开 */
+  .home-quote {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0 0 16px;
+    border: 0;
+    border-bottom: 1px solid var(--paper-line);
+    color: var(--paper-ink-soft);
+    font-family: var(--font-note);
+    font-size: 0.92rem;
+    font-style: italic;
+    line-height: 1.72;
+  }
+
+  .home-quote span {
+    display: block;
   }
 
   /* About 面板末尾的版权栏：容器化，与全局页脚风格一致 */
@@ -260,20 +280,5 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
     .about-hint {
       margin-bottom: 44px;
     }
-  }
-
-  /* 首屏淡入上移：标题与行动按钮以微小延迟差平滑上移显现 */
-  :global(.intro-card) {
-    animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  }
-
-  :global(.profile-card) {
-    animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-    animation-delay: 0.12s;
-  }
-
-  .about-hint {
-    animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-    animation-delay: 0.24s;
   }
 </style>

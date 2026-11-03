@@ -32,9 +32,6 @@ const htmlLang = getHtmlLang(siteConfig);
   </Fragment>
 </ThemeBaseLayout>
 
-<!-- 页面幕布转场层：transition:persist 使其在客户端导航中保持，由全局脚本驱动 -->
-<div class="page-curtain" transition:persist aria-hidden="true"></div>
-
 <script>
   // About 面板控制器：全站加载一次，仅当页面存在 #about-panel（首页）时生效。
   // 站点启用了 ClientRouter，<script is:inline> 在客户端导航后不会重新执行，
@@ -308,45 +305,10 @@ const htmlLang = getHtmlLang(siteConfig);
   /* ---------- 文字逐行显现：已移除（原作用于文章正文 h2/h3）---------- */
   /* 改为 Vibe 页「逐项遮罩上移」：见 BlogTopNav 的 initVibeMaskUp。 */
 
-  /* ---------- 页面幕布转场（进入文章页）---------- */
-  function initCurtain() {
-    const curtain = document.querySelector('.page-curtain');
-    if (!curtain || motionReduced()) return;
-
-    const isArticlePath = (pathname?: string) => {
-      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-      let p = pathname || '';
-      if (base && p.startsWith(base)) p = p.slice(base.length);
-      const seg = p.split('/').filter(Boolean);
-      if (seg[0] !== 'blog' || seg.length < 2) return false;
-      return !['page', 'categories', 'tags', 'series', 'archives'].includes(seg[1]);
-    };
-
-    document.addEventListener('astro:before-preparation', (event: any) => {
-      const to = event.to && event.to.pathname;
-      if (!to || !isArticlePath(to)) return;
-      curtain.classList.remove('is-revealing');
-      curtain.classList.add('is-covering');
-    });
-
-    document.addEventListener('astro:page-load', () => {
-      if (!curtain.classList.contains('is-covering')) return;
-      curtain.classList.remove('is-covering');
-      curtain.classList.add('is-revealing');
-      const onEnd = (e: Event) => {
-        if ((e as TransitionEvent).propertyName !== 'transform') return;
-        curtain.removeEventListener('transitionend', onEnd);
-        curtain.classList.remove('is-revealing');
-      };
-      curtain.addEventListener('transitionend', onEnd);
-    });
-  }
-
   function initMotion() {
     initSlidingTabs();
     initCountUp();
   }
 
   document.addEventListener('astro:page-load', initMotion);
-  initCurtain();
 </script>

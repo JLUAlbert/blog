@@ -4,7 +4,7 @@ import ConnectIcon, { type ConnectLink } from './ConnectIcon.astro';
 const { links } = Astro.props as { links: ConnectLink[] };
 ---
 
-<article class="connect-card" data-connect-card>
+<article class="connect-card blur-in" data-connect-card>
   <div class="connect-list" aria-label="Connect links">
     {links.map((item) => <ConnectIcon item={item} />)}
   </div>
@@ -115,7 +115,7 @@ const { links } = Astro.props as { links: ConnectLink[] };
   :global(.connect-icon.is-copied) {
     background: transparent;
     color: var(--paper-accent);
-    transform: translateY(-1px);
+    transform: translateY(-3px);
   }
 
   :global(.connect-icon:focus-visible) {

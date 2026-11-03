@@ -23,12 +23,12 @@ const formatDate = new Intl.DateTimeFormat(ui.locale, {
 
 {
   latestPosts.length > 0 && (
-    <section class="glass-card recent-card" aria-label={ui.heatmap.latestPublishedPosts}>
+    <section class="glass-card recent-card blur-in" aria-label={ui.heatmap.latestPublishedPosts}>
       <strong class="recent-label">{ui.heatmap.latest}</strong>
       <div class="latest-list">
         {latestPosts.map((post) => (
           <a
-            class="latest-link blur-in"
+            class="latest-link hover-lift-soft"
             href={post.href}
             aria-label={ui.heatmap.openLatestPost(post.title)}
           >
@@ -45,10 +45,11 @@ const formatDate = new Intl.DateTimeFormat(ui.locale, {
 }
 
 <style>
+  /* 与「已运行」卡片统一内边距 */
   .recent-card {
     display: grid;
     gap: 16px;
-    padding: 24px 26px 26px;
+    padding: 22px 24px 24px;
     max-width: 680px;
   }
 

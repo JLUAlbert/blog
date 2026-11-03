@@ -1,24 +1,9 @@
-/* ===== 动效工具集 · 取自 web-motion-showcase 的克制动效语言 =====
-   覆盖：淡入上移 (fade-in-up)、Vibe 逐项遮罩上移 (vibe-mask)、
-   页面幕布转场 (page-curtain)。滑动指示器药丸与数字滚动的样式分别落在
-   BlogTopNav 与 BlogUptime 组件内；逻辑由 BaseLayout / BlogTopNav 全局脚本驱动。
+/* ===== 动效工具集 · 克制的动效语言 =====
+   页面切换 / 内容入场全站只保留一种表现：模糊进入（Blur In）。
+   已移除：机械滚轮翻牌器、Vibe 流光光柱、页面幕布转场、首屏淡入上移。
+   保留：Vibe 时间线逐项遮罩上移（滚动显现，非页面切换）、Movies 封面微放大、
+        新增的悬停上浮（Hover Lift）。
    全部默认尊重「减少动态效果」系统偏好。 */
-
-/* —— 淡入上移（backwards：结束后回落到元素自身样式，hover 等 transform 不受影响） —— */
-@keyframes motion-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(22px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.motion-fade-up {
-  animation: motion-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
 
 /* —— Vibe 时间线逐项「遮罩上移」（承接原逐行显现的动效语言） ——
    每个 .vibe-item 的内容被包进 .vibe-mask（溢出裁切），内层 .vibe-mask__inner
@@ -61,90 +46,14 @@
   letter-spacing: 0.08em;
 }
 
-/* —— 页面幕布转场（侧滑遮挡） —— */
-.page-curtain {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: var(--paper-nav, #fbfaf7);
-  transform: translateX(100%);
-  pointer-events: none;
-  view-transition-name: curtain;
-  will-change: transform;
-}
-
-.page-curtain.is-covering {
-  transform: translateX(0);
-  transition: transform 0.4s cubic-bezier(0.76, 0, 0.24, 1);
-}
-
-.page-curtain.is-revealing {
-  transform: translateX(-100%);
-  transition: transform 0.46s cubic-bezier(0.76, 0, 0.24, 1);
-}
-
-/* 让幕布脱离 root 视图转场快照，由本脚本的 transform 独立驱动 */
-::view-transition-group(curtain) {
-  animation: none !important;
-}
-
-/* —— 降级保护 —— */
-@media (prefers-reduced-motion: reduce) {
-  .vibe-mask__inner {
-    transform: none !important;
-    opacity: 1 !important;
-    transition: none !important;
-  }
-
-  [data-movie-shelf] .navfolio-media-shelf__cover img {
-    transition: none !important;
-  }
-
-  .page-curtain {
-    display: none !important;
-  }
-}
-
 /* ============================================================
-   新增 · 滚轮翻牌数字（Rolling Number Odometer）
-   多位数字拆分为独立竖列，每列 0-9 序列，translateY 平滑滚动，
-   各列错开 transition-delay 营造机械翻牌效果。
-   ============================================================ */
-.odometer {
-  display: inline-flex;
-  align-items: flex-start;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.odo-col {
-  display: inline-block;
-  height: 1em;
-  width: 0.62em;
-  overflow: hidden;
-  text-align: center;
-}
-
-.odo-ribbon {
-  display: flex;
-  flex-direction: column;
-  will-change: transform;
-}
-
-.odo-digit {
-  height: 1em;
-  line-height: 1em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ============================================================
-   新增 · 模糊进入（Blur In）
+   模糊进入（Blur In）—— 全站唯一的内容入场 / 页面切换表现
    元素入屏时透明度 0→1，同时滤镜从高斯模糊过渡到完全清晰。
+   仅在启用 JS 时隐藏，无 JS 则保持可见（无障碍 / SEO 安全）。
    ============================================================ */
-/* 仅在启用 JS 时隐藏，无 JS 则保持可见（无障碍 / SEO 安全） */
 html.js .blur-in {
+  /* Blur In 是唯一入场语言：跳过主题自带的 card-in，避免同一元素两次入场 */
+  animation: none;
   opacity: 0;
   filter: blur(14px);
   transform: translateY(16px);
@@ -161,45 +70,53 @@ html.js .blur-in.is-revealed {
   transform: none;
 }
 
+/* 同组元素依次聚焦，避免整屏同时糊开 */
+[data-blur-group] > .blur-in:nth-child(2) {
+  transition-delay: 80ms;
+}
+
+[data-blur-group] > .blur-in:nth-child(3) {
+  transition-delay: 160ms;
+}
+
+[data-blur-group] > .blur-in:nth-child(4) {
+  transition-delay: 240ms;
+}
+
+[data-blur-group] > .blur-in:nth-child(n + 5) {
+  transition-delay: 300ms;
+}
+
 /* ============================================================
-   新增 · Vibe 流光光柱（Border Beam）
-   在现有 .vibe-thread 曲线之上叠加一道带高斯模糊与色彩渐变的光柱，
-   沿曲线匀速行进；光柱行经到某节点，对应 vibe 即模糊进入显现。
+   悬停上浮（Hover Lift）
+   hover 时元素向上浮动且阴影增强，移开时平滑落地还原。
    ============================================================ */
-.vibe-beam {
-  position: absolute;
-  inset: -28px 0 -24px;
-  width: 100%;
-  height: calc(100% + 52px);
-  overflow: visible;
-  pointer-events: none;
-  z-index: 2;
+.hover-lift {
+  transition:
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 280ms ease,
+    border-color 280ms ease;
 }
 
-.vibe-beam-path {
-  fill: none;
-  stroke-width: 4;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  filter: blur(6px);
-  opacity: 0;
-  transition: opacity 600ms ease;
+.hover-lift:hover,
+.hover-lift:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--paper-ink) 14%, transparent);
 }
 
-.vibe-beam-core {
-  fill: none;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  opacity: 0;
-  transition: opacity 600ms ease;
+/* 轻量版：文字 / 链接 / 小图标只做微小上浮，不投阴影 */
+.hover-lift-soft {
+  transition:
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 240ms ease;
 }
 
-.vibe-beam.is-running .vibe-beam-path,
-.vibe-beam.is-running .vibe-beam-core {
-  opacity: 1;
+.hover-lift-soft:hover,
+.hover-lift-soft:focus-visible {
+  transform: translateY(-2px);
 }
 
+/* —— 降级保护 —— */
 @media (prefers-reduced-motion: reduce) {
   html.js .blur-in {
     opacity: 1;
@@ -208,7 +125,20 @@ html.js .blur-in.is-revealed {
     transition: none;
   }
 
-  .vibe-beam {
-    display: none;
+  .hover-lift:hover,
+  .hover-lift:focus-visible,
+  .hover-lift-soft:hover,
+  .hover-lift-soft:focus-visible {
+    transform: none;
+  }
+
+  .vibe-mask__inner {
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+
+  [data-movie-shelf] .navfolio-media-shelf__cover img {
+    transition: none !important;
   }
 }

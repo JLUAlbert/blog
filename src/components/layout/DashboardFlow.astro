@@ -6,9 +6,7 @@
     </section>
 
     <aside class="flow-column side-column">
-      <slot name="profile" />
-      <slot name="latest" />
-      <slot name="stats" />
+      <slot name="quote" />
       <slot name="navigation" />
       <slot name="connect" />
     </aside>
@@ -40,19 +38,6 @@
     width: 100%;
   }
 
-  .flow-grid :global(.profile-card) {
-    min-height: auto;
-    padding: 6px 0 2px;
-  }
-
-  .flow-grid :global(.profile-heading h1) {
-    font-size: 1.52rem;
-  }
-
-  .flow-grid :global(.heatmap-card) {
-    padding: 18px 0;
-  }
-
   .flow-grid :global(.nav-card) {
     padding: 2px 0 0;
   }
@@ -64,6 +49,11 @@
   .flow-grid :global(.intro-card) {
     min-height: 0;
     padding: 0 0 8px;
+  }
+
+  /* 右栏：标语置于顶部，与左栏标题保持同一视觉起点 */
+  .flow-grid :global(.home-quote) {
+    padding: 0 0 14px;
   }
 
   @media (max-width: 920px) {
@@ -93,28 +83,29 @@
       display: contents;
     }
 
+    /* 移动端顺序：标题 → 标语 → 最新/已运行 → 导航 → 社交 */
     .flow-grid :global(.intro-card) {
-      order: 5;
+      order: 1;
       min-height: auto;
       padding: 0;
     }
 
-    .flow-grid :global(.profile-card) {
-      order: 1;
+    .flow-grid :global(.home-quote) {
+      order: 2;
+      padding: 0;
     }
 
-    .flow-grid :global(.nav-card) {
+    .flow-grid :global(.doing-stack) {
       order: 3;
     }
 
-    .flow-grid :global(.connect-card) {
-      order: 2;
-      margin-block: -18px -10px;
+    .flow-grid :global(.nav-card) {
+      order: 4;
     }
 
-    .flow-grid :global(.heatmap-card) {
-      order: 4;
-      margin-top: -8px;
+    .flow-grid :global(.connect-card) {
+      order: 5;
+      padding: 0;
     }
   }
 </style>

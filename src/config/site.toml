@@ -359,19 +359,19 @@ title = "Blog"
 subtitle = "Essays, notes, and field reports"
 href = "/blog"
 
-# 片单卡片。
-[[config.home.navigation]]
-icon = "briefcase"
-title = "Movies"
-subtitle = "Films and series I have watched"
-href = "/movie"
-
 # Vibe 卡片。
 [[config.home.navigation]]
 icon = "sparkles"
 title = "Vibe"
 subtitle = "Poems and fragments of everyday life"
 href = "/vibe"
+
+# 片单卡片。
+[[config.home.navigation]]
+icon = "briefcase"
+title = "Movies"
+subtitle = "Films and series I have watched"
+href = "/movie"
 
 # ============================================================
 # [[config.home.links]] —— 首页社交媒体链接图标条

@@ -1,118 +1,110 @@
 ---
-import RollingNumber from '../RollingNumber.astro';
-
-// 博客运行时间：大数字「已运行 N 天」置于计时器正上方，时/分/秒以独立计时格实时跳动。
+// 博客运行时间：紧凑单行「已运行 · N 天」（原大号数字过大，已收敛），
+// 时/分/秒改为无边框的极简三列，实时跳动。
 const start = '2026-10-28T16:00:00+08:00';
 const startMs = new Date(start).getTime();
 const buildDays = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
+const padDays = String(buildDays).padStart(3, '0');
 ---
 
-<section class="glass-card uptime-card" data-uptime data-start={start} aria-label="博客已运行时间">
+<section
+  class="glass-card uptime-card blur-in"
+  data-uptime
+  data-start={start}
+  aria-label="博客已运行时间"
+>
   <div class="uptime-head">
-    <strong class="uptime-label">已运行 · Since Oct 28, 2026</strong>
-    <div class="uptime-days">
-      <RollingNumber value={buildDays} id="uptime-days-odo" digits={3} />
-      <span class="uptime-days-unit">天</span>
-    </div>
+    <span class="uptime-label">已运行</span>
+    <span class="uptime-days-num" data-days>{padDays}</span>
+    <span class="uptime-days-unit">天</span>
+    <span class="uptime-since">Since Oct 28, 2026</span>
   </div>
 
   <div class="uptime-grid">
-    <div class="uptime-unit">
-      <span class="uptime-num" data-unit="hours">00</span>
-      <span class="uptime-unit-label">时</span>
-    </div>
-    <div class="uptime-unit">
-      <span class="uptime-num" data-unit="mins">00</span>
-      <span class="uptime-unit-label">分</span>
-    </div>
-    <div class="uptime-unit">
-      <span class="uptime-num" data-unit="secs">00</span>
-      <span class="uptime-unit-label">秒</span>
-    </div>
+    <span><b data-unit="hours">00</b>时</span>
+    <span><b data-unit="mins">00</b>分</span>
+    <span><b data-unit="secs">00</b>秒</span>
   </div>
 </section>
 
 <style>
+  /* 与「最新」卡片统一内边距，保持两栏节奏一致 */
   .uptime-card {
     display: grid;
-    gap: 18px;
-    padding: 22px 26px 24px;
+    gap: 10px;
+    padding: 22px 24px 24px;
     max-width: 680px;
+  }
+
+  .uptime-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .uptime-label {
     color: var(--paper-accent);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     letter-spacing: 0.08em;
     line-height: 1.15;
     text-transform: uppercase;
   }
 
-  .uptime-days {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-top: 6px;
-  }
-
-  .uptime-days :global(.odometer) {
-    font-family: var(--font-ui-label);
-    font-size: clamp(2.6rem, 8vw, 3.4rem);
-    font-weight: 700;
-    line-height: 1;
+  .uptime-days-num {
     color: var(--paper-ink);
+    font-family: var(--font-ui-label);
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
   }
 
   .uptime-days-unit {
     color: var(--paper-ink-soft);
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 600;
   }
 
+  .uptime-since {
+    margin-left: auto;
+    color: var(--paper-ink-faint);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+  }
+
+  /* 时/分/秒：极简三列，去掉原先的边框小格 */
   .uptime-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    color: var(--paper-ink-soft);
+    font-size: 0.82rem;
   }
 
-  .uptime-unit {
-    display: grid;
-    justify-items: center;
-    gap: 4px;
-    padding: 12px 6px;
-    border: 1px solid var(--paper-line);
-    border-radius: 10px;
-    background: var(--paper-surface);
-  }
-
-  .uptime-num {
+  .uptime-grid b {
+    margin-right: 3px;
+    color: var(--paper-ink);
     font-family: var(--font-ui-label);
-    font-size: clamp(1.25rem, 3.2vw, 1.65rem);
+    font-size: 1rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    line-height: 1;
-    color: var(--paper-ink);
-  }
-
-  .uptime-unit-label {
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-    color: var(--paper-ink-soft);
   }
 
   @media (max-width: 480px) {
     .uptime-grid {
-      gap: 8px;
+      gap: 14px;
     }
 
-    .uptime-unit {
-      padding: 10px 4px;
+    .uptime-since {
+      margin-left: 0;
+      width: 100%;
     }
   }
 </style>
 
 <script>
-  import { getOdometer, mountOdometerOn } from '../../scripts/odometer';
+  let timer = 0;
 
   const initUptime = () => {
     const card = document.querySelector<HTMLElement>('[data-uptime]');
@@ -126,10 +118,8 @@ const buildDays = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
       nums[el.dataset.unit ?? ''] = el;
     });
 
-    const daysEl = document.getElementById('uptime-days-odo');
-    let daysOdo = daysEl ? (getOdometer(daysEl) ?? mountOdometerOn(daysEl)) : undefined;
+    const daysEl = card.querySelector<HTMLElement>('[data-days]');
     let lastDays = -1;
-    let booted = false;
     const pad = (n: number, len = 2) => String(n).padStart(len, '0');
 
     const tick = () => {
@@ -141,19 +131,14 @@ const buildDays = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
       if (nums.secs) nums.secs.textContent = pad(total % 60);
 
       if (days !== lastDays) {
-        if (daysOdo) {
-          if (!booted) daysOdo.roll(days);
-          else daysOdo.setValue(days);
-        } else if (daysEl) {
-          daysEl.textContent = String(days);
-        }
+        if (daysEl) daysEl.textContent = pad(days, 3);
         lastDays = days;
-        booted = true;
       }
     };
 
     tick();
-    window.setInterval(tick, 1000);
+    if (timer) window.clearInterval(timer);
+    timer = window.setInterval(tick, 1000);
   };
 
   initUptime();

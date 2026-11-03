@@ -8,7 +8,10 @@ interface NavItem {
   href: string;
 }
 
-const { items } = Astro.props as { items: NavItem[] };
+const { items, counts = {} } = Astro.props as {
+  items: NavItem[];
+  counts?: Record<string, number>;
+};
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 function withBase(href: string) {
@@ -25,15 +28,18 @@ function withBase(href: string) {
 ---
 
 <article class="nav-card">
-  <nav aria-label="identity websites">
+  <nav aria-label="identity websites" data-blur-group>
     {
       items.map((item) => (
-        <a class="nav-item" href={withBase(item.href)}>
+        <a class="nav-item blur-in hover-lift" href={withBase(item.href)}>
           <span class="nav-icon">
             <Icon name={item.icon} />
           </span>
-          <span>
-            <strong>{item.title}</strong>
+          <span class="nav-text">
+            <strong>
+              <span class="nav-count">{counts[item.href] ?? 0}</span>
+              {item.title}
+            </strong>
             <small>{item.subtitle}</small>
           </span>
           <Icon name="external" />
@@ -63,17 +69,26 @@ function withBase(href: string) {
     grid-template-columns: 28px minmax(0, 1fr) 18px;
     gap: 12px;
     align-items: center;
-    padding: 8px 0;
-    border-radius: 0;
+    /* 左右各留 10px 作为 hover 时的浮起底色，再用负外边距抵消，保持文字对齐 */
+    padding: 8px 10px;
+    margin: 0 -10px;
+    border-radius: 12px;
     background: transparent;
     color: var(--paper-ink);
     text-decoration: none;
-    transition: color 180ms ease;
+    transition:
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 280ms ease,
+      background-color 280ms ease,
+      color 180ms ease;
   }
 
-  .nav-item:hover {
-    background: transparent;
+  .nav-item:hover,
+  .nav-item:focus-visible {
+    background: var(--paper-surface);
     color: var(--paper-accent);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px color-mix(in srgb, var(--paper-ink) 12%, transparent);
   }
 
   .nav-icon,
@@ -100,6 +115,24 @@ function withBase(href: string) {
     font-weight: 650;
   }
 
+  /* 计数：小号等宽数字 + 强调色，紧贴在 Blog / Vibe / Movies 字样之前 */
+  .nav-count {
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--paper-accent);
+    font-family: var(--font-ui-label);
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .nav-item:hover .nav-count,
+  .nav-item:focus-visible .nav-count {
+    transform: translateY(-1px);
+  }
+
   small {
     margin-top: 2px;
     color: var(--paper-ink-soft);
@@ -122,7 +155,7 @@ function withBase(href: string) {
       gap: 10px;
       justify-content: start;
       min-width: 0;
-      padding: 9px 0;
+      padding: 9px 10px;
     }
 
     .nav-icon {
@@ -138,6 +171,13 @@ function withBase(href: string) {
     small,
     .nav-item > svg {
       display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-item:hover,
+    .nav-item:focus-visible {
+      transform: none;
     }
   }
 </style>

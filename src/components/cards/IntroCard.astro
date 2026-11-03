@@ -5,33 +5,14 @@ interface Intro {
   body: string[];
 }
 
-interface Quote {
-  text: string[];
-}
-
-const { intro, quote } = Astro.props as { intro: Intro; quote?: Quote };
+const { intro } = Astro.props as { intro: Intro };
 ---
 
-<article class="glass-card intro-card">
+<article class="glass-card intro-card blur-in">
   <div class="intro-copy">
-    {
-      quote && (
-        <div class="quote-mark" aria-hidden="true">
-          "
-        </div>
-      )
-    }
     <h2>
       {intro.title.replace(intro.name, '').trim()}{' '}<em>{intro.name}</em>
     </h2>
-    {
-      quote && (
-        <blockquote>
-          <span>- {quote.text.slice(0, 2).join(' ')}</span>
-          <span>{quote.text.slice(2).join(' ')}</span>
-        </blockquote>
-      )
-    }
     {intro.body.map((paragraph) => <p>{paragraph}</p>)}
   </div>
 </article>
@@ -40,7 +21,7 @@ const { intro, quote } = Astro.props as { intro: Intro; quote?: Quote };
   .intro-card {
     display: flex;
     flex-direction: column;
-    min-height: 280px;
+    min-height: 0;
     padding: 0;
     border-color: transparent;
     background: transparent;
@@ -63,16 +44,8 @@ const { intro, quote } = Astro.props as { intro: Intro; quote?: Quote };
     align-items: flex-start;
   }
 
-  .quote-mark {
-    margin-bottom: 2px;
-    color: color-mix(in srgb, var(--paper-accent) 32%, transparent);
-    font-family: var(--font-display);
-    font-size: 3rem;
-    line-height: 0.7;
-  }
-
   h2 {
-    margin: 0 0 18px;
+    margin: 0;
     color: var(--paper-ink);
     max-width: none;
     font-size: clamp(2.2rem, 4vw, 3.35rem);
@@ -83,24 +56,6 @@ const { intro, quote } = Astro.props as { intro: Intro; quote?: Quote };
   h2 em {
     color: var(--paper-accent);
     font-style: italic;
-  }
-
-  blockquote {
-    display: block;
-    max-width: 52ch;
-    margin: 0 0 10px;
-    padding: 0;
-    border: 0;
-    color: var(--paper-ink-soft);
-    font-family: var(--font-note);
-    font-size: clamp(0.96rem, 1.35vw, 1.12rem);
-    font-style: italic;
-    line-height: 1.72;
-    text-align: left;
-  }
-
-  blockquote span {
-    display: block;
   }
 
   p {
@@ -124,11 +79,6 @@ const { intro, quote } = Astro.props as { intro: Intro; quote?: Quote };
     h2 {
       font-size: 1.7rem;
       white-space: normal;
-    }
-
-    blockquote {
-      margin-left: 0;
-      text-align: left;
     }
   }
 </style>
