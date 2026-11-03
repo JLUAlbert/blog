@@ -2,7 +2,7 @@
    页面切换 / 内容入场全站只保留一种表现：模糊进入（Blur In）。
    已移除：机械滚轮翻牌器、Vibe 流光光柱、页面幕布转场、首屏淡入上移。
    保留：Vibe 时间线逐项遮罩上移（滚动显现，非页面切换）、Movies 封面微放大、
-        新增的悬停上浮（Hover Lift）。
+        悬停上浮（Hover Lift，导航卡 + Movies 影片卡片）。
    全部默认尊重「减少动态效果」系统偏好。 */
 
 /* —— Vibe 时间线逐项「遮罩上移」（承接原逐行显现的动效语言） ——
@@ -34,6 +34,33 @@
 [data-movie-shelf] .navfolio-media-shelf__item:hover .navfolio-media-shelf__cover img,
 [data-movie-shelf] .navfolio-media-shelf__item:focus-within .navfolio-media-shelf__cover img {
   transform: scale(1.06);
+}
+
+/* —— Movies 影片卡片：悬停上浮（Hover Lift）——
+   与全站 .hover-lift 同一套位移 / 缓动 / 阴影 token。触发落在整张卡片上，
+   封面与片名、导演、星级作为一个整体上移（图 + 文一起浮）；
+   阴影只投在封面（卡片里唯一的实体块），避免给透明文字区凭空画一个矩形阴影。
+   过渡写在基础状态，鼠标移开时同样平滑落地还原；z-index 保证浮起的卡片不被相邻卡片遮住。 */
+[data-movie-shelf] .navfolio-media-shelf__item {
+  position: relative;
+  z-index: 0;
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-movie-shelf] .navfolio-media-shelf__cover {
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--paper-ink) 0%, transparent);
+  transition: box-shadow 280ms ease;
+}
+
+[data-movie-shelf] .navfolio-media-shelf__item:hover,
+[data-movie-shelf] .navfolio-media-shelf__item:focus-within {
+  z-index: 2;
+  transform: translateY(-4px);
+}
+
+[data-movie-shelf] .navfolio-media-shelf__item:hover .navfolio-media-shelf__cover,
+[data-movie-shelf] .navfolio-media-shelf__item:focus-within .navfolio-media-shelf__cover {
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--paper-ink) 14%, transparent);
 }
 
 /* Movies：星级从「与导演同行」改为片名正下方居中 */
@@ -140,5 +167,15 @@ html.js .blur-in.is-revealed {
 
   [data-movie-shelf] .navfolio-media-shelf__cover img {
     transition: none !important;
+  }
+
+  [data-movie-shelf] .navfolio-media-shelf__item,
+  [data-movie-shelf] .navfolio-media-shelf__cover {
+    transition: none !important;
+  }
+
+  [data-movie-shelf] .navfolio-media-shelf__item:hover,
+  [data-movie-shelf] .navfolio-media-shelf__item:focus-within {
+    transform: none !important;
   }
 }
