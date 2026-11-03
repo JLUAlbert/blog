@@ -1,0 +1,63 @@
+---
+// 站点运行天数：紧凑单行徽标，置于社交图标条右侧，字号与图标条和谐对齐。
+const start = '2026-10-28T16:00:00+08:00';
+const startMs = new Date(start).getTime();
+const buildDays = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
+const padDays = String(buildDays).padStart(3, '0');
+---
+
+<p class="uptime-badge" data-uptime data-start={start}>
+  <span class="uptime-badge-label">已运行</span>
+  <span class="uptime-badge-num" data-days>{padDays}</span>
+  <span class="uptime-badge-unit">天</span>
+</p>
+
+<style>
+  .uptime-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .uptime-badge-label {
+    color: var(--paper-ink-faint);
+    font-family: var(--font-ui-label);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+
+  .uptime-badge-num {
+    color: var(--paper-ink);
+    font-family: var(--font-ui-label);
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .uptime-badge-unit {
+    color: var(--paper-ink-faint);
+    font-size: 0.74rem;
+    line-height: 1;
+  }
+</style>
+
+<script>
+  // 构建期已渲染天数，这里只在载入时校正一次（无需每秒轮询）
+  const syncUptimeDays = () => {
+    document.querySelectorAll<HTMLElement>('[data-uptime]').forEach((el) => {
+      const start = new Date(el.dataset.start ?? '').getTime();
+      if (Number.isNaN(start)) return;
+
+      const days = Math.max(0, Math.floor((Date.now() - start) / 86400000));
+      const out = el.querySelector<HTMLElement>('[data-days]');
+      if (out) out.textContent = String(days).padStart(3, '0');
+    });
+  };
+
+  syncUptimeDays();
+  document.addEventListener('astro:page-load', syncUptimeDays);
+</script>

@@ -5,7 +5,7 @@ import ConnectCard from '../components/cards/ConnectCard.astro';
 import NavigationCard from '../components/cards/NavigationCard.astro';
 import DashboardFlow from '../components/layout/DashboardFlow.astro';
 import RecentPosts from '../components/widgets/RecentPosts.astro';
-import BlogUptime from '../components/widgets/BlogUptime.astro';
+import UptimeBadge from '../components/widgets/UptimeBadge.astro';
 import { getSiteConfig } from '../data/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '@navfolio/theme-default/styles/blog-article.css';
@@ -37,7 +37,6 @@ const navCounts: Record<string, number> = {
     <Fragment slot="doing">
       <div class="doing-stack">
         <RecentPosts count={home.latest.count} excludeDraft={home.latest.excludeDraft} />
-        <BlogUptime />
       </div>
     </Fragment>
 
@@ -57,7 +56,9 @@ const navCounts: Record<string, number> = {
     </Fragment>
 
     <Fragment slot="connect">
-      <ConnectCard links={home.links} />
+      <ConnectCard links={home.links}>
+        <UptimeBadge slot="aside" />
+      </ConnectCard>
     </Fragment>
   </DashboardFlow>
 
@@ -121,10 +122,10 @@ const navCounts: Record<string, number> = {
 </BaseLayout>
 
 <style>
-  /* Recently 与「已运行」之间留出约一行间距，避免紧贴 */
+  /* 左栏第二个网格项：内部只有一个「最新」卡片，占位用 */
   .doing-stack {
     display: grid;
-    gap: 24px;
+    gap: 0;
   }
 
   /* 右栏顶部标语：斜体衬线小宣言，下缘一条发丝分隔线与导航区隔开 */

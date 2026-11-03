@@ -177,6 +177,45 @@ const paletteIntegration = {
   },
 };
 
+// 页面版式修正（全局注入）：
+// vibe 页由主题包生成（走主题自带 BaseHead），无法直接改其组件源码，
+// 这里用全局样式把它的表头改成与 blog 列表页一致的「标题在左 / 说明在右」。
+// 主题组件的样式是带 scope 的，故用 !important 覆盖。
+const layoutFixesCss = `
+@media (min-width: 721px) {
+  .vibe-hero {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) !important;
+    column-gap: 32px !important;
+    row-gap: 0 !important;
+    align-items: center !important;
+  }
+  .vibe-hero .vibe-title {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    margin: 0 !important;
+  }
+  .vibe-hero .vibe-subtitle {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    max-width: 30ch !important;
+    margin: 0 !important;
+    text-align: center !important;
+  }
+  .vibe-hero .vibe-note {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    max-width: 42ch !important;
+    margin: 14px 0 0 !important;
+    text-align: center !important;
+  }
+  /* 右上角装饰纸飞机与右侧说明文字重叠，版式改为两栏后隐藏 */
+  .vibe-hero::after {
+    display: none !important;
+  }
+}
+`;
+
 // 动效增强（全局注入，覆盖 navfolio 主题生成的所有页面，含 vibe）：
 // 注入 `html.js` 标记（Blur In 在无 JS 时保持可见），并挂载 blur-in 客户端逻辑。
 const motionEnhancementIntegration = {
@@ -184,6 +223,16 @@ const motionEnhancementIntegration = {
   hooks: {
     'astro:config:setup': ({ injectScript }) => {
       injectScript('head-inline', `document.documentElement.classList.add('js');`);
+      injectScript(
+        'head-inline',
+        `(() => {
+  if (document.getElementById('page-layout-fixes')) return;
+  const style = document.createElement('style');
+  style.id = 'page-layout-fixes';
+  style.textContent = ${JSON.stringify(layoutFixesCss)};
+  document.head.appendChild(style);
+})();`,
+      );
       const blurInPath = fileURLToPath(new URL('./src/scripts/blur-in.ts', import.meta.url));
       injectScript('page', `import ${JSON.stringify(blurInPath)};`);
     },

@@ -5,8 +5,11 @@ const { links } = Astro.props as { links: ConnectLink[] };
 ---
 
 <article class="connect-card blur-in" data-connect-card>
-  <div class="connect-list" aria-label="Connect links">
-    {links.map((item) => <ConnectIcon item={item} />)}
+  <div class="connect-row">
+    <div class="connect-list" aria-label="Connect links">
+      {links.map((item) => <ConnectIcon item={item} />)}
+    </div>
+    <slot name="aside" />
   </div>
 </article>
 
@@ -81,10 +84,19 @@ const { links } = Astro.props as { links: ConnectLink[] };
     box-shadow: none;
   }
 
+  /* 一行：左侧社交图标，右侧「已运行 N 天」，两端对齐 */
+  .connect-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
   .connect-list {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    align-items: center;
     gap: 8px;
   }
 
@@ -213,6 +225,11 @@ const { links } = Astro.props as { links: ConnectLink[] };
   @media (max-width: 820px) {
     .connect-card {
       padding: 0;
+    }
+
+    .connect-row {
+      justify-content: center;
+      gap: 16px;
     }
 
     .connect-list {

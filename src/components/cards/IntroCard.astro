@@ -45,7 +45,8 @@ const { intro } = Astro.props as { intro: Intro };
   }
 
   h2 {
-    margin: 0;
+    /* 标题下方留出一整行的呼吸位，让标题与下方内容之间有停顿 */
+    margin: 0 0 clamp(22px, 3vw, 34px);
     color: var(--paper-ink);
     max-width: none;
     font-size: clamp(2.2rem, 4vw, 3.35rem);

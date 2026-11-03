@@ -330,8 +330,8 @@ body = []
 
 # 首页“最新动态”区块。
 [config.home.latest]
-# 最新文章显示条数。
-count = 5
+# 最新文章显示条数（多加一条，让左栏与右栏高度更接近，视觉更平衡）。
+count = 6
 
 # 热力图显示周数。✅ 保留 24
 heatmapWeeks = 24
@@ -363,7 +363,7 @@ href = "/blog"
 [[config.home.navigation]]
 icon = "sparkles"
 title = "Vibe"
-subtitle = "Poems and fragments of everyday life"
+subtitle = "Poems and fragments"
 href = "/vibe"
 
 # 片单卡片。

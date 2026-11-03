@@ -32,31 +32,53 @@ const htmlLang = getHtmlLang(siteConfig);
         padding-top: 126px;
         padding-bottom: 80px;
       }
+      /* 表头与 blog 列表页一致：标题在左，副标题与说明文字在右，居中对齐 */
       .shelf-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+        gap: 32px;
+        align-items: center;
         margin-bottom: clamp(38px, 6vw, 64px);
       }
+      .shelf-header-main {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+      }
+      .shelf-copy {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        max-width: 300px;
+        margin: 0;
+        text-align: center;
+      }
       .shelf-kicker {
-        margin: 0 0 12px;
-        color: var(--paper-ink-faint);
-        font-family: var(--font-meta);
-        font-size: 0.68rem;
-        letter-spacing: 0.1em;
+        margin: 0;
+        color: var(--paper-accent);
+        font-family: var(--font-ui-label);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
       }
       .shelf-title {
-        margin: 0;
+        margin: 8px 0 0;
         color: var(--paper-ink);
         font-size: clamp(2.1rem, 6vw, 3.6rem);
         font-weight: 400;
-        line-height: 1;
+        line-height: 1.08;
       }
       .shelf-subtitle {
-        max-width: 34ch;
-        margin: 18px 0 0;
+        max-width: 30ch;
+        margin: 0;
         color: var(--paper-ink-soft);
         font-family: var(--font-ui-label);
-        font-size: clamp(0.96rem, 1.6vw, 1.1rem);
-        line-height: 1.7;
+        font-size: 1.03rem;
+        line-height: 1.76;
       }
       .shelf-note,
       .shelf-count,
@@ -65,10 +87,22 @@ const htmlLang = getHtmlLang(siteConfig);
         font-family: var(--font-meta);
       }
       .shelf-note {
-        max-width: 48ch;
-        margin: 12px 0 0;
+        max-width: 42ch;
+        margin: 0;
         font-size: 0.7rem;
         line-height: 1.75;
+      }
+      @media (max-width: 720px) {
+        .shelf-hero {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+
+        .shelf-copy {
+          display: block;
+          max-width: none;
+          text-align: left;
+        }
       }
       .shelf-heading {
         display: flex;
@@ -96,10 +130,14 @@ const htmlLang = getHtmlLang(siteConfig);
     <BlogTopNav />
     <main data-movie-shelf>
       <header class="shelf-hero">
-        <p class="shelf-kicker">{kicker}</p>
-        <h1 class="shelf-title">{pageMeta.title}</h1>
-        <p class="shelf-subtitle">{pageMeta.subtitle}</p>
-        <p class="shelf-note">{pageMeta.note}</p>
+        <div class="shelf-header-main">
+          <p class="shelf-kicker">{kicker}</p>
+          <h1 class="shelf-title">{pageMeta.title}</h1>
+        </div>
+        <div class="shelf-copy">
+          <p class="shelf-subtitle">{pageMeta.subtitle}</p>
+          <p class="shelf-note">{pageMeta.note}</p>
+        </div>
       </header>
       <div class="shelf-heading">
         <span class="shelf-count">{items.length} {countLabel}</span>
