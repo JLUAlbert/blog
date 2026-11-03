@@ -61,18 +61,18 @@ function withBase(href: string) {
   nav {
     display: grid;
     width: 100%;
-    gap: var(--space-xs);
+    gap: 8px;
   }
 
   .nav-item {
     display: grid;
     grid-template-columns: 28px minmax(0, 1fr) 18px;
-    gap: var(--space-sm);
+    gap: 12px;
     align-items: center;
-    /* 左右各留 12px 作为 hover 时的浮起底色，再用负外边距抵消，保持文字对齐 */
-    padding: var(--space-xs) var(--space-sm);
-    margin: 0 calc(-1 * var(--space-sm));
-    border-radius: var(--radius-md);
+    /* 左右各留 10px 作为 hover 时的浮起底色，再用负外边距抵消，保持文字对齐 */
+    padding: 8px 10px;
+    margin: 0 -10px;
+    border-radius: 12px;
     background: transparent;
     color: var(--paper-ink);
     text-decoration: none;
@@ -111,17 +111,17 @@ function withBase(href: string) {
   }
 
   strong {
-    font-size: var(--type-nav-title);
+    font-size: 0.96rem;
     font-weight: 650;
   }
 
-  /* 计数：小号等宽数字 + 强调色（它在一个链接里，符合强调色纪律） */
+  /* 计数：小号等宽数字 + 强调色，紧贴在 Blog / Vibe / Movies 字样之前 */
   .nav-count {
     display: inline-block;
-    margin-right: var(--space-2xs);
-    color: var(--paper-accent-text);
+    margin-right: 6px;
+    color: var(--paper-accent);
     font-family: var(--font-ui-label);
-    font-size: var(--type-meta);
+    font-size: 0.82rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
@@ -135,8 +135,8 @@ function withBase(href: string) {
 
   small {
     margin-top: 2px;
-    color: var(--paper-ink-faint);
-    font-size: var(--type-nav-sub);
+    color: var(--paper-ink-soft);
+    font-size: 0.8rem;
   }
 
   @media (max-width: 820px) {

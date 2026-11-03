@@ -50,7 +50,7 @@
     grid-column: 1;
     grid-row: 1;
     min-height: 0;
-    margin-bottom: var(--space-lg);
+    margin-bottom: 26px;
     padding: 0;
   }
 
@@ -59,26 +59,23 @@
     grid-row: 2;
   }
 
-  /* —— 第 2 行起：右栏整体下移 ——
-     只对齐上沿：align-self:start 让标语保持自身高度，
-     下方的发丝线紧跟文字收住，不会跟着「最新」卡片一起拉到底。 */
+  /* —— 第 2 行起：右栏整体下移，标语顶端与「最新」卡片顶端对齐 —— */
   .flow-grid :global(.home-quote) {
     grid-column: 2;
     grid-row: 2;
-    align-self: start;
-    margin-bottom: var(--space-lg);
+    margin-bottom: 24px;
   }
 
   .flow-grid :global(.nav-card) {
     grid-column: 2;
     grid-row: 3;
-    margin-bottom: var(--space-xs);
+    margin-bottom: 6px;
   }
 
   .flow-grid :global(.connect-card) {
     grid-column: 2;
     grid-row: 4;
-    padding: var(--space-xs) 0 0;
+    padding: 6px 0 0;
   }
 
   @media (max-width: 920px) {
