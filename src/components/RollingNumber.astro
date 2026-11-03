@@ -1,0 +1,46 @@
+---
+import { mountOdometers } from '../scripts/odometer';
+
+interface Props {
+  value: number;
+  digits?: number; // 最少位数，不足左侧补 0
+  class?: string;
+  id?: string;
+  duration?: number;
+}
+
+const { value, digits = 0, class: className = '', id, duration } = Astro.props;
+const padded = String(value).padStart(Math.max(digits, String(value).length), '0');
+const chars = padded.split('');
+const dataAttrs = duration ? `data-duration="${duration}"` : '';
+---
+
+<span
+  class={`odometer ${className}`}
+  data-odometer
+  data-value={value}
+  data-digits={digits}
+  {...id ? { id } : {}}
+  aria-hidden="true"
+>
+  {
+    chars.map(() => (
+      <span class="odo-col">
+        <span class="odo-ribbon">
+          {Array.from({ length: 10 }, (_, n) => (
+            <span class="odo-digit">{n}</span>
+          ))}
+        </span>
+      </span>
+    ))
+  }
+</span>
+<span class="sr-only">{value}</span>
+
+<script>
+  import { mountOdometers } from '../scripts/odometer';
+
+  const init = () => mountOdometers();
+  init();
+  document.addEventListener('astro:page-load', init);
+</script>

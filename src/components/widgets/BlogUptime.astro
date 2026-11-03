@@ -1,15 +1,22 @@
 ---
-// 博客运行时间记载：自 2026-10-28 16:00 (GMT+8) 起，数字从 0 平滑滚动到当前值后实时跳动。
+import RollingNumber from '../RollingNumber.astro';
+
+// 博客运行时间：大数字「已运行 N 天」置于计时器正上方，时/分/秒以独立计时格实时跳动。
 const start = '2026-10-28T16:00:00+08:00';
+const startMs = new Date(start).getTime();
+const buildDays = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
 ---
 
 <section class="glass-card uptime-card" data-uptime data-start={start} aria-label="博客已运行时间">
-  <strong class="uptime-label">已运行 · Since Oct 28, 2026</strong>
-  <div class="uptime-grid">
-    <div class="uptime-unit">
-      <span class="uptime-num" data-unit="days">0</span>
-      <span class="uptime-unit-label">天</span>
+  <div class="uptime-head">
+    <strong class="uptime-label">已运行 · Since Oct 28, 2026</strong>
+    <div class="uptime-days">
+      <RollingNumber value={buildDays} id="uptime-days-odo" digits={3} />
+      <span class="uptime-days-unit">天</span>
     </div>
+  </div>
+
+  <div class="uptime-grid">
     <div class="uptime-unit">
       <span class="uptime-num" data-unit="hours">00</span>
       <span class="uptime-unit-label">时</span>
@@ -28,7 +35,7 @@ const start = '2026-10-28T16:00:00+08:00';
 <style>
   .uptime-card {
     display: grid;
-    gap: 16px;
+    gap: 18px;
     padding: 22px 26px 24px;
     max-width: 680px;
   }
@@ -41,9 +48,30 @@ const start = '2026-10-28T16:00:00+08:00';
     text-transform: uppercase;
   }
 
+  .uptime-days {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .uptime-days :global(.odometer) {
+    font-family: var(--font-ui-label);
+    font-size: clamp(2.6rem, 8vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--paper-ink);
+  }
+
+  .uptime-days-unit {
+    color: var(--paper-ink-soft);
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
   .uptime-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -82,3 +110,52 @@ const start = '2026-10-28T16:00:00+08:00';
     }
   }
 </style>
+
+<script>
+  import { getOdometer, mountOdometerOn } from '../../scripts/odometer';
+
+  const initUptime = () => {
+    const card = document.querySelector<HTMLElement>('[data-uptime]');
+    if (!card) return;
+
+    const start = new Date(card.dataset.start ?? '').getTime();
+    if (Number.isNaN(start)) return;
+
+    const nums: Record<string, HTMLElement | null> = {};
+    card.querySelectorAll<HTMLElement>('[data-unit]').forEach((el) => {
+      nums[el.dataset.unit ?? ''] = el;
+    });
+
+    const daysEl = document.getElementById('uptime-days-odo');
+    let daysOdo = daysEl ? (getOdometer(daysEl) ?? mountOdometerOn(daysEl)) : undefined;
+    let lastDays = -1;
+    let booted = false;
+    const pad = (n: number, len = 2) => String(n).padStart(len, '0');
+
+    const tick = () => {
+      const diff = Math.max(0, Date.now() - start);
+      const total = Math.floor(diff / 1000);
+      const days = Math.floor(total / 86400);
+      if (nums.hours) nums.hours.textContent = pad(Math.floor((total % 86400) / 3600));
+      if (nums.mins) nums.mins.textContent = pad(Math.floor((total % 3600) / 60));
+      if (nums.secs) nums.secs.textContent = pad(total % 60);
+
+      if (days !== lastDays) {
+        if (daysOdo) {
+          if (!booted) daysOdo.roll(days);
+          else daysOdo.setValue(days);
+        } else if (daysEl) {
+          daysEl.textContent = String(days);
+        }
+        lastDays = days;
+        booted = true;
+      }
+    };
+
+    tick();
+    window.setInterval(tick, 1000);
+  };
+
+  initUptime();
+  document.addEventListener('astro:page-load', initUptime);
+</script>

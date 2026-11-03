@@ -203,6 +203,48 @@ const paletteIntegration = {
   },
 };
 
+// 动效增强（全局注入，覆盖 navfolio 主题生成的所有页面，含 vibe）：
+// 1) head-inline 注入 `html.js` 标记（Blug-In 在无 JS 时保持可见）与 vibe 流光光柱所需 CSS；
+// 2) page 注入 blur-in 与 vibe-beam 的客户端逻辑。
+const motionCss = `
+.vibe-beam{position:absolute;inset:-28px 0 -24px;width:100%;height:calc(100% + 52px);overflow:visible;pointer-events:none;z-index:2}
+.vibe-beam-path{fill:none;stroke-width:4;stroke-linecap:round;vector-effect:non-scaling-stroke;filter:blur(6px);opacity:0;transition:opacity 600ms ease}
+.vibe-beam-core{fill:none;stroke-width:1.5;stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:0;transition:opacity 600ms ease}
+.vibe-beam.is-running .vibe-beam-path,.vibe-beam.is-running .vibe-beam-core{opacity:1}
+.vibe-beam-active .vibe-item{animation:none!important}
+html.js .vibe-beam-active .vibe-item{transition:opacity 700ms ease,filter 760ms ease}
+html.js .vibe-beam-active .vibe-item.vibe-pending-beam{opacity:0!important;filter:blur(12px)!important}
+html.js .vibe-beam-active .vibe-item.is-revealed-by-beam{opacity:1!important;filter:none!important}
+@media (prefers-reduced-motion: reduce){.vibe-beam{display:none!important}}
+@media (max-width:720px){.vibe-beam{display:none!important}}
+`;
+
+const motionEnhancementIntegration = {
+  name: 'navfolio-motion-enhancements',
+  hooks: {
+    'astro:config:setup': ({ injectScript }) => {
+      injectScript(
+        'head-inline',
+        `(() => {
+  document.documentElement.classList.add('js');
+  if (!document.getElementById('motion-extras')) {
+    const s = document.createElement('style');
+    s.id = 'motion-extras';
+    s.textContent = ${JSON.stringify(motionCss)};
+    document.head.appendChild(s);
+  }
+})();`,
+      );
+      const blurInPath = fileURLToPath(new URL('./src/scripts/blur-in.ts', import.meta.url));
+      const vibeBeamPath = fileURLToPath(new URL('./src/scripts/vibe-beam.ts', import.meta.url));
+      injectScript(
+        'page',
+        `import ${JSON.stringify(blurInPath)};\nimport ${JSON.stringify(vibeBeamPath)};`,
+      );
+    },
+  },
+};
+
 // https://astro.build/config
 export default defineConfig({
   site: resolvedSite,
@@ -217,6 +259,7 @@ export default defineConfig({
     sitemap(),
     busuanziIntegration,
     paletteIntegration,
+    motionEnhancementIntegration,
   ],
 
   vite: {

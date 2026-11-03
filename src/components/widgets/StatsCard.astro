@@ -1,0 +1,108 @@
+---
+import { getCollection } from 'astro:content';
+import RollingNumber from '../RollingNumber.astro';
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+function withBase(href: string) {
+  if (href === '/') return `${basePath}/` || '/';
+  return `${basePath}${href.startsWith('/') ? href : `/${href}`}`;
+}
+
+const [blogPosts, vibePosts, moviePosts] = await Promise.all([
+  getCollection('blog', ({ data }) => !data.draft),
+  getCollection('vibe', ({ data }) => !data.draft),
+  getCollection('movie', ({ data }) => !data.draft),
+]);
+
+const stats = [
+  { key: 'blog', label: 'Blog', sub: '随笔 · 笔记', count: blogPosts.length, href: '/blog' },
+  { key: 'vibe', label: 'Vibe', sub: '诗与日常', count: vibePosts.length, href: '/vibe' },
+  { key: 'movie', label: 'Movies', sub: '看过的影剧', count: moviePosts.length, href: '/movie' },
+];
+---
+
+<section class="glass-card stats-card" aria-label="内容统计">
+  {
+    stats.map((s) => (
+      <a class="stat" href={withBase(s.href)}>
+        <span class="stat-num">
+          <RollingNumber value={s.count} duration={1100} />
+        </span>
+        <span class="stat-meta">
+          <strong>{s.label}</strong>
+          <small>{s.sub}</small>
+        </span>
+      </a>
+    ))
+  }
+</section>
+
+<style>
+  .stats-card {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 18px 16px;
+    max-width: 680px;
+  }
+
+  .stat {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 14px 8px 12px;
+    border: 1px solid var(--paper-line);
+    border-radius: 14px;
+    background: var(--paper-surface);
+    color: var(--paper-ink);
+    text-decoration: none;
+    transition:
+      border-color 220ms ease,
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 220ms ease;
+  }
+
+  .stat:hover,
+  .stat:focus-visible {
+    border-color: color-mix(in srgb, var(--paper-accent) 42%, transparent);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px color-mix(in srgb, var(--paper-ink) 8%, transparent);
+  }
+
+  .stat-num {
+    font-family: var(--font-ui-label);
+    font-size: clamp(1.7rem, 5vw, 2.3rem);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--paper-accent);
+  }
+
+  .stat-meta {
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+  }
+
+  .stat-meta strong {
+    font-size: 0.92rem;
+    font-weight: 650;
+  }
+
+  .stat-meta small {
+    color: var(--paper-ink-soft);
+    font-size: 0.7rem;
+    line-height: 1.3;
+  }
+
+  @media (max-width: 480px) {
+    .stats-card {
+      gap: 8px;
+      padding: 14px 10px;
+    }
+
+    .stat {
+      padding: 11px 4px 10px;
+      border-radius: 12px;
+    }
+  }
+</style>

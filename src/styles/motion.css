@@ -104,3 +104,111 @@
     display: none !important;
   }
 }
+
+/* ============================================================
+   新增 · 滚轮翻牌数字（Rolling Number Odometer）
+   多位数字拆分为独立竖列，每列 0-9 序列，translateY 平滑滚动，
+   各列错开 transition-delay 营造机械翻牌效果。
+   ============================================================ */
+.odometer {
+  display: inline-flex;
+  align-items: flex-start;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.odo-col {
+  display: inline-block;
+  height: 1em;
+  width: 0.62em;
+  overflow: hidden;
+  text-align: center;
+}
+
+.odo-ribbon {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+.odo-digit {
+  height: 1em;
+  line-height: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================
+   新增 · 模糊进入（Blur In）
+   元素入屏时透明度 0→1，同时滤镜从高斯模糊过渡到完全清晰。
+   ============================================================ */
+/* 仅在启用 JS 时隐藏，无 JS 则保持可见（无障碍 / SEO 安全） */
+html.js .blur-in {
+  opacity: 0;
+  filter: blur(14px);
+  transform: translateY(16px);
+  transition:
+    opacity 720ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 760ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 760ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, filter, transform;
+}
+
+html.js .blur-in.is-revealed {
+  opacity: 1;
+  filter: blur(0);
+  transform: none;
+}
+
+/* ============================================================
+   新增 · Vibe 流光光柱（Border Beam）
+   在现有 .vibe-thread 曲线之上叠加一道带高斯模糊与色彩渐变的光柱，
+   沿曲线匀速行进；光柱行经到某节点，对应 vibe 即模糊进入显现。
+   ============================================================ */
+.vibe-beam {
+  position: absolute;
+  inset: -28px 0 -24px;
+  width: 100%;
+  height: calc(100% + 52px);
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.vibe-beam-path {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  filter: blur(6px);
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.vibe-beam-core {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.vibe-beam.is-running .vibe-beam-path,
+.vibe-beam.is-running .vibe-beam-core {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js .blur-in {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+
+  .vibe-beam {
+    display: none;
+  }
+}

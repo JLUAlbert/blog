@@ -8,6 +8,7 @@ import DashboardFlow from '../components/layout/DashboardFlow.astro';
 import BlogHeatmap from '../components/widgets/BlogHeatmap.astro';
 import RecentPosts from '../components/widgets/RecentPosts.astro';
 import BlogUptime from '../components/widgets/BlogUptime.astro';
+import StatsCard from '../components/widgets/StatsCard.astro';
 import { getSiteConfig } from '../data/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '@navfolio/theme-default/styles/blog-article.css';
@@ -44,6 +45,10 @@ const { Content: AboutContent } = aboutEntry ? await render(aboutEntry) : { Cont
         startDate={home.latest.startDate || null}
         dateArchiveBaseHref={home.latest.dateArchiveBaseHref || undefined}
       />
+    </Fragment>
+
+    <Fragment slot="stats">
+      <StatsCard />
     </Fragment>
 
     <Fragment slot="navigation">

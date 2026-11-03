@@ -28,7 +28,7 @@ const formatDate = new Intl.DateTimeFormat(ui.locale, {
       <div class="latest-list">
         {latestPosts.map((post) => (
           <a
-            class="latest-link"
+            class="latest-link blur-in"
             href={post.href}
             aria-label={ui.heatmap.openLatestPost(post.title)}
           >
