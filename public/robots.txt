@@ -1,0 +1,9 @@
+# 全站允许抓取
+User-agent: *
+Allow: /
+
+# 站内搜索与发布台无需收录
+Disallow: /pagefind/
+Disallow: /publish
+
+Sitemap: https://jlualbert-blog.pages.dev/sitemap-index.xml

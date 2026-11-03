@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#2a3a2f" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#171b18" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a8baa9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#a8baa9" stop-opacity="0.15" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#171b18" />
+  <rect width="1200" height="630" fill="url(#glow)" />
+
+  <rect x="0.5" y="0.5" width="1199" height="629" fill="none" stroke="#2e362f" stroke-width="1" />
+
+  <rect x="88" y="168" width="64" height="2" fill="url(#fade)" />
+
+  <text x="88" y="292" font-family="Georgia, 'Times New Roman', serif" font-size="76" fill="#eaebe5">
+    Welcome to <tspan font-style="italic">Albert&apos;s Blog</tspan>
+  </text>
+
+  <text x="88" y="392" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="29" fill="#b5beb1">- Think independently. Write honestly.</text>
+  <text x="88" y="438" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="29" fill="#b5beb1">Learn endlessly. Live freely.</text>
+
+  <line x1="88" y1="524" x2="1112" y2="524" stroke="#2e362f" stroke-width="1" />
+
+  <text x="88" y="566" font-family="Georgia, 'Times New Roman', serif" font-size="21" letter-spacing="2" fill="#a8baa9">BLOG&#160;&#160;&#183;&#160;&#160;VIBE&#160;&#160;&#183;&#160;&#160;MOVIES</text>
+  <text x="1112" y="566" text-anchor="end" font-family="Georgia, 'Times New Roman', serif" font-size="21" fill="#899487">jlualbert-blog.pages.dev</text>
+</svg>

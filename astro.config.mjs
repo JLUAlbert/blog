@@ -95,9 +95,7 @@ const rewriteInternalPaths = () => (tree) => {
 // 色盘背景：把调色盘 CSS 与循环切换脚本注入到每个页面的 <head>，
 // 不依赖某个布局组件，保证文章页/列表页/详情页都跟随色盘改变背景。
 const paletteCss = fs.readFileSync(new URL('./src/styles/palette-bg.css', import.meta.url), 'utf8');
-// 顺带隐藏被清空的 kicker / subtitle 残留空元素（Notebook archive 等已置空）。
-const siteFixesCss = '\n[class*="kicker"]:empty,[class*="subtitle"]:empty{display:none!important;}';
-const paletteRuntimeCss = paletteCss + siteFixesCss;
+const paletteRuntimeCss = paletteCss;
 const paletteIntegration = {
   name: 'navfolio-palette-backgrounds',
   hooks: {
@@ -177,47 +175,17 @@ const paletteIntegration = {
   },
 };
 
-// 页面版式修正（全局注入）：
-// vibe 页由主题包生成（走主题自带 BaseHead），无法直接改其组件源码，
-// 这里用全局样式把它的表头改成与 blog 列表页一致的「标题在左 / 说明在右」。
-// 主题组件的样式是带 scope 的，故用 !important 覆盖。
-const layoutFixesCss = `
-@media (min-width: 721px) {
-  .vibe-hero {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) !important;
-    column-gap: 32px !important;
-    row-gap: 0 !important;
-    align-items: center !important;
-  }
-  .vibe-hero .vibe-title {
-    grid-column: 1 !important;
-    grid-row: 1 / span 2 !important;
-    margin: 0 !important;
-  }
-  .vibe-hero .vibe-subtitle {
-    grid-column: 2 !important;
-    grid-row: 1 !important;
-    max-width: 30ch !important;
-    margin: 0 !important;
-    text-align: center !important;
-  }
-  .vibe-hero .vibe-note {
-    grid-column: 2 !important;
-    grid-row: 2 !important;
-    max-width: 42ch !important;
-    margin: 14px 0 0 !important;
-    text-align: center !important;
-  }
-  /* 右上角装饰纸飞机与右侧说明文字重叠，版式改为两栏后隐藏 */
-  .vibe-hero::after {
-    display: none !important;
-  }
-}
-`;
+// 主题覆盖样式（全局注入）：
+// vibe 页由主题包生成（走主题自带 BaseHead），无法改其组件源码，也加载不到我们的样式表，
+// 因此「vibe 表头两栏 / 空标签隐藏 / 图片灯箱」统一放在 src/styles/theme-overrides.css，
+// 由这里读取后注入每个页面的 <head>。样式本身不再写在配置里。
+const themeOverridesCss = fs.readFileSync(
+  new URL('./src/styles/theme-overrides.css', import.meta.url),
+  'utf8',
+);
 
 // 动效增强（全局注入，覆盖 navfolio 主题生成的所有页面，含 vibe）：
-// 注入 `html.js` 标记（Blur In 在无 JS 时保持可见），并挂载 blur-in 客户端逻辑。
+// 注入 `html.js` 标记（Blur In 在无 JS 时保持可见），挂载 blur-in 与图片灯箱客户端逻辑。
 const motionEnhancementIntegration = {
   name: 'navfolio-motion-enhancements',
   hooks: {
@@ -226,15 +194,23 @@ const motionEnhancementIntegration = {
       injectScript(
         'head-inline',
         `(() => {
-  if (document.getElementById('page-layout-fixes')) return;
+  if (document.getElementById('theme-overrides')) return;
   const style = document.createElement('style');
-  style.id = 'page-layout-fixes';
-  style.textContent = ${JSON.stringify(layoutFixesCss)};
+  style.id = 'theme-overrides';
+  style.textContent = ${JSON.stringify(themeOverridesCss)};
   document.head.appendChild(style);
 })();`,
       );
       const blurInPath = fileURLToPath(new URL('./src/scripts/blur-in.ts', import.meta.url));
+      const zoomablePath = fileURLToPath(
+        new URL('./src/utils/zoomable-images.ts', import.meta.url),
+      );
       injectScript('page', `import ${JSON.stringify(blurInPath)};`);
+      injectScript(
+        'page',
+        `import { initZoomableImages } from ${JSON.stringify(zoomablePath)};
+initZoomableImages();`,
+      );
     },
   },
 };
