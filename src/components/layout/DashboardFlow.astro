@@ -59,11 +59,14 @@
     grid-row: 2;
   }
 
-  /* —— 第 2 行起：右栏整体下移，标语顶端与「最新」卡片顶端对齐 —— */
+  /* —— 第 2 行起：右栏整体下移，标语顶端与「最新」卡片顶端对齐 ——
+     align-self:start 让标语保持自身文字高度（不被拉伸到与卡片等高），
+     下缘发丝线紧跟文字收住，从而与下方导航卡紧密排列。 */
   .flow-grid :global(.home-quote) {
     grid-column: 2;
     grid-row: 2;
-    margin-bottom: 24px;
+    align-self: start;
+    margin-bottom: 0;
   }
 
   .flow-grid :global(.nav-card) {
@@ -106,7 +109,7 @@
     .flow-grid :global(.home-quote) {
       order: 2;
       margin-bottom: 0;
-      padding: 0;
+      padding: 0 0 10px;
     }
 
     .flow-grid :global(.doing-stack) {
