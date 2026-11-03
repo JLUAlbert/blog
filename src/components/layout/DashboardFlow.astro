@@ -34,11 +34,22 @@
     align-content: start;
   }
 
-  /* 两列改为 display:contents，让每个区块直接成为网格项，
-     这样可以把标语的顶端精确对齐到左栏「最新」卡片的顶端。 */
-  .main-column,
-  .side-column {
+  /* 左栏拆开，让「标题」与「最新」各占一行 */
+  .main-column {
     display: contents;
+  }
+
+  /* 右栏保持整体、作为一个网格项从第 2 行顶端开始，内部连续排列。
+     若也拆成 display:contents，标语 / 导航 / 社交会各占一行，
+     而行高由左栏那张很高的「最新」卡片决定 —— 导航卡就会被推到卡片
+     底部之下，中间空出一大片。 */
+  .side-column {
+    display: flex;
+    grid-column: 2;
+    grid-row: 2;
+    flex-direction: column;
+    align-self: start;
+    min-width: 0;
   }
 
   .flow-grid :global(.glass-card) {
@@ -59,25 +70,17 @@
     grid-row: 2;
   }
 
-  /* —— 第 2 行起：右栏整体下移，标语顶端与「最新」卡片顶端对齐 ——
-     align-self:start 让标语保持自身文字高度（不被拉伸到与卡片等高），
-     下缘发丝线紧跟文字收住，从而与下方导航卡紧密排列。 */
+  /* —— 右栏内部：标语 → 导航 → 社交，连续紧排 ——
+     标语顶到右栏顶部（与「最新」卡片顶端齐平），下缘发丝线之下直接接导航卡。 */
   .flow-grid :global(.home-quote) {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: start;
     margin-bottom: 0;
   }
 
   .flow-grid :global(.nav-card) {
-    grid-column: 2;
-    grid-row: 3;
     margin-bottom: 6px;
   }
 
   .flow-grid :global(.connect-card) {
-    grid-column: 2;
-    grid-row: 4;
     padding: 6px 0 0;
   }
 
@@ -98,6 +101,11 @@
       display: flex;
       flex-direction: column;
       gap: 24px;
+    }
+
+    /* 移动端单列排列，右栏拆开逐项排序 */
+    .side-column {
+      display: contents;
     }
 
     /* 移动端顺序：标题 → 标语 → 最新 → 导航 → 社交 */
