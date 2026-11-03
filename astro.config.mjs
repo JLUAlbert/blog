@@ -216,6 +216,13 @@ const layoutFixesCss = `
 }
 `;
 
+// 设计系统基线：排版比例、强调色纪律、Focus 态、卡片层级、留白栅格、
+// 文章页细节、对比度修正。全站注入（含主题包生成的 vibe 页，它不走我们的 BaseHead）。
+const designSystemCss = fs.readFileSync(
+  new URL('./src/styles/design-system.css', import.meta.url),
+  'utf8',
+);
+
 // 动效增强（全局注入，覆盖 navfolio 主题生成的所有页面，含 vibe）：
 // 注入 `html.js` 标记（Blur In 在无 JS 时保持可见），并挂载 blur-in 客户端逻辑。
 const motionEnhancementIntegration = {
@@ -223,6 +230,8 @@ const motionEnhancementIntegration = {
   hooks: {
     'astro:config:setup': ({ injectScript }) => {
       injectScript('head-inline', `document.documentElement.classList.add('js');`);
+      // 设计系统基线：以 <style> 直出，首屏即生效，避免 JS 注入导致的样式跳动
+      injectScript('head-inline', `<style id="design-system">${designSystemCss}</style>`);
       injectScript(
         'head-inline',
         `(() => {
