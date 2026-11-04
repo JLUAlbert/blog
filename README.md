@@ -102,7 +102,7 @@ npm run preview      # 预览 dist/
 ```bash
 npm run post:new     # 新建长文骨架
 npm run vibe:new     # 新建短记录骨架
-node scripts/trakt-sync.mjs   # 手动同步片单（见下方说明）
+node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json   # 用底稿离线重建片单 Markdown
 ```
 
 字体子集化是可选的一次性操作：`python3 -m venv .venv && .venv/bin/python -m pip install fonttools brotli`，之后 `npm run fonts:ui`。生成的 `public/fonts/LXGWWenKai-ui-subset.woff2` 需要提交到仓库，否则线上会回退加载全量字体。
@@ -119,7 +119,8 @@ node scripts/trakt-sync.mjs   # 手动同步片单（见下方说明）
 | ----------------------- | ---------------------------------- |
 | `CLOUDFLARE_API_TOKEN`  | Cloudflare API Token（Pages:Edit） |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID                 |
-| `TRAKT_TOKEN`           | Trakt OAuth 令牌，手动同步片单时用 |
+
+片单同步不需要 Actions secret：连接凭据由发布口令派生密钥加密后，放在 `scripts/.trakt-fixture.json` 里，仓库任务只做离线渲染。
 
 可选的仓库变量：`SITE_URL`（主站域名，不设置时默认 `https://jlualbert-blog.pages.dev`）、`CLOUDFLARE_PROJECT`（默认 `jlualbert-blog`）。
 
@@ -169,9 +170,11 @@ draft: false
 - 配图放 `public/images/`，正文写 `![说明](/images/xxx.jpg)`，构建时会自动补 base。
 - `<!-- trakt:begin -->` 与 `<!-- trakt:end -->` 之间的片单内容由同步脚本管理，块外可以写自己的笔记，重跑不会丢。
 
-片单同步：**在发布台点「同步片单」即可**，不需要进 GitHub 或 Cloudflare。发布台会触发 `.github/workflows/trakt-sync.yml`，并把进度、上次同步时间和结果直接显示回来；同步完成后 push 会自动触发两条部署流水线，约 1–2 分钟后 Movies 更新。Movies 页面本身读的是仓库里生成好的 Markdown，不依赖 Trakt 实时在线。
+片单同步：**在发布台点「同步片单」即可**，不需要进 GitHub 或 Cloudflare。Movies 页面读的是仓库里生成好的 Markdown，不依赖 Trakt 实时在线。
 
-Trakt API 前面的 Cloudflare 常拦 GitHub Actions 的出口 IP，所以不再定时跑（只会留下失败记录），改为按需触发，且工作流内自动重试 3 次。备用入口：[Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) 的 `Run workflow`，或本地 `node scripts/trakt-sync.mjs`。需要仓库 secret `TRAKT_TOKEN`。
+Trakt 前面的防护会拦 GitHub Actions 的出口 IP，而且连接凭据每 7 天轮换，所以联网这一步放在发布台：发布台自己续凭据、拉观看历史与评分，把精简后的数据写进 `scripts/.trakt-fixture.json`，再触发 `.github/workflows/trakt-sync.yml` **离线**渲染 Markdown 并 push。进度、上次同步时间和结果都会直接显示在发布台里；push 会自动触发两条部署流水线，约 1–2 分钟后 Movies 更新。
+
+凭据用发布口令派生的密钥（AES-GCM）加密后存在底稿里，公开仓库没有明文；每次同步会把轮换后的新凭据写回，不需要人工维护。备用入口：[Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) 的 `Run workflow`（会用当前底稿重建片单），或本地 `node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json`。
 
 ---
 

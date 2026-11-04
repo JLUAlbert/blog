@@ -323,10 +323,11 @@ async function handleList(request, env) {
   return json({ ok: true, items });
 }
 
-/* ---------------- 片单同步：发布台内一键触发，不必进 GitHub ----------------
-   Movies 读的是仓库里生成好的 Markdown，只有「更新片单」这一步需要联网。
-   发布台借用仓库里已有的同步任务，只负责触发与回报进度；前端拿不到任何令牌，
-   也看不到 GitHub 链接，日常维护都留在发布台里完成。 */
+/* ---------------- 片单同步：发布台内一键完成，不必进 GitHub ----------------
+   Movies 读的是仓库里生成好的 Markdown。Trakt 的防护会拦 GitHub Actions 的出口 IP，
+   而且连接凭据每 7 天轮换，所以联网取数与凭据续期都放在发布台这边完成：
+   发布台把片单数据写进仓库底稿，再让仓库任务离线渲染 Markdown 并发布。
+   凭据用发布口令派生出的密钥加密后放在底稿里，公开仓库里没有明文。 */
 
 function publishAuth(request, env) {
   const password = passwordOf(env);
@@ -355,54 +356,344 @@ async function syncRuns(owner, repo, token, signal) {
   }));
 }
 
+const TRAKT_API = 'https://api.trakt.tv';
+const TRAKT_CLIENT_ID = 'kPI6oQBbAcEpTjfRsn_DAo5mOOqgkYon3z27QFoDl-o';
+const TRAKT_FIXTURE = 'scripts/.trakt-fixture.json';
+const TRAKT_SALT = 'alberts-blog-trakt-store-v1';
+
+// 密钥由发布口令派生：不需要额外配置后台变量，公开仓库里也没有密钥
+async function traktStoreKey(env) {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(TRAKT_SALT + passwordOf(env)),
+  );
+  return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+function b64ToBytes(s) {
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function traktDecrypt(encoded, env) {
+  const all = b64ToBytes(encoded);
+  const plain = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: all.slice(0, 12) },
+    await traktStoreKey(env),
+    all.slice(12),
+  );
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+async function traktEncrypt(obj, env) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cipher = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      await traktStoreKey(env),
+      new TextEncoder().encode(JSON.stringify(obj)),
+    ),
+  );
+  const all = new Uint8Array(iv.length + cipher.length);
+  all.set(iv, 0);
+  all.set(cipher, iv.length);
+  return bytesToBase64(all);
+}
+
+const nap = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function traktCall(path, token, init) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'trakt-api-version': '2',
+    'trakt-api-key': TRAKT_CLIENT_ID,
+    'User-Agent': 'navfolio-trakt-sync/1.0',
+  };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 9000);
+    let res;
+    try {
+      res = await fetch(TRAKT_API + path, {
+        method: (init && init.method) || 'GET',
+        headers,
+        body: init && init.body ? JSON.stringify(init.body) : undefined,
+        signal: ctrl.signal,
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (attempt < 2) {
+        await nap(1200);
+        continue;
+      }
+      throw new Error('片单源连接超时，稍后再点一次');
+    }
+    clearTimeout(timer);
+    if (res.status === 429 && attempt < 2) {
+      await nap(1500 * (attempt + 1));
+      continue;
+    }
+    return res;
+  }
+}
+
+async function traktJson(path, token) {
+  const res = await traktCall(path, token);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      '片单源返回 ' + res.status + (text.includes('blocked') ? '（被防护拦截）' : ''),
+    );
+  }
+  return {
+    data: await res.json(),
+    pages: Number(res.headers.get('x-pagination-page-count') || '1'),
+  };
+}
+
+async function traktPaged(path, token) {
+  const out = [];
+  const sep = path.includes('?') ? '&' : '?';
+  const first = await traktJson(path + sep + 'page=1&limit=100', token);
+  out.push(...first.data);
+  for (let p = 2; p <= Math.min(first.pages, 30); p++) {
+    const next = await traktJson(path + sep + 'page=' + p + '&limit=100', token);
+    out.push(...next.data);
+  }
+  return out;
+}
+
+async function traktRefresh(refreshToken) {
+  // 续期请求刻意只带最基本的头：Trakt 前面的防护对多余的请求头更敏感
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 9000);
+    let res;
+    try {
+      res = await fetch(TRAKT_API + '/oauth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'navfolio-trakt-sync/1.0' },
+        body: JSON.stringify({
+          refresh_token: refreshToken,
+          client_id: TRAKT_CLIENT_ID,
+          redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
+          grant_type: 'refresh_token',
+        }),
+        signal: ctrl.signal,
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (attempt < 2) {
+        await nap(1500);
+        continue;
+      }
+      throw new Error('片单连接续期超时，稍后再点一次');
+    }
+    clearTimeout(timer);
+    if (res.status === 429 && attempt < 2) {
+      await nap(2000 * (attempt + 1));
+      continue;
+    }
+    if (!res.ok) throw new Error('片单连接续期失败（' + res.status + '）');
+    const fresh = await res.json();
+    return { ...fresh, obtained_at: Math.floor(Date.now() / 1000) };
+  }
+  throw new Error('片单连接续期失败，稍后再点一次');
+}
+
+function traktDetail(full, people) {
+  const crew = (people && people.crew) || {};
+  const byJob = (dept, job) =>
+    (crew[dept] || []).find((c) => String(c.job || '').toLowerCase() === job)?.person?.name;
+  const first = (dept) => (crew[dept] || [])[0]?.person?.name;
+  const abs = (u) => (u ? (u.startsWith('http') ? u : 'https://' + u) : '');
+  return {
+    overview: (full && full.overview) || '',
+    genres: (full && full.genres) || [],
+    runtime: (full && full.runtime) || 0,
+    year: (full && full.year) || 0,
+    network: (full && full.network) || '',
+    aired: (full && full.aired_episodes) || 0,
+    status: (full && full.status) || '',
+    poster: abs(full && full.images && full.images.poster && full.images.poster[0]),
+    fanart: abs(full && full.images && full.images.fanart && full.images.fanart[0]),
+    creator:
+      byJob('directing', 'director') ||
+      byJob('production', 'creator') ||
+      byJob('writing', 'writer') ||
+      byJob('writing', 'story') ||
+      first('directing') ||
+      first('writing') ||
+      '',
+  };
+}
+
+function compactMovies(rows) {
+  const out = [];
+  for (const row of rows) {
+    const m = row.movie;
+    if (!m || !m.ids || !m.ids.trakt) continue;
+    out.push({
+      watched_at: row.watched_at,
+      movie: { title: m.title, year: m.year, ids: { trakt: m.ids.trakt, slug: m.ids.slug } },
+    });
+  }
+  return out;
+}
+
+function compactEpisodes(rows) {
+  const out = [];
+  for (const row of rows) {
+    const s = row.show;
+    const e = row.episode;
+    if (!s || !s.ids || !s.ids.trakt || !e) continue;
+    out.push({
+      watched_at: row.watched_at,
+      show: { title: s.title, year: s.year, ids: { trakt: s.ids.trakt, slug: s.ids.slug } },
+      episode: { season: e.season, number: e.number },
+    });
+  }
+  return out;
+}
+
+function compactRatings(rows, kind) {
+  const out = [];
+  for (const row of rows) {
+    const item = row[kind];
+    if (!item || !item.ids || !item.ids.trakt) continue;
+    out.push({ rating: row.rating, [kind]: { ids: { trakt: item.ids.trakt } } });
+  }
+  return out;
+}
+
 async function handleSyncTrakt(request, env) {
   const auth = publishAuth(request, env);
   if (auth.error) return json({ error: auth.error }, auth.status);
   const owner = ownerOf(env);
   const repo = repoOf(env);
   const branch = branchOf(env);
-  const r = await withTimeout(
+  const ghToken = auth.token;
+
+  // 1. 读回上次留下的底稿（含加密凭据与详情缓存）
+  let fixture;
+  let fixtureSha = null;
+  try {
+    const fr = await gh(
+      '/repos/' + owner + '/' + repo + '/contents/' + TRAKT_FIXTURE + '?ref=' + branch,
+      { token: ghToken },
+    );
+    if (!fr.ok || !fr.json || !fr.json.content) throw new Error('底稿不存在');
+    fixture = JSON.parse(decodeBase64(fr.json.content));
+    fixtureSha = fr.json.sha;
+  } catch (err) {
+    return json({ error: '片单底稿读取失败，稍后再点一次' }, 502);
+  }
+
+  // 2. 解开凭据，过期就续期；新的 refresh_token 马上写回底稿，不会失效
+  let trakt;
+  try {
+    trakt = fixture.token ? await traktDecrypt(fixture.token, env) : null;
+  } catch (err) {
+    return json({ error: '片单连接凭据无法解开' }, 502);
+  }
+  if (!trakt || !trakt.refresh_token) return json({ error: '片单连接尚未设置' }, 502);
+  const expiresAt = (trakt.created_at || 0) + (trakt.expires_in || 0);
+  if (!trakt.access_token || expiresAt - Date.now() / 1000 < 3600) {
+    try {
+      trakt = await traktRefresh(trakt.refresh_token);
+    } catch (err) {
+      return json({ error: err.message + '，稍后再点一次' }, 502);
+    }
+  }
+
+  // 3. 只取渲染 Markdown 需要的最少字段，避免底稿过大
+  let movieRows;
+  let episodeRows;
+  let ratingsMovies;
+  let ratingsShows;
+  try {
+    movieRows = compactMovies(await traktPaged('/sync/history/movies', trakt.access_token));
+    episodeRows = compactEpisodes(await traktPaged('/sync/history/episodes', trakt.access_token));
+    ratingsMovies = compactRatings(
+      (await traktJson('/sync/ratings/movies', trakt.access_token)).data,
+      'movie',
+    );
+    ratingsShows = compactRatings(
+      (await traktJson('/sync/ratings/shows', trakt.access_token)).data,
+      'show',
+    );
+  } catch (err) {
+    return json({ error: err.message + '，稍后再点一次' }, 502);
+  }
+
+  // 4. 新看的条目补一次简介与海报，已有缓存直接复用
+  const details = Object.assign({}, fixture.details || {});
+  const missing = [];
+  for (const row of movieRows) {
+    const key = 'movie:' + row.movie.ids.trakt;
+    if (!details[key] && !missing.includes(key)) missing.push(key);
+  }
+  for (const row of episodeRows) {
+    const key = 'show:' + row.show.ids.trakt;
+    if (!details[key] && !missing.includes(key)) missing.push(key);
+  }
+  for (const key of missing.slice(0, 12)) {
+    const parts = key.split(':');
+    const base = (parts[0] === 'movie' ? '/movies/' : '/shows/') + parts[1];
+    try {
+      const full = (await traktJson(base + '?extended=full,images', trakt.access_token)).data;
+      let people = {};
+      try {
+        people = (await traktJson(base + '/people', trakt.access_token)).data;
+      } catch (err) {
+        /* 人物信息不是必需 */
+      }
+      details[key] = traktDetail(full, people);
+    } catch (err) {
+      /* 这次先不写封面，下次同步会再补 */
+    }
+  }
+
+  // 5. 写回底稿，然后让仓库任务离线渲染
+  const next = {
+    generatedAt: new Date().toISOString(),
+    token: await traktEncrypt(trakt, env),
+    details,
+    movies: movieRows,
+    episodes: episodeRows,
+    ratingsMovies,
+    ratingsShows,
+  };
+  const written = await commit(
+    owner,
+    repo,
+    branch,
+    TRAKT_FIXTURE,
+    toBase64(JSON.stringify(next)),
+    'chore: refresh movie shelf data',
+    ghToken,
+    fixtureSha,
+  );
+  if (!written.ok) return json({ error: '片单底稿写入失败（' + written.status + '）' }, 502);
+
+  const run = await withTimeout(
     (signal) =>
       gh('/repos/' + owner + '/' + repo + '/actions/workflows/trakt-sync.yml/dispatches', {
         method: 'POST',
         body: { ref: branch },
-        token: auth.token,
+        token: ghToken,
         signal,
       }),
     10000,
   );
-  if (!r) return json({ error: '连接超时，点一下重试' }, 502);
-  if (!r.ok) {
-    const msg =
-      r.status === 401 || r.status === 403
-        ? '后台没有触发同步的权限'
-        : r.status === 404
-          ? '同步任务不存在'
-          : '没能启动同步（' + r.status + '）';
-    return json({ error: msg }, 502);
-  }
-  return json({ ok: true, startedAt: new Date().toISOString() });
-}
-
-async function handleTraktProbe(request, env) {
-  const auth = publishAuth(request, env);
-  if (auth.error) return json({ error: auth.error }, auth.status);
-  // 诊断用：确认从发布台出口能否连到 Trakt（不带任何凭据）
-  const r = await fetch('https://api.trakt.tv/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'User-Agent': 'navfolio-trakt-sync/1.0' },
-    body: JSON.stringify({
-      client_id: 'probe',
-      grant_type: 'refresh_token',
-      refresh_token: 'probe',
-    }),
-  });
-  const text = await r.text();
+  if (!run || !run.ok) return json({ error: '片单已取回，但站点重建没能启动' }, 502);
   return json({
     ok: true,
-    status: r.status,
-    blocked: text.includes('Sorry, you have been blocked'),
-    sample: text.slice(0, 90),
+    startedAt: new Date().toISOString(),
+    titles: movieRows.length + episodeRows.length,
   });
 }
 
@@ -658,7 +949,6 @@ export default {
         if (action === 'history') return handleList(request, env);
         if (action === 'article') return handleArticle(request, env);
         if (action === 'sync-status') return handleSyncStatus(request, env);
-        if (action === 'trakt-probe') return handleTraktProbe(request, env);
       }
       if (request.method === 'POST' && url.searchParams.get('action') === 'sync-trakt') {
         return handleSyncTrakt(request, env);

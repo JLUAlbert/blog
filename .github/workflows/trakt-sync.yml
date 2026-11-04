@@ -1,7 +1,8 @@
 name: Trakt sync
 
-# 手动触发：Trakt API 在 GitHub Actions 出口 IP 上常被 Cloudflare 拦截，
-# 定时运行只会每周留下一条失败记录。需要更新片单时在 Actions 里点 Run workflow。
+# 由发布台的「同步片单」按钮触发。Trakt 会拦 GitHub Actions 的出口 IP，
+# 所以联网取数与凭据续期都在发布台完成；这里只读发布台写回的底稿，
+# 离线生成 Movies 的 Markdown，完全不访问 Trakt。
 on:
   workflow_dispatch:
 
@@ -18,25 +19,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Restore Trakt token
-        env:
-          TRAKT_TOKEN: ${{ secrets.TRAKT_TOKEN }}
+      - name: Build movie markdown
         run: |
-          printf '%s' "$TRAKT_TOKEN" > .trakt-token.json
-          wc -c .trakt-token.json
-
-      - name: Run Trakt sync
-        env:
-          TRAKT_CLIENT_ID: kPI6oQBbAcEpTjfRsn_DAo5mOOqgkYon3z27QFoDl-o
-        # Trakt 前的 Cloudflare 偶尔会拦 GitHub Actions 的出口 IP；发布台一键触发时
-        # 自动重试几次，避免用户看到一次偶发失败还要手动再点。
-        run: |
-          for attempt in 1 2 3; do
-            if node scripts/trakt-sync.mjs; then exit 0; fi
-            echo "第 $attempt 次同步失败，20 秒后重试"
-            sleep 20
-          done
-          exit 1
+          if [ -f scripts/.trakt-fixture.json ]; then
+            node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json
+          else
+            node scripts/trakt-sync.mjs
+          fi
 
       - name: Commit and push
         run: |
@@ -46,6 +35,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "chore: weekly trakt sync"
+            git commit -m "chore: refresh movie shelf"
+            git pull --rebase origin main
             git push
           fi

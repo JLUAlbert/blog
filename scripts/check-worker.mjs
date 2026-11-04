@@ -39,7 +39,12 @@ for (const id of ids) {
 for (const cls of ['gate-open', 'inert', 'tools-bar']) {
   if (!html.includes(cls)) throw new Error(`发布台缺少 ${cls} 标记`);
 }
-for (const needle of ['sync-trakt', 'sync-status', 'trakt-sync.yml/dispatches']) {
+for (const needle of [
+  'sync-trakt',
+  'sync-status',
+  'trakt-sync.yml/dispatches',
+  'scripts/.trakt-fixture.json',
+]) {
   if (!src.includes(needle)) throw new Error(`发布台缺少片单同步接口 ${needle}`);
 }
 
