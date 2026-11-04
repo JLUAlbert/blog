@@ -395,14 +395,14 @@ const siteConfig = defineCollection({
       .object({
         enabled: z.boolean().optional().default(true),
         shortcut: z.enum(['mod+k']).optional().default('mod+k'),
-        placeholder: z.string().optional().default('Search notes...'),
+        placeholder: z.string().optional().default('搜索文章…'),
         maxResults: z.number().int().positive().optional().default(6),
       })
       .optional()
       .default({
         enabled: true,
         shortcut: 'mod+k',
-        placeholder: 'Search notes...',
+        placeholder: '搜索文章…',
         maxResults: 6,
       }),
     pages: z

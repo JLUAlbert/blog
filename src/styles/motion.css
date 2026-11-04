@@ -2,7 +2,8 @@
    页面切换 / 内容入场全站只保留一种表现：模糊进入（Blur In）。
    已移除：机械滚轮翻牌器、Vibe 流光光柱、页面幕布转场、首屏淡入上移。
    保留：Vibe 时间线逐项遮罩上移（滚动显现，非页面切换）、Movies 封面微放大、
-        悬停上浮（Hover Lift，导航卡 + Movies 影片卡片）。
+        悬停上浮（Hover Lift，顶栏 + 首页导航卡 + Movies 影片卡片）。
+   上浮幅度统一由 --hover-lift（theme-overrides.css）控制，当前 3px。
    全部默认尊重「减少动态效果」系统偏好。 */
 
 /* —— Vibe 时间线逐项「遮罩上移」（承接原逐行显现的动效语言） ——
@@ -55,7 +56,7 @@
 [data-movie-shelf] .navfolio-media-shelf__item:hover,
 [data-movie-shelf] .navfolio-media-shelf__item:focus-within {
   z-index: 2;
-  transform: translateY(-4px);
+  transform: translateY(calc(-1 * var(--hover-lift, 3px)));
 }
 
 [data-movie-shelf] .navfolio-media-shelf__item:hover .navfolio-media-shelf__cover,
@@ -127,7 +128,7 @@ html.js .blur-in.is-revealed {
 
 .hover-lift:hover,
 .hover-lift:focus-visible {
-  transform: translateY(-4px);
+  transform: translateY(calc(-1 * var(--hover-lift, 3px)));
   box-shadow: 0 16px 34px color-mix(in srgb, var(--paper-ink) 14%, transparent);
 }
 

@@ -58,14 +58,16 @@ show_on_posts = true
 [config.search]
 enabled = true
 shortcut = "mod+k"
-placeholder = "Search articles…"
+# 界面文案统一走中文；栏目名与说明句是站点编辑性文案，保留英文。
+placeholder = "搜索文章…"
 maxResults = 6
 
 # ---------------------------------------------------------------
 # 各栏目页文案
 # ---------------------------------------------------------------
+# 栏目名规则：一律 Title Case，且与顶部导航同名（Blog / Vibe / Movies）。
 [config.pages.blog]
-title = "Essays"
+title = "Blog"
 kicker = ""
 subtitle = "Essays and notes from the margins."
 note = "Long-form writing, drafts, and field notes — arranged for slow browsing."
@@ -75,19 +77,19 @@ metadataSeparator = "icon"
 coverImageStyle = "mask"
 
 [config.pages.blog.categories]
-title = "Categories"
-kicker = "Browse notes"
+title = "分类"
+kicker = "按主题浏览"
 subtitle = ""
-note = "A quiet index of recurring topics, gathered from article frontmatter."
+note = "从文章信息里归拢的常见主题。"
 
 [config.pages.blog.series]
-title = "Series"
-kicker = "Reading paths"
+title = "系列"
+kicker = "按顺序阅读"
 subtitle = ""
-note = "Connected notes that can be followed in the order they were written."
+note = "按写作顺序串起来的连续笔记。"
 
 [config.pages.vibe]
-title = "vibe"
+title = "Vibe"
 kicker = ""
 subtitle = ""
 note = "Short thoughts — not formal enough for posts, but still part of the story."
@@ -108,7 +110,9 @@ strict = "0"
 reactions_enabled = "0"
 emit_metadata = "0"
 input_position = "top"
-light_theme = "https://jlualbert-blog.pages.dev/giscus-light-transparent.css"
+# 本站相对路径：由 GiscusComment 在运行时拼上当前域名与 BASE_URL，
+# 两个部署平台各自读自己的文件，镜像站不再依赖主站在线。
+light_theme = "/giscus-light-transparent.css"
 dark_theme = "transparent_dark"
 lang = "zh-CN"
 loading = "lazy"

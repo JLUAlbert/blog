@@ -6,11 +6,21 @@ interface Props {
 }
 
 const { config } = Astro.props;
+// 两个部署平台的 base 不同（根路径 / 与 /blog），评论主题样式按当前页面
+// 的 origin + BASE_URL 现场拼绝对地址，避免把主站域名写死在配置里。
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
 <div class="comment-provider" data-comment-provider="giscus"></div>
 
-<script type="module" define:vars={{ config }}>
+<script type="module" define:vars={{ config, basePath }}>
+  // 配置里以 '/' 开头的是本站样式文件路径；其余（含 http URL 与
+  // transparent_dark 之类的内置主题名）原样交给 giscus。
+  const resolveTheme = (theme) =>
+    theme.startsWith('/') ? new URL(`${basePath}${theme}`, window.location.origin).href : theme;
+  const lightTheme = resolveTheme(config.light_theme);
+  const darkTheme = resolveTheme(config.dark_theme);
+
   const mountGiscus = () => {
     const container = document.querySelector('[data-comment-provider="giscus"]');
 
@@ -33,7 +43,7 @@ const { config } = Astro.props;
     script.setAttribute('data-input-position', config.input_position);
     script.setAttribute(
       'data-theme',
-      document.documentElement.dataset.theme === 'dark' ? config.dark_theme : config.light_theme,
+      document.documentElement.dataset.theme === 'dark' ? darkTheme : lightTheme,
     );
     script.setAttribute('data-lang', config.lang);
     script.setAttribute('data-loading', config.loading);
@@ -51,7 +61,7 @@ const { config } = Astro.props;
       {
         giscus: {
           setConfig: {
-            theme: siteTheme === 'dark' ? config.dark_theme : config.light_theme,
+            theme: siteTheme === 'dark' ? darkTheme : lightTheme,
           },
         },
       },

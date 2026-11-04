@@ -411,7 +411,7 @@ const shouldShowTocAction = showTocIcon && tocItems.length > 0;
      必须声明在 [data-nav-hidden] 之前：滚动隐藏状态优先于悬停浮起。 */
   .blog-top-nav:hover,
   .blog-top-nav:focus-within {
-    transform: translateY(-3px);
+    transform: translateY(calc(-1 * var(--hover-lift, 3px)));
     box-shadow:
       var(--paper-shadow),
       0 16px 32px color-mix(in srgb, var(--paper-ink) 12%, transparent);

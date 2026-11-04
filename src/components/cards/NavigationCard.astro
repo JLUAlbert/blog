@@ -87,7 +87,7 @@ function withBase(href: string) {
   .nav-item:focus-visible {
     background: var(--paper-surface);
     color: var(--paper-accent);
-    transform: translateY(-3px);
+    transform: translateY(calc(-1 * var(--hover-lift, 3px)));
     box-shadow: 0 14px 28px color-mix(in srgb, var(--paper-ink) 12%, transparent);
   }
 

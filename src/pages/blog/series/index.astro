@@ -13,7 +13,8 @@ import { getUiText } from '../../../utils/ui-text';
 const siteConfig = await getSiteConfig();
 const { site, theme, pages } = siteConfig;
 const palette = theme.palette;
-const pageMeta = pages.blog;
+// 系列索引页用自己的文案配置，不再复用 Blog 列表页的标题
+const pageMeta = pages.blog.series;
 const series = getAllSeries(await getCollection('blog', ({ data }) => !data.draft));
 const ui = getUiText(siteConfig);
 ---

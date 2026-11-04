@@ -7,6 +7,16 @@
    —— 本文件注入到 <head>，故 vibe 页（走主题自带 BaseHead）同样生效。
    ============================================================ */
 
+/* —— 0. 全站点位 token ——
+   悬停上浮只保留一个幅度，顶栏 / 首页导航卡 / Movies 影片卡共用。 */
+:root {
+  --hover-lift: 3px;
+  /* Vibe 正文英文字体：拉丁字符走 Caslon 衬线，中文自然回落到楷体。 */
+  --font-vibe-text:
+    'Libre Caslon Text', 'Adobe Caslon Pro', 'Baskerville', 'Libre Baskerville', Georgia,
+    var(--font-serif-cn), 'PingFang SC', 'Microsoft YaHei', serif;
+}
+
 /* —— 1. 被清空的标签残留（Notebook archive 等已置空）—— */
 [class*='kicker']:empty,
 [class*='subtitle']:empty {
@@ -50,6 +60,16 @@
   .vibe-hero::after {
     display: none !important;
   }
+}
+
+/* —— 2b. Vibe 正文英文改用衬线体 ——
+   主题把 .vibe-body 写死为 --font-serif-cn（中文楷体），英文字母也被楷体的
+   拉丁字形接管。这里改成「拉丁字体在前、中文字体在后」的字体栈：浏览器按字符
+   逐字回落，英文用 Caslon、中文依旧用楷体，互不干扰。code / pre 保持等宽。 */
+.vibe-body,
+.vibe-heading,
+.vibe-body :is(p, li, blockquote, h1, h2, h3, h4, h5, h6, strong, em, a) {
+  font-family: var(--font-vibe-text) !important;
 }
 
 /* —— 3. 文章图片点击放大（灯箱）——

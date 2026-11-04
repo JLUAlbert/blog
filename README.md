@@ -179,7 +179,8 @@ draft: false
 - **改主题包生成页面的样式**（如 Vibe）：写进 `src/styles/theme-overrides.css`，由 `astro.config.mjs` 全局注入；不要改 `node_modules`。
 - **换发布台口令**：Cloudflare Pages → Settings → Environment variables，改 `PUBLISH_PASSWORD`，无需重新部署代码。
 - **文章链接变了**：在 `public/_redirects` 加一条 301，仅对主站生效。
-- **评论**：Giscus 数据存在本仓库 Discussions，浅色主题 CSS 放在 `public/giscus-light-transparent.css`。
+- **评论**：Giscus 数据存在本仓库 Discussions，浅色主题 CSS 放在 `public/giscus-light-transparent.css`，配置里写本站相对路径，由组件按当前域名与 base 解析，两个平台各自独立。
+- **悬停上浮幅度**：全站统一由 `src/styles/theme-overrides.css` 的 `--hover-lift` 控制（当前 3px），顶栏、首页导航卡、Movies 影片卡共用。
 
 ---
 
