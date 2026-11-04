@@ -15,6 +15,49 @@
   --font-vibe-text:
     'Libre Caslon Text', 'Adobe Caslon Pro', 'Baskerville', 'Libre Baskerville', Georgia,
     var(--font-serif-cn), 'PingFang SC', 'Microsoft YaHei', serif;
+  /* 滚动条：取当前色盘的强调色，浅色 / 深色 / 8 套色盘都会自动跟随。 */
+  --scrollbar-thumb: color-mix(in srgb, var(--paper-accent) 46%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--paper-accent) 78%, transparent);
+  --scrollbar-thumb-active: color-mix(in srgb, var(--paper-accent) 96%, transparent);
+}
+
+/* —— 0b. 全站滚动条 ——
+   纸感界面配细滑块：轨道全透明、滑块用透明边框 + background-clip 留出呼吸感，
+   悬停 / 拖动时逐级加深，圆角与卡片语言一致。Firefox 走 scrollbar-color，
+   Chromium / Safari 走 ::-webkit-scrollbar，两者互不干扰。 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* —— 1. 被清空的标签残留（Notebook archive 等已置空）—— */

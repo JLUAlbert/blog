@@ -436,6 +436,35 @@ async function handlePublish(request, env) {
     content = `![${title}](/images/${imgName})\n\n` + content;
   }
 
+  // 正文插图：字段名为 img:<文件名>。插图时正文里已写定同一路径，这里只负责
+  // 把二进制文件放到 public/images/ 下，不需要改写 Markdown。
+  // 文件名走严格白名单，避免把用户可控字符串拼进仓库路径。
+  for (const [key, value] of form.entries()) {
+    if (!key.startsWith('img:')) continue;
+    const imgName = key.slice(4);
+    if (!/^inline-[a-z0-9-]+\.(jpg|jpeg|png|webp|avif|gif)$/.test(imgName)) continue;
+    if (!value || typeof value !== 'object' || typeof value.arrayBuffer !== 'function') continue;
+    const buf = new Uint8Array(await value.arrayBuffer());
+    if (!buf.length || buf.length > 8 * 1024 * 1024) {
+      return json({ error: '正文图片过大（上限 8MB）' }, 400);
+    }
+    const imgPath = `public/images/${imgName}`;
+    const imgSha = await getSha(owner, repo, branch, imgPath, token);
+    const ir = await commit(
+      owner,
+      repo,
+      branch,
+      imgPath,
+      bytesToBase64(buf),
+      `add inline image ${imgName}`,
+      token,
+      imgSha,
+    );
+    if (!ir.ok) {
+      return json({ error: '正文图片上传失败: ' + (ir.json.message || ir.status) }, 500);
+    }
+  }
+
   // 编辑模式：直接覆盖原文件（用最新 sha，避免并发冲突）
   const editPath = (form.get('editPath') || '').toString().trim();
   const isEdit = /^src\/content\/(blog|vibe)\/[^\/]+\.md$/.test(editPath);
@@ -576,6 +605,17 @@ const FORM_HTML = `<!doctype html>
 body { margin:0; font:16px/1.6 var(--font); background:var(--bg); color:var(--fg);
        min-height:100vh; overflow-x:hidden; -webkit-font-smoothing:antialiased; letter-spacing:-.01em; }
 
+/* 滚动条：与站点同一套墨绿 / 灰绿语言，细滑块 + 圆角 + 透明轨道。
+   Firefox 走 scrollbar-color，Chromium / Safari 走 ::-webkit-scrollbar。 */
+* { scrollbar-width:thin; scrollbar-color:rgba(168,186,169,.34) transparent; }
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { border:3px solid transparent; border-radius:999px;
+  background:rgba(168,186,169,.30); background-clip:padding-box; }
+::-webkit-scrollbar-thumb:hover { background:rgba(168,186,169,.58); background-clip:padding-box; }
+::-webkit-scrollbar-thumb:active { background:rgba(201,180,139,.72); background-clip:padding-box; }
+::-webkit-scrollbar-corner { background:transparent; }
+
 /* 动态 mesh 渐变：色彩来自背景，玻璃只负责聚焦 */
 .mesh-bg { position:fixed; inset:0; z-index:-2; overflow:hidden;
   background:radial-gradient(130% 100% at 50% 0%,#1d251e 0%,var(--bg) 55%,var(--bg-deep) 100%); }
@@ -704,6 +744,28 @@ textarea { min-height:42vh; resize:vertical; line-height:1.65; }
   border:1px solid var(--border); background:var(--glass); color:var(--fg); font-family:inherit;
   font-size:13px; cursor:pointer; transition:background .25s,border-color .25s; }
 .file input[type=file]::file-selector-button:hover { background:var(--glass-hover); border-color:var(--border-strong); }
+
+/* 正文插图：工具栏按钮 / 拖放高亮 / 一次性轻提示 */
+.label-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:18px 0 8px; }
+.label-row label { margin:0; }
+.insert-btn { flex:none; padding:6px 14px; font-size:12px; font-weight:500; font-family:inherit;
+  color:var(--muted); background:var(--glass); border:1px solid var(--border);
+  border-radius:var(--r-pill); cursor:pointer;
+  transition:background .25s,color .25s,border-color .25s,transform .25s; }
+.insert-btn:hover { color:var(--fg); background:var(--glass-hover);
+  border-color:var(--border-strong); transform:translateY(-1px); }
+.insert-btn:disabled { opacity:.55; cursor:default; transform:none; }
+#inline-picker { display:none; }
+textarea.drop-target { border-color:rgba(168,186,169,.7) !important;
+  background:var(--glass-hover) !important; box-shadow:0 0 0 3px rgba(168,186,169,.2) !important; }
+#inline-toast { position:fixed; left:50%; bottom:28px; z-index:120;
+  transform:translate(-50%,12px); padding:11px 20px; border-radius:var(--r-pill);
+  font-size:13px; color:var(--fg); background:rgba(31,40,33,.9);
+  border:1px solid var(--border-strong); backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px); box-shadow:0 12px 34px var(--ink-shadow);
+  opacity:0; pointer-events:none; transition:opacity .25s,transform .25s;
+  max-width:calc(100vw - 40px); text-align:center; }
+#inline-toast.show { opacity:1; transform:translate(-50%,0); }
 
 button.submit { margin-top:24px; width:100%; padding:15px; font-size:16px; font-weight:600;
   border:0; border-radius:var(--r-pill); color:#F2F4EC; cursor:pointer; font-family:inherit;
@@ -839,7 +901,11 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
         <label>标题</label>
         <input type="text" name="title" required />
 
-        <label>正文</label>
+        <div class="label-row">
+          <label>正文</label>
+          <button class="insert-btn" id="insert-btn" type="button">＋ 插图</button>
+        </div>
+        <input type="file" id="inline-picker" multiple accept="image/*" />
         <textarea name="content"></textarea>
 
         <label>摘要</label>
@@ -880,6 +946,7 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
         <button type="submit" class="submit">↑ 发布</button>
       </form>
 
+      <div id="inline-toast" role="status" aria-live="polite"></div>
       <div id="progress"><div class="bar"><i id="bar-fill"></i></div><div class="label" id="progress-label">正在发布…</div></div>
       <div id="result"></div>
       <p class="hist-editing" id="hist-editing"></p>
@@ -927,6 +994,144 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
     let lastTried = '';
     const KEY = 'abp_unlocked';
     const PW_KEY = 'abp_pw';
+
+    /* ---------------- 正文插图：在光标处插入，随文章一起上传 ----------------
+       插图时就把最终路径写进 Markdown（/images/inline-xxx.jpg），提交时上传
+       同名文件，因此正文不需要二次改写；构建插件会自动补上部署 base，
+       主站与 GitHub Pages 的 /blog 子路径都能正常显示。 */
+    const editor = form.querySelector('textarea[name=content]');
+    const insertBtn = document.getElementById('insert-btn');
+    const inlinePicker = document.getElementById('inline-picker');
+    const inlineToast = document.getElementById('inline-toast');
+    const IMG_BASE = '/images/';
+    const INLINE_RE = /\]\(\/images\/(inline-[a-z0-9-]+\.[a-z0-9]+)\)/g;
+    const pendingImages = new Map();   // 文件名 -> File
+    const insertedNames = new Set();   // 本次会话插入过的文件名
+    let toastTimer = null;
+    let savedSelStart = 0;
+    let savedSelEnd = 0;
+
+    function toast(msg, ms) {
+      inlineToast.textContent = msg;
+      inlineToast.classList.add('show');
+      clearTimeout(toastTimer);
+      if (ms) toastTimer = setTimeout(() => inlineToast.classList.remove('show'), ms);
+    }
+
+    function imageName(i, ext) {
+      return 'inline-' + Date.now().toString(36) + '-' +
+        Math.random().toString(36).slice(2, 6) + '-' + i + '.' + ext;
+    }
+
+    // 手机照片先压到最长边 1600 / JPEG 0.84，避免几 MB 原图把仓库撑大。
+    // 小图与 GIF 动图保持原样；透明底在压缩时填纸白，避免出现黑块。
+    async function prepareImage(file) {
+      const typ = (file.type || '').toLowerCase();
+      if (!typ.startsWith('image/') || typ === 'image/svg+xml') return null;
+      if (typ === 'image/gif') return { blob: file, ext: 'gif' };
+      const url = URL.createObjectURL(file);
+      let img;
+      try {
+        img = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = () => reject(new Error('图片读取失败'));
+          im.src = url;
+        });
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      const longest = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+      if (longest <= 1600 && file.size <= 900 * 1024) {
+        const raw = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const ext = raw === 'jpeg' ? 'jpg' : /^(jpg|png|webp|avif)$/.test(raw) ? raw : 'jpg';
+        return { blob: file, ext: ext };
+      }
+      const scale = Math.min(1, 1600 / longest);
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fdfdf9';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      const blob = await new Promise((resolve) => cv.toBlob(resolve, 'image/jpeg', 0.84));
+      return blob ? { blob: blob, ext: 'jpg' } : null;
+    }
+
+    function referencedImages() {
+      return Array.from(editor.value.matchAll(INLINE_RE), (m) => m[1]);
+    }
+
+    async function insertImages(files, at, end) {
+      const list = Array.from(files).filter((f) => (f.type || '').startsWith('image/'));
+      if (!list.length) return;
+      insertBtn.disabled = true;
+      toast('正在处理图片…', 0);
+      const snippets = [];
+      let n = 1;
+      try {
+        for (const f of list) {
+          const p = await prepareImage(f);
+          if (!p) continue;
+          const name = imageName(n, p.ext);
+          pendingImages.set(name, new File([p.blob], name, { type: p.blob.type || 'image/jpeg' }));
+          insertedNames.add(name);
+          snippets.push('![](' + IMG_BASE + name + ')');
+          n += 1;
+        }
+      } catch (err) {
+        toast('图片处理失败：' + err.message, 3200);
+        return;
+      } finally {
+        insertBtn.disabled = false;
+      }
+      if (!snippets.length) { toast('没有可用图片', 2400); return; }
+      const before = editor.value.slice(0, at);
+      const after = editor.value.slice(end);
+      editor.value = before + snippets.join('\n\n') + '\n\n' + after;
+      editor.focus();
+      // 光标落在第一张图的 [] 内，可直接补一句图片说明（alt）
+      const caret = before.length + 2;
+      editor.setSelectionRange(caret, caret);
+      toast('已插入 ' + snippets.length + ' 张图片，可在 [] 内补说明', 3000);
+    }
+
+    insertBtn.addEventListener('click', () => {
+      savedSelStart = editor.selectionStart;
+      savedSelEnd = editor.selectionEnd;
+      inlinePicker.value = '';
+      inlinePicker.click();
+    });
+    inlinePicker.addEventListener('change', () => {
+      if (inlinePicker.files && inlinePicker.files.length) {
+        insertImages(inlinePicker.files, savedSelStart, savedSelEnd);
+      }
+    });
+
+    // 拖入 / 粘贴图片同样插到光标处（手机长按粘贴走 paste 事件）
+    editor.addEventListener('paste', (e) => {
+      const items = e.clipboardData && e.clipboardData.files;
+      if (!items || !items.length) return;
+      e.preventDefault();
+      insertImages(items, editor.selectionStart, editor.selectionEnd);
+    });
+    editor.addEventListener('dragover', (e) => {
+      const types = e.dataTransfer && e.dataTransfer.types;
+      if (types && Array.from(types).includes('Files')) {
+        e.preventDefault();
+        editor.classList.add('drop-target');
+      }
+    });
+    editor.addEventListener('dragleave', () => editor.classList.remove('drop-target'));
+    editor.addEventListener('drop', (e) => {
+      editor.classList.remove('drop-target');
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      e.preventDefault();
+      insertImages(files, editor.selectionStart, editor.selectionEnd);
+    });
 
     /* 分段控件同步 */
     const seg = document.getElementById('seg');
@@ -1011,6 +1216,16 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!passcode) { relockNow(); return; }
+      // 本次插入的图若数据已丢失（例如刷新过页面），拦下提交以免线上出现断图。
+      // 历史文章里早已上传过的 inline 图片不在 insertedNames 中，不会被误判。
+      const missing = referencedImages().filter(
+        (n) => insertedNames.has(n) && !pendingImages.has(n),
+      );
+      if (missing.length) {
+        result.className = 'err';
+        result.textContent = '❌ 有图片未就绪，请重新插入这几张图';
+        return;
+      }
       pwField.value = passcode;
       const btn = form.querySelector('button[type=submit]');
       btn.disabled = true; btn.textContent = '发布中…';
@@ -1023,6 +1238,11 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
       }, 220);
       try {
         const data = new FormData(form);
+        // 只上传正文里实际引用到的插图；删掉的那几行不会留下孤儿文件。
+        const refs = new Set(referencedImages());
+        pendingImages.forEach((file, name) => {
+          if (refs.has(name)) data.append('img:' + name, file, name);
+        });
         const r = await fetch('/publish', { method: 'POST', body: data });
         const j = await r.json();
         clearInterval(timer);
@@ -1037,6 +1257,8 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
             ' · <a href="' + j.cloudflare + '" target="_blank">Cloudflare</a>';
           histEditing.textContent = '';
           editPathField.value = '';
+          pendingImages.clear();
+          insertedNames.clear();
           form.reset();
           syncSection();
         } else {
@@ -1137,6 +1359,9 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
         form.querySelector('[name=description]').value = j.description || '';
         form.querySelector('[name=tags]').value = j.tags || '';
         form.querySelector('[name=content]').value = j.content || '';
+        // 换成另一篇文章：本次会话暂存的插图不再适用
+        pendingImages.clear();
+        insertedNames.clear();
         form.querySelector('[name=draft]').checked = !!j.draft;
         // 回填已有 slug，避免重发时丢掉自定义地址（默认日期地址的文章此处为空）
         form.querySelector('[name=slug]').value = j.slug || '';
