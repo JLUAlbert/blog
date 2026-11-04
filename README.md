@@ -79,7 +79,7 @@ flowchart LR
 | `public/`                        | favicon、字体、头像、文章配图、robots.txt、旧链接重定向表                 |
 | `_worker.js`                     | 发布台 Worker（唯一实现）                                                 |
 | `astro.config.mjs`               | 站点地址推导、站内绝对路径重写、全局注入样式与脚本                        |
-| `.github/workflows/`             | 两条部署 workflow + 手动 Trakt 同步                                       |
+| `.github/workflows/`             | 两条部署 workflow + 片单同步（由发布台触发）                              |
 | `scripts/trakt-sync.mjs`         | 从 Trakt 拉取片单并生成 Markdown                                          |
 
 主题包（`@navfolio/*`）通过 GitHub spec 安装，页面与组件大多来自它们。凡是本地能覆盖的都写在 `src/`；主题包源码不直接修改，升级时不会被覆盖。
@@ -169,7 +169,9 @@ draft: false
 - 配图放 `public/images/`，正文写 `![说明](/images/xxx.jpg)`，构建时会自动补 base。
 - `<!-- trakt:begin -->` 与 `<!-- trakt:end -->` 之间的片单内容由同步脚本管理，块外可以写自己的笔记，重跑不会丢。
 
-片单同步：Movies 页面读的是仓库里已经生成的 Markdown，不依赖 Trakt 实时在线；失效的是**自动同步**这一步——Trakt API 前面的 Cloudflare 常拦 GitHub Actions 的出口 IP，定时跑只会留下失败记录。因此 `.github/workflows/trakt-sync.yml` 改为手动触发：打开 [Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) → 右侧 `Run workflow` → 再点一次 `Run workflow`。需要仓库 secret `TRAKT_TOKEN`（已配置）。也可以本地跑 `node scripts/trakt-sync.mjs`。
+片单同步：**在发布台点「同步片单」即可**，不需要进 GitHub 或 Cloudflare。发布台会触发 `.github/workflows/trakt-sync.yml`，并把进度、上次同步时间和结果直接显示回来；同步完成后 push 会自动触发两条部署流水线，约 1–2 分钟后 Movies 更新。Movies 页面本身读的是仓库里生成好的 Markdown，不依赖 Trakt 实时在线。
+
+Trakt API 前面的 Cloudflare 常拦 GitHub Actions 的出口 IP，所以不再定时跑（只会留下失败记录），改为按需触发，且工作流内自动重试 3 次。备用入口：[Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) 的 `Run workflow`，或本地 `node scripts/trakt-sync.mjs`。需要仓库 secret `TRAKT_TOKEN`。
 
 ---
 

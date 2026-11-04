@@ -323,6 +323,83 @@ async function handleList(request, env) {
   return json({ ok: true, items });
 }
 
+/* ---------------- 片单同步：发布台内一键触发，不必进 GitHub ----------------
+   Movies 读的是仓库里生成好的 Markdown，只有「更新片单」这一步需要联网。
+   发布台借用仓库里已有的同步任务，只负责触发与回报进度；前端拿不到任何令牌，
+   也看不到 GitHub 链接，日常维护都留在发布台里完成。 */
+
+function publishAuth(request, env) {
+  const password = passwordOf(env);
+  const pw = request.headers.get('x-publish-pw') || '';
+  if (!password) return { error: '服务端未配置 PUBLISH_PASSWORD', status: 500 };
+  if (pw !== password) return { error: '口令错误', status: 401 };
+  if (!env.GH_TOKEN) return { error: '服务端未配置 GH_TOKEN', status: 500 };
+  return { error: null, token: env.GH_TOKEN };
+}
+
+async function syncRuns(owner, repo, token, signal) {
+  const r = await gh(
+    '/repos/' +
+      owner +
+      '/' +
+      repo +
+      '/actions/workflows/trakt-sync.yml/runs?per_page=5&event=workflow_dispatch',
+    { token, signal },
+  );
+  if (!r.ok || !Array.isArray(r.json && r.json.workflow_runs)) return [];
+  return r.json.workflow_runs.map((run) => ({
+    id: run.id,
+    status: run.status,
+    conclusion: run.conclusion,
+    createdAt: run.created_at,
+  }));
+}
+
+async function handleSyncTrakt(request, env) {
+  const auth = publishAuth(request, env);
+  if (auth.error) return json({ error: auth.error }, auth.status);
+  const owner = ownerOf(env);
+  const repo = repoOf(env);
+  const branch = branchOf(env);
+  const r = await withTimeout(
+    (signal) =>
+      gh('/repos/' + owner + '/' + repo + '/actions/workflows/trakt-sync.yml/dispatches', {
+        method: 'POST',
+        body: { ref: branch },
+        token: auth.token,
+        signal,
+      }),
+    10000,
+  );
+  if (!r) return json({ error: '连接超时，点一下重试' }, 502);
+  if (!r.ok) {
+    const msg =
+      r.status === 401 || r.status === 403
+        ? '后台没有触发同步的权限'
+        : r.status === 404
+          ? '同步任务不存在'
+          : '没能启动同步（' + r.status + '）';
+    return json({ error: msg }, 502);
+  }
+  return json({ ok: true, startedAt: new Date().toISOString() });
+}
+
+async function handleSyncStatus(request, env) {
+  const auth = publishAuth(request, env);
+  if (auth.error) return json({ error: auth.error }, auth.status);
+  const runs =
+    (await withTimeout(
+      (signal) => syncRuns(ownerOf(env), repoOf(env), auth.token, signal),
+      8000,
+    )) || [];
+  return json({
+    ok: true,
+    run: runs[0] || null,
+    lastSuccess:
+      runs.find((run) => run.status === 'completed' && run.conclusion === 'success') || null,
+  });
+}
+
 /* ---------------- 单篇：按路径读取，供编辑回填 ---------------- */
 
 async function handleArticle(request, env) {
@@ -558,6 +635,10 @@ export default {
         const action = url.searchParams.get('action');
         if (action === 'history') return handleList(request, env);
         if (action === 'article') return handleArticle(request, env);
+        if (action === 'sync-status') return handleSyncStatus(request, env);
+      }
+      if (request.method === 'POST' && url.searchParams.get('action') === 'sync-trakt') {
+        return handleSyncTrakt(request, env);
       }
       return handlePublish(request, env);
     }
@@ -682,6 +763,37 @@ body { margin:0; font:16px/1.6 var(--font); background:var(--bg); color:var(--fg
   width:auto; font-family:inherit; white-space:nowrap;
   transition:background .3s,color .3s,border-color .3s,transform .3s; }
 .gbtn:hover { background:var(--glass-hover); color:var(--fg); border-color:var(--border-strong); transform:translateY(-2px); }
+/* 维护工具条：发布台就是全部后台，片单同步也在这里完成 */
+.tools-bar { display:flex; align-items:center; gap:12px; margin:14px 0 4px;
+  padding:10px 12px; border:1px solid var(--border); border-radius:var(--r-pill);
+  background:var(--glass-dark); }
+.sync-btn { flex:none; display:inline-flex; align-items:center; gap:2px;
+  border:1px solid rgba(var(--accent-rgb),.34); background:rgba(var(--accent-rgb),.12);
+  color:var(--accent); font-family:inherit; font-size:12.5px; font-weight:600;
+  letter-spacing:.02em; border-radius:var(--r-pill); padding:8px 14px;
+  cursor:pointer; white-space:nowrap; margin:0; width:auto;
+  transition:background .3s,color .3s,border-color .3s,transform .3s,box-shadow .3s; }
+.sync-btn:hover:not(:disabled) { background:rgba(var(--accent-rgb),.22);
+  border-color:rgba(var(--accent-rgb),.55); transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(var(--accent-rgb),.18); }
+.sync-btn:disabled { opacity:.65; cursor:default; transform:none; }
+.sync-btn .spin { display:inline-block; margin-right:6px; font-size:15px; line-height:1; }
+.sync-btn.busy .spin { animation:syncSpin 1.4s linear infinite; }
+@keyframes syncSpin { to { transform:rotate(360deg); } }
+.sync-meta { flex:1; min-width:0; font-size:11.5px; line-height:1.5;
+  color:var(--muted-2); text-align:right;
+  transition:color .3s; }
+.sync-meta[data-tone="busy"], .sync-meta[data-tone="good"] { color:var(--accent); }
+.sync-meta[data-tone="bad"] { color:#E8B49F; }
+@media (max-width:420px) {
+  .tools-bar { flex-wrap:wrap; }
+  .sync-meta { flex-basis:100%; text-align:left; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .sync-btn.busy .spin { animation:none; }
+  .sync-btn:hover:not(:disabled) { transform:none; }
+}
+
 
 form { display:flex; flex-direction:column; }
 label:not(.switch) { display:block; margin:18px 0 8px; font-size:12.5px; font-weight:500;
@@ -965,6 +1077,11 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
           <button class="gbtn" id="hist-btn" type="button">历史</button>
           <button class="gbtn" id="relock" type="button">锁定</button>
         </div>
+      </div>
+
+      <div class="tools-bar">
+        <button class="sync-btn" id="sync-btn" type="button"><span class="spin">↻</span><span id="sync-label">同步片单</span></button>
+        <div class="sync-meta" id="sync-meta">正在读取同步状态…</div>
       </div>
 
       <form id="f">
@@ -1267,6 +1384,7 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
           studio.removeAttribute('inert');
           document.body.classList.remove('gate-open');
           setTimeout(() => document.querySelector('input[name=title]').focus(), 420);
+          refreshSyncMeta();
         } else {
           gateInput.classList.remove('shake'); void gateInput.offsetWidth; gateInput.classList.add('shake');
         }
@@ -1315,6 +1433,7 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       studio.classList.add('show');
       studio.removeAttribute('inert');
       document.body.classList.remove('gate-open');
+      refreshSyncMeta();
     }
 
     form.addEventListener('submit', async (e) => {
@@ -1379,6 +1498,93 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         btn.disabled = false; btn.textContent = '↑ 发布';
       }
     });
+
+    /* ---------------- 片单同步：一键触发 + 进度回报 ---------------- */
+    const syncBtn = document.getElementById('sync-btn');
+    const syncLabel = document.getElementById('sync-label');
+    const syncMeta = document.getElementById('sync-meta');
+    let syncRunning = false;
+
+    function syncMetaText(text, tone) {
+      syncMeta.textContent = text;
+      if (tone) syncMeta.dataset.tone = tone;
+      else delete syncMeta.dataset.tone;
+    }
+    function syncTime(iso) {
+      if (!iso) return '';
+      const d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
+      const p = (n) => String(n).padStart(2, '0');
+      return (d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) + ' ' +
+        p(d.getUTCHours()) + ':' + p(d.getUTCMinutes());
+    }
+    async function syncQuery(action, method) {
+      const r = await fetch('/publish?action=' + action, {
+        method: method || 'GET',
+        headers: { 'x-publish-pw': passcode },
+      });
+      return await r.json();
+    }
+    async function refreshSyncMeta() {
+      if (!passcode) return;
+      try {
+        const j = await syncQuery('sync-status');
+        if (!j.ok) { syncMetaText('同步状态暂时读不到'); return; }
+        syncMetaText(j.lastSuccess
+          ? '上次同步 ' + syncTime(j.lastSuccess.createdAt)
+          : '片单尚未同步');
+      } catch (err) {
+        syncMetaText('同步状态暂时读不到');
+      }
+    }
+    function syncBusy(on) {
+      syncRunning = on;
+      syncBtn.disabled = on;
+      syncBtn.classList.toggle('busy', on);
+      syncLabel.textContent = on ? '同步中…' : '同步片单';
+    }
+    async function startSync() {
+      if (syncRunning) return;
+      if (!passcode) { relockNow(); return; }
+      syncBusy(true);
+      syncMetaText('已开始，通常 1–3 分钟', 'busy');
+      let started;
+      try {
+        started = await syncQuery('sync-trakt', 'POST');
+      } catch (err) {
+        syncBusy(false);
+        syncMetaText('连接中断，点一下重试', 'bad');
+        return;
+      }
+      if (!started.ok) {
+        syncBusy(false);
+        syncMetaText(started.error || '没能启动同步', 'bad');
+        return;
+      }
+      // 只认本次触发之后新建的运行，避免把上一次的结果当成这次的
+      const since = new Date(started.startedAt).getTime() - 20000;
+      for (let i = 0; i < 60; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 6000));
+        let st;
+        try { st = await syncQuery('sync-status'); } catch (err) { continue; }
+        const run = st.ok ? st.run : null;
+        if (!run || new Date(run.createdAt).getTime() < since) continue;
+        if (run.status !== 'completed') {
+          syncMetaText('正在同步片单… 已等待 ' + ((i + 1) * 6) + ' 秒', 'busy');
+          continue;
+        }
+        syncBusy(false);
+        if (run.conclusion === 'success') {
+          syncMetaText('片单已更新 · 网站约 1–2 分钟后刷新', 'good');
+          toast('片单已更新', 3200);
+        } else {
+          syncMetaText('这次没连上片单源，点一下重试', 'bad');
+        }
+        return;
+      }
+      syncBusy(false);
+      syncMetaText('已提交，稍后 Movies 会自动更新', 'busy');
+    }
+    syncBtn.addEventListener('click', startSync);
 
     /* ---------------- 历史：列表 + 编辑回填 ---------------- */
 

@@ -28,7 +28,15 @@ jobs:
       - name: Run Trakt sync
         env:
           TRAKT_CLIENT_ID: kPI6oQBbAcEpTjfRsn_DAo5mOOqgkYon3z27QFoDl-o
-        run: node scripts/trakt-sync.mjs
+        # Trakt 前的 Cloudflare 偶尔会拦 GitHub Actions 的出口 IP；发布台一键触发时
+        # 自动重试几次，避免用户看到一次偶发失败还要手动再点。
+        run: |
+          for attempt in 1 2 3; do
+            if node scripts/trakt-sync.mjs; then exit 0; fi
+            echo "第 $attempt 次同步失败，20 秒后重试"
+            sleep 20
+          done
+          exit 1
 
       - name: Commit and push
         run: |

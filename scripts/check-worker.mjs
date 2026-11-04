@@ -22,12 +22,43 @@ for (const [i, m] of scripts.entries()) {
   }
 }
 
-const ids = ['gate-input', 'f', 'insert-btn', 'inline-toast', 'studio', 'history'];
+const ids = [
+  'gate-input',
+  'f',
+  'insert-btn',
+  'inline-toast',
+  'studio',
+  'history',
+  'sync-btn',
+  'sync-label',
+  'sync-meta',
+];
 for (const id of ids) {
   if (!html.includes(`id="${id}"`)) throw new Error(`发布台缺少节点 #${id}`);
 }
-for (const cls of ['gate-open', 'inert']) {
+for (const cls of ['gate-open', 'inert', 'tools-bar']) {
   if (!html.includes(cls)) throw new Error(`发布台缺少 ${cls} 标记`);
 }
+for (const needle of ['sync-trakt', 'sync-status', 'trakt-sync.yml/dispatches']) {
+  if (!src.includes(needle)) throw new Error(`发布台缺少片单同步接口 ${needle}`);
+}
 
-console.log(`发布台页面检查通过：${scripts.length} 段脚本语法正常，${ids.length} 个关键节点齐全`);
+// 维护动作必须口令保护：没有口令时两个新接口都应拒绝，且不会真的去触发同步
+const checkEnv = { PUBLISH_PASSWORD: 'check-only' };
+for (const [label, init] of [
+  ['状态', { method: 'GET' }],
+  ['触发', { method: 'POST' }],
+]) {
+  const action = label === '状态' ? 'sync-status' : 'sync-trakt';
+  const res = await mod.default.fetch(
+    new Request('https://example.com/publish?action=' + action, init),
+    checkEnv,
+  );
+  if (res.status !== 401) {
+    throw new Error(`片单同步${label}接口没有正确拒绝无口令请求：${res.status}`);
+  }
+}
+
+console.log(
+  `发布台页面检查通过：${scripts.length} 段脚本语法正常，${ids.length} 个关键节点齐全，片单同步接口已口令保护`,
+);
