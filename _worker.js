@@ -324,9 +324,9 @@ async function handleList(request, env) {
 }
 
 /* ---------------- 片单同步：发布台内一键完成，不必进 GitHub ----------------
-   Movies 读的是仓库里生成好的 Markdown。Trakt 的防护会拦 GitHub Actions 的出口 IP，
-   而且连接凭据每 7 天轮换，所以联网取数与凭据续期都放在发布台这边完成：
-   发布台把片单数据写进仓库底稿，再让仓库任务离线渲染 Markdown 并发布。
+   Trakt 会拦云端服务器的出口 IP，所以取数放在用户点按钮时的浏览器里完成
+   （接口允许跨域，用户网络不会被限流）。发布台只负责保管加密凭据、
+   把精简数据写进仓库底稿，再让仓库任务离线渲染 Markdown 并发布。
    凭据用发布口令派生出的密钥加密后放在底稿里，公开仓库里没有明文。 */
 
 function publishAuth(request, env) {
@@ -356,7 +356,6 @@ async function syncRuns(owner, repo, token, signal) {
   }));
 }
 
-const TRAKT_API = 'https://api.trakt.tv';
 const TRAKT_CLIENT_ID = 'kPI6oQBbAcEpTjfRsn_DAo5mOOqgkYon3z27QFoDl-o';
 const TRAKT_FIXTURE = 'scripts/.trakt-fixture.json';
 const TRAKT_SALT = 'alberts-blog-trakt-store-v1';
@@ -402,299 +401,116 @@ async function traktEncrypt(obj, env) {
   return bytesToBase64(all);
 }
 
-const nap = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function traktCall(path, token, init) {
-  const headers = {
-    'Content-Type': 'application/json',
-    'trakt-api-version': '2',
-    'trakt-api-key': TRAKT_CLIENT_ID,
-    'User-Agent': 'navfolio-trakt-sync/1.0',
-  };
-  if (token) headers.Authorization = 'Bearer ' + token;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 9000);
-    let res;
-    try {
-      res = await fetch(TRAKT_API + path, {
-        method: (init && init.method) || 'GET',
-        headers,
-        body: init && init.body ? JSON.stringify(init.body) : undefined,
-        signal: ctrl.signal,
-      });
-    } catch (err) {
-      clearTimeout(timer);
-      if (attempt < 2) {
-        await nap(1200);
-        continue;
-      }
-      throw new Error('片单源连接超时，稍后再点一次');
-    }
-    clearTimeout(timer);
-    if (res.status === 429 && attempt < 2) {
-      await nap(1500 * (attempt + 1));
-      continue;
-    }
-    return res;
-  }
-}
-
-async function traktJson(path, token) {
-  const res = await traktCall(path, token);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      '片单源返回 ' + res.status + (text.includes('blocked') ? '（被防护拦截）' : ''),
-    );
-  }
-  return {
-    data: await res.json(),
-    pages: Number(res.headers.get('x-pagination-page-count') || '1'),
-  };
-}
-
-async function traktPaged(path, token) {
-  const out = [];
-  const sep = path.includes('?') ? '&' : '?';
-  const first = await traktJson(path + sep + 'page=1&limit=100', token);
-  out.push(...first.data);
-  for (let p = 2; p <= Math.min(first.pages, 30); p++) {
-    const next = await traktJson(path + sep + 'page=' + p + '&limit=100', token);
-    out.push(...next.data);
-  }
-  return out;
-}
-
-async function traktRefresh(refreshToken) {
-  // 续期请求刻意只带最基本的头：Trakt 前面的防护对多余的请求头更敏感
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 9000);
-    let res;
-    try {
-      res = await fetch(TRAKT_API + '/oauth/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': 'navfolio-trakt-sync/1.0' },
-        body: JSON.stringify({
-          refresh_token: refreshToken,
-          client_id: TRAKT_CLIENT_ID,
-          redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
-          grant_type: 'refresh_token',
-        }),
-        signal: ctrl.signal,
-      });
-    } catch (err) {
-      clearTimeout(timer);
-      if (attempt < 2) {
-        await nap(1500);
-        continue;
-      }
-      throw new Error('片单连接续期超时，稍后再点一次');
-    }
-    clearTimeout(timer);
-    if (res.status === 429 && attempt < 2) {
-      await nap(2000 * (attempt + 1));
-      continue;
-    }
-    if (!res.ok) throw new Error('片单连接续期失败（' + res.status + '）');
-    const fresh = await res.json();
-    return { ...fresh, obtained_at: Math.floor(Date.now() / 1000) };
-  }
-  throw new Error('片单连接续期失败，稍后再点一次');
-}
-
-function traktDetail(full, people) {
-  const crew = (people && people.crew) || {};
-  const byJob = (dept, job) =>
-    (crew[dept] || []).find((c) => String(c.job || '').toLowerCase() === job)?.person?.name;
-  const first = (dept) => (crew[dept] || [])[0]?.person?.name;
-  const abs = (u) => (u ? (u.startsWith('http') ? u : 'https://' + u) : '');
-  return {
-    overview: (full && full.overview) || '',
-    genres: (full && full.genres) || [],
-    runtime: (full && full.runtime) || 0,
-    year: (full && full.year) || 0,
-    network: (full && full.network) || '',
-    aired: (full && full.aired_episodes) || 0,
-    status: (full && full.status) || '',
-    poster: abs(full && full.images && full.images.poster && full.images.poster[0]),
-    fanart: abs(full && full.images && full.images.fanart && full.images.fanart[0]),
-    creator:
-      byJob('directing', 'director') ||
-      byJob('production', 'creator') ||
-      byJob('writing', 'writer') ||
-      byJob('writing', 'story') ||
-      first('directing') ||
-      first('writing') ||
-      '',
-  };
-}
-
-function compactMovies(rows) {
-  const out = [];
-  for (const row of rows) {
-    const m = row.movie;
-    if (!m || !m.ids || !m.ids.trakt) continue;
-    out.push({
-      watched_at: row.watched_at,
-      movie: { title: m.title, year: m.year, ids: { trakt: m.ids.trakt, slug: m.ids.slug } },
-    });
-  }
-  return out;
-}
-
-function compactEpisodes(rows) {
-  const out = [];
-  for (const row of rows) {
-    const s = row.show;
-    const e = row.episode;
-    if (!s || !s.ids || !s.ids.trakt || !e) continue;
-    out.push({
-      watched_at: row.watched_at,
-      show: { title: s.title, year: s.year, ids: { trakt: s.ids.trakt, slug: s.ids.slug } },
-      episode: { season: e.season, number: e.number },
-    });
-  }
-  return out;
-}
-
-function compactRatings(rows, kind) {
-  const out = [];
-  for (const row of rows) {
-    const item = row[kind];
-    if (!item || !item.ids || !item.ids.trakt) continue;
-    out.push({ rating: row.rating, [kind]: { ids: { trakt: item.ids.trakt } } });
-  }
-  return out;
-}
-
-async function handleSyncTrakt(request, env) {
-  const auth = publishAuth(request, env);
-  if (auth.error) return json({ error: auth.error }, auth.status);
+async function readTraktFixture(env) {
   const owner = ownerOf(env);
   const repo = repoOf(env);
   const branch = branchOf(env);
-  const ghToken = auth.token;
+  const fr = await gh(
+    '/repos/' + owner + '/' + repo + '/contents/' + TRAKT_FIXTURE + '?ref=' + branch,
+    { token: env.GH_TOKEN },
+  );
+  if (!fr.ok || !fr.json || !fr.json.content) throw new Error('片单底稿读取失败');
+  const fixture = JSON.parse(decodeBase64(fr.json.content));
+  return { owner, repo, branch, fixture, sha: fr.json.sha };
+}
 
-  // 1. 读回上次留下的底稿（含加密凭据与详情缓存）
-  let fixture;
-  let fixtureSha = null;
+// 只在已解锁的会话里临时交出连接凭据，浏览器用完即弃，不写入本地存储
+async function handleSyncStart(request, env) {
+  const auth = publishAuth(request, env);
+  if (auth.error) return json({ error: auth.error }, auth.status);
+  let state;
   try {
-    const fr = await gh(
-      '/repos/' + owner + '/' + repo + '/contents/' + TRAKT_FIXTURE + '?ref=' + branch,
-      { token: ghToken },
-    );
-    if (!fr.ok || !fr.json || !fr.json.content) throw new Error('底稿不存在');
-    fixture = JSON.parse(decodeBase64(fr.json.content));
-    fixtureSha = fr.json.sha;
+    state = await readTraktFixture(env);
   } catch (err) {
-    return json({ error: '片单底稿读取失败，稍后再点一次' }, 502);
+    return json({ error: err.message + '，稍后再点一次' }, 502);
   }
-
-  // 2. 解开凭据，过期就续期；新的 refresh_token 马上写回底稿，不会失效
   let trakt;
   try {
-    trakt = fixture.token ? await traktDecrypt(fixture.token, env) : null;
+    trakt = await traktDecrypt(state.fixture.token, env);
   } catch (err) {
     return json({ error: '片单连接凭据无法解开' }, 502);
   }
-  if (!trakt || !trakt.refresh_token) return json({ error: '片单连接尚未设置' }, 502);
-  const expiresAt = (trakt.created_at || 0) + (trakt.expires_in || 0);
-  if (!trakt.access_token || expiresAt - Date.now() / 1000 < 3600) {
-    try {
-      trakt = await traktRefresh(trakt.refresh_token);
-    } catch (err) {
-      return json({ error: err.message + '，稍后再点一次' }, 502);
+  return json({
+    ok: true,
+    clientId: TRAKT_CLIENT_ID,
+    token: trakt,
+    knownKeys: Object.keys(state.fixture.details || {}),
+  });
+}
+
+// 浏览器把精简后的片单数据交回来；必要时连同续期后的新凭据一起保存
+async function handleSyncFinish(request, env) {
+  const auth = publishAuth(request, env);
+  if (auth.error) return json({ error: auth.error }, auth.status);
+  let payload;
+  try {
+    payload = await request.json();
+  } catch (err) {
+    return json({ error: '数据格式不对' }, 400);
+  }
+  for (const key of ['movies', 'episodes', 'ratingsMovies', 'ratingsShows']) {
+    if (!Array.isArray(payload[key]) || payload[key].length > 20000) {
+      return json({ error: '片单数据异常' }, 400);
     }
   }
-
-  // 3. 只取渲染 Markdown 需要的最少字段，避免底稿过大
-  let movieRows;
-  let episodeRows;
-  let ratingsMovies;
-  let ratingsShows;
+  let state;
   try {
-    movieRows = compactMovies(await traktPaged('/sync/history/movies', trakt.access_token));
-    episodeRows = compactEpisodes(await traktPaged('/sync/history/episodes', trakt.access_token));
-    ratingsMovies = compactRatings(
-      (await traktJson('/sync/ratings/movies', trakt.access_token)).data,
-      'movie',
-    );
-    ratingsShows = compactRatings(
-      (await traktJson('/sync/ratings/shows', trakt.access_token)).data,
-      'show',
-    );
+    state = await readTraktFixture(env);
   } catch (err) {
     return json({ error: err.message + '，稍后再点一次' }, 502);
   }
 
-  // 4. 新看的条目补一次简介与海报，已有缓存直接复用
-  const details = Object.assign({}, fixture.details || {});
-  const missing = [];
-  for (const row of movieRows) {
-    const key = 'movie:' + row.movie.ids.trakt;
-    if (!details[key] && !missing.includes(key)) missing.push(key);
-  }
-  for (const row of episodeRows) {
-    const key = 'show:' + row.show.ids.trakt;
-    if (!details[key] && !missing.includes(key)) missing.push(key);
-  }
-  for (const key of missing.slice(0, 12)) {
-    const parts = key.split(':');
-    const base = (parts[0] === 'movie' ? '/movies/' : '/shows/') + parts[1];
-    try {
-      const full = (await traktJson(base + '?extended=full,images', trakt.access_token)).data;
-      let people = {};
-      try {
-        people = (await traktJson(base + '/people', trakt.access_token)).data;
-      } catch (err) {
-        /* 人物信息不是必需 */
-      }
-      details[key] = traktDetail(full, people);
-    } catch (err) {
-      /* 这次先不写封面，下次同步会再补 */
+  const details = Object.assign({}, state.fixture.details || {});
+  const extra = payload.details || {};
+  for (const key of Object.keys(extra)) {
+    if (
+      (key.startsWith('movie:') || key.startsWith('show:')) &&
+      extra[key] &&
+      typeof extra[key] === 'object'
+    ) {
+      details[key] = extra[key];
     }
   }
-
-  // 5. 写回底稿，然后让仓库任务离线渲染
+  let encoded = state.fixture.token;
+  if (payload.token && payload.token.access_token && payload.token.refresh_token) {
+    encoded = await traktEncrypt(payload.token, env);
+  }
   const next = {
     generatedAt: new Date().toISOString(),
-    token: await traktEncrypt(trakt, env),
+    token: encoded,
     details,
-    movies: movieRows,
-    episodes: episodeRows,
-    ratingsMovies,
-    ratingsShows,
+    movies: payload.movies,
+    episodes: payload.episodes,
+    ratingsMovies: payload.ratingsMovies,
+    ratingsShows: payload.ratingsShows,
   };
   const written = await commit(
-    owner,
-    repo,
-    branch,
+    state.owner,
+    state.repo,
+    state.branch,
     TRAKT_FIXTURE,
     toBase64(JSON.stringify(next)),
     'chore: refresh movie shelf data',
-    ghToken,
-    fixtureSha,
+    auth.token,
+    state.sha,
   );
   if (!written.ok) return json({ error: '片单底稿写入失败（' + written.status + '）' }, 502);
 
   const run = await withTimeout(
     (signal) =>
-      gh('/repos/' + owner + '/' + repo + '/actions/workflows/trakt-sync.yml/dispatches', {
-        method: 'POST',
-        body: { ref: branch },
-        token: ghToken,
-        signal,
-      }),
+      gh(
+        '/repos/' + state.owner + '/' + state.repo + '/actions/workflows/trakt-sync.yml/dispatches',
+        {
+          method: 'POST',
+          body: { ref: state.branch },
+          token: auth.token,
+          signal,
+        },
+      ),
     10000,
   );
   if (!run || !run.ok) return json({ error: '片单已取回，但站点重建没能启动' }, 502);
-  return json({
-    ok: true,
-    startedAt: new Date().toISOString(),
-    titles: movieRows.length + episodeRows.length,
-  });
+  return json({ ok: true, startedAt: new Date().toISOString() });
 }
 
 async function handleSyncStatus(request, env) {
@@ -949,9 +765,10 @@ export default {
         if (action === 'history') return handleList(request, env);
         if (action === 'article') return handleArticle(request, env);
         if (action === 'sync-status') return handleSyncStatus(request, env);
+        if (action === 'sync-start') return handleSyncStart(request, env);
       }
-      if (request.method === 'POST' && url.searchParams.get('action') === 'sync-trakt') {
-        return handleSyncTrakt(request, env);
+      if (request.method === 'POST' && url.searchParams.get('action') === 'sync-finish') {
+        return handleSyncFinish(request, env);
       }
       return handlePublish(request, env);
     }
@@ -1855,6 +1672,162 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       syncBtn.classList.toggle('busy', on);
       syncLabel.textContent = on ? '同步中…' : '同步片单';
     }
+    const TRAKT_API = 'https://api.trakt.tv';
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    async function traktCall(path, token, clientId, init) {
+      const headers = {
+        'Content-Type': 'application/json',
+        'trakt-api-version': '2',
+        'trakt-api-key': clientId,
+      };
+      if (token) headers.Authorization = 'Bearer ' + token;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await fetch(TRAKT_API + path, {
+          method: (init && init.method) || 'GET',
+          headers,
+          body: init && init.body ? JSON.stringify(init.body) : undefined,
+        });
+        if (res.status === 429 && attempt < 2) { await wait(1500 * (attempt + 1)); continue; }
+        if (!res.ok) throw new Error('片单源返回 ' + res.status);
+        return res;
+      }
+      throw new Error('片单源暂时繁忙，稍后再点一次');
+    }
+
+    async function traktRows(path, token, clientId) {
+      const rows = [];
+      const sep = path.indexOf('?') >= 0 ? '&' : '?';
+      for (let page = 1; page <= 30; page++) {
+        const res = await traktCall(path + sep + 'page=' + page + '&limit=100', token, clientId);
+        const data = await res.json();
+        for (const row of data) rows.push(row);
+        const pages = Number(res.headers.get('x-pagination-page-count') || '1');
+        if (page >= pages) break;
+      }
+      return rows;
+    }
+
+    function compactMovies(rows) {
+      const out = [];
+      for (const row of rows) {
+        const m = row.movie;
+        if (!m || !m.ids || !m.ids.trakt) continue;
+        out.push({
+          watched_at: row.watched_at,
+          movie: { title: m.title, year: m.year, ids: { trakt: m.ids.trakt, slug: m.ids.slug } },
+        });
+      }
+      return out;
+    }
+    function compactEpisodes(rows) {
+      const out = [];
+      for (const row of rows) {
+        const s = row.show;
+        const e = row.episode;
+        if (!s || !s.ids || !s.ids.trakt || !e) continue;
+        out.push({
+          watched_at: row.watched_at,
+          show: { title: s.title, year: s.year, ids: { trakt: s.ids.trakt, slug: s.ids.slug } },
+          episode: { season: e.season, number: e.number },
+        });
+      }
+      return out;
+    }
+    function compactRatings(rows, kind) {
+      const out = [];
+      for (const row of rows) {
+        const item = row[kind];
+        if (!item || !item.ids || !item.ids.trakt) continue;
+        out.push({ rating: row.rating, [kind]: { ids: { trakt: item.ids.trakt } } });
+      }
+      return out;
+    }
+    function detailOf(full, people) {
+      const crew = (people && people.crew) || {};
+      const byJob = (dept, job) =>
+        (crew[dept] || []).find((c) => String(c.job || '').toLowerCase() === job)?.person?.name;
+      const first = (dept) => (crew[dept] || [])[0]?.person?.name;
+      const abs = (u) => (u ? (u.startsWith('http') ? u : 'https://' + u) : '');
+      return {
+        overview: (full && full.overview) || '',
+        genres: (full && full.genres) || [],
+        runtime: (full && full.runtime) || 0,
+        year: (full && full.year) || 0,
+        network: (full && full.network) || '',
+        aired: (full && full.aired_episodes) || 0,
+        status: (full && full.status) || '',
+        poster: abs(full && full.images && full.images.poster && full.images.poster[0]),
+        fanart: abs(full && full.images && full.images.fanart && full.images.fanart[0]),
+        creator:
+          byJob('directing', 'director') || byJob('production', 'creator') ||
+          byJob('writing', 'writer') || byJob('writing', 'story') ||
+          first('directing') || first('writing') || '',
+      };
+    }
+
+    async function fetchShelf(conf) {
+      let token = conf.token;
+      let refreshed = null;
+      const expiresAt = (token.created_at || 0) + (token.expires_in || 0);
+      if (!token.access_token || expiresAt - Date.now() / 1000 < 3600) {
+        const res = await fetch(TRAKT_API + '/oauth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            refresh_token: token.refresh_token,
+            client_id: conf.clientId,
+            redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
+            grant_type: 'refresh_token',
+          }),
+        });
+        if (!res.ok) throw new Error('片单连接续期失败，稍后再点一次');
+        refreshed = await res.json();
+        refreshed.obtained_at = Math.floor(Date.now() / 1000);
+        token = refreshed;
+      }
+      const access = token.access_token;
+      const cid = conf.clientId;
+      syncMetaText('正在读取观看记录…', 'busy');
+      const movieRows = compactMovies(await traktRows('/sync/history/movies', access, cid));
+      const episodeRows = compactEpisodes(await traktRows('/sync/history/episodes', access, cid));
+      syncMetaText('正在读取评分…', 'busy');
+      const ratingMovieRows = await traktCall('/sync/ratings/movies', access, cid).then((r) => r.json());
+      const ratingShowRows = await traktCall('/sync/ratings/shows', access, cid).then((r) => r.json());
+
+      const known = new Set(conf.knownKeys || []);
+      const newDetails = {};
+      const wanted = [];
+      for (const row of movieRows) {
+        const k = 'movie:' + row.movie.ids.trakt;
+        if (!known.has(k) && !wanted.includes(k)) wanted.push(k);
+      }
+      for (const row of episodeRows) {
+        const k = 'show:' + row.show.ids.trakt;
+        if (!known.has(k) && !wanted.includes(k)) wanted.push(k);
+      }
+      for (const k of wanted.slice(0, 12)) {
+        const parts = k.split(':');
+        const base = (parts[0] === 'movie' ? '/movies/' : '/shows/') + parts[1];
+        try {
+          const full = await traktCall(base + '?extended=full,images', access, cid).then((r) => r.json());
+          let people = {};
+          try {
+            people = await traktCall(base + '/people', access, cid).then((r) => r.json());
+          } catch (err) { /* 人物信息不是必需 */ }
+          newDetails[k] = detailOf(full, people);
+        } catch (err) { /* 下次同步会再补 */ }
+      }
+      return {
+        movies: movieRows,
+        episodes: episodeRows,
+        ratingsMovies: compactRatings(ratingMovieRows, 'movie'),
+        ratingsShows: compactRatings(ratingShowRows, 'show'),
+        details: newDetails,
+        token: refreshed,
+      };
+    }
+
     async function startSync() {
       if (syncRunning) return;
       if (!passcode) { relockNow(); return; }
@@ -1862,27 +1835,31 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       syncMetaText('已开始，通常 1–3 分钟', 'busy');
       let started;
       try {
-        started = await syncQuery('sync-trakt', 'POST');
+        const conf = await syncQuery('sync-start');
+        if (!conf.ok) throw new Error(conf.error || '没能读取片单连接');
+        const shelf = await fetchShelf(conf);
+        syncMetaText('正在更新片单…', 'busy');
+        const fin = await fetch('/publish?action=sync-finish', {
+          method: 'POST',
+          headers: { 'x-publish-pw': passcode, 'Content-Type': 'application/json' },
+          body: JSON.stringify(shelf),
+        });
+        started = await fin.json();
+        if (!started.ok) throw new Error(started.error || '没能写回片单');
       } catch (err) {
         syncBusy(false);
-        syncMetaText('连接中断，点一下重试', 'bad');
+        syncMetaText(err.message || '连接中断，点一下重试', 'bad');
         return;
       }
-      if (!started.ok) {
-        syncBusy(false);
-        syncMetaText(started.error || '没能启动同步', 'bad');
-        return;
-      }
-      // 只认本次触发之后新建的运行，避免把上一次的结果当成这次的
       const since = new Date(started.startedAt).getTime() - 20000;
       for (let i = 0; i < 60; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 6000));
+        await wait(6000);
         let st;
         try { st = await syncQuery('sync-status'); } catch (err) { continue; }
         const run = st.ok ? st.run : null;
         if (!run || new Date(run.createdAt).getTime() < since) continue;
         if (run.status !== 'completed') {
-          syncMetaText('正在同步片单… 已等待 ' + ((i + 1) * 6) + ' 秒', 'busy');
+          syncMetaText('正在生成片单… 已等待 ' + ((i + 1) * 6) + ' 秒', 'busy');
           continue;
         }
         syncBusy(false);
@@ -1890,7 +1867,7 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
           syncMetaText('片单已更新 · 网站约 1–2 分钟后刷新', 'good');
           toast('片单已更新', 3200);
         } else {
-          syncMetaText('这次没连上片单源，点一下重试', 'bad');
+          syncMetaText('片单生成没成功，点一下重试', 'bad');
         }
         return;
       }

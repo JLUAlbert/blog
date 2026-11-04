@@ -40,7 +40,8 @@ for (const cls of ['gate-open', 'inert', 'tools-bar']) {
   if (!html.includes(cls)) throw new Error(`发布台缺少 ${cls} 标记`);
 }
 for (const needle of [
-  'sync-trakt',
+  'sync-start',
+  'sync-finish',
   'sync-status',
   'trakt-sync.yml/dispatches',
   'scripts/.trakt-fixture.json',
@@ -50,11 +51,11 @@ for (const needle of [
 
 // 维护动作必须口令保护：没有口令时两个新接口都应拒绝，且不会真的去触发同步
 const checkEnv = { PUBLISH_PASSWORD: 'check-only' };
-for (const [label, init] of [
-  ['状态', { method: 'GET' }],
-  ['触发', { method: 'POST' }],
+for (const [label, action, init] of [
+  ['状态', 'sync-status', { method: 'GET' }],
+  ['凭据', 'sync-start', { method: 'GET' }],
+  ['写回', 'sync-finish', { method: 'POST' }],
 ]) {
-  const action = label === '状态' ? 'sync-status' : 'sync-trakt';
   const res = await mod.default.fetch(
     new Request('https://example.com/publish?action=' + action, init),
     checkEnv,

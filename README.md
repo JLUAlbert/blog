@@ -172,9 +172,9 @@ draft: false
 
 片单同步：**在发布台点「同步片单」即可**，不需要进 GitHub 或 Cloudflare。Movies 页面读的是仓库里生成好的 Markdown，不依赖 Trakt 实时在线。
 
-Trakt 前面的防护会拦 GitHub Actions 的出口 IP，而且连接凭据每 7 天轮换，所以联网这一步放在发布台：发布台自己续凭据、拉观看历史与评分，把精简后的数据写进 `scripts/.trakt-fixture.json`，再触发 `.github/workflows/trakt-sync.yml` **离线**渲染 Markdown 并 push。进度、上次同步时间和结果都会直接显示在发布台里；push 会自动触发两条部署流水线，约 1–2 分钟后 Movies 更新。
+Trakt 前面的防护会拦云端服务器（GitHub Actions、Cloudflare Worker）的出口 IP，所以取数放在**点按钮时的浏览器**里完成：接口允许跨域，用户自己的网络不会被限流。发布台只负责从底稿取出加密凭据、交给已解锁的会话临时使用，再把浏览器精简后的观看历史与评分写回 `scripts/.trakt-fixture.json`，然后触发 `.github/workflows/trakt-sync.yml` **离线**渲染 Markdown 并 push。进度、上次同步时间和结果都直接显示在发布台里；push 会自动触发两条部署流水线，约 1–2 分钟后 Movies 更新。
 
-凭据用发布口令派生的密钥（AES-GCM）加密后存在底稿里，公开仓库没有明文；每次同步会把轮换后的新凭据写回，不需要人工维护。备用入口：[Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) 的 `Run workflow`（会用当前底稿重建片单），或本地 `node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json`。
+凭据用发布口令派生的密钥（AES-GCM）加密后存在底稿里，公开仓库没有明文；连接 7 天到期时由浏览器在取数前自动续期，轮换后的新凭据随数据一起写回，不需要人工维护。备用入口：[Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) 的 `Run workflow`（会用当前底稿重建片单），或本地 `node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json`。
 
 ---
 
