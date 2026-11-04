@@ -2,7 +2,6 @@ dist
 .astro
 node_modules
 bun.lock
-homepage.png
 public/favicon.ico
 
 # Preserve author-chosen frontmatter quote style in content files.

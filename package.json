@@ -1,23 +1,18 @@
 {
-  "name": "astro-navfolio",
+  "name": "alberts-blog",
   "type": "module",
   "version": "0.2.0",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "astro dev",
     "fonts:ui": "bun scripts/fonts/subset-ui-font.ts",
     "build": "astro build && pagefind --site dist --output-subdir pagefind --root-selector main --exclude-selectors \"[data-pagefind-ignore]\"",
     "preview": "astro preview",
-    "docs:dev": "NAVFOLIO_CONTENT_SOURCE=docs astro dev",
-    "docs:build": "NAVFOLIO_CONTENT_SOURCE=docs bun run build",
-    "docs:preview": "NAVFOLIO_CONTENT_SOURCE=docs astro preview",
-    "docs:sync": "git submodule update --init --recursive",
     "astro": "astro",
     "content:new": "bun scripts/new-content.ts",
     "post:new": "bun scripts/new-content.ts post",
-    "project:new": "bun scripts/new-content.ts project",
     "vibe:new": "bun scripts/new-content.ts vibe",
     "media:new": "bun scripts/new-content.ts media",
     "media:sync": "node scripts/trakt-sync.mjs",
