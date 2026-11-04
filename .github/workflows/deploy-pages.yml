@@ -34,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # site 与 base 在 Actions 环境里会自动推导为
-      # https://<owner>.github.io/<repo> 与 /<repo>
+      # DEPLOY_TARGET 让 site / base 推导为
+      # https://<owner>.github.io/<repo>/ 与 /<repo>
       - name: Build site
         run: npm run build
 

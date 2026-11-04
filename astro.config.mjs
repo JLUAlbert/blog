@@ -38,7 +38,6 @@ const normalizeSiteUrl = (value) => {
   return /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 };
 
-const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
 const customSite = process.env.SITE_URL;
 // 部署目标标记：'github-pages' 用 /blog，其它（cloudflare/本地）默认根 '/'
 // 用非路径字符串做标记，避免被本地运行时劫持路径型环境变量
@@ -55,11 +54,24 @@ const githubPagesSite =
     ? `https://${repositoryOwner}.github.io${isProjectPage ? `/${repositoryName}` : ''}`
     : undefined;
 
+// site 必须以 '/' 结尾：主题用 new URL('rss.xml', Astro.site) 拼 RSS 地址，
+// 若 site 不带尾斜杠，GitHub Pages 的 /blog 会被当成文件名而丢失。
+const withTrailingSlash = (value) => {
+  const normalized = normalizeSiteUrl(value);
+  return normalized ? normalized.replace(/\/+$/, '') + '/' : undefined;
+};
+
+// 只在明确指定 github-pages 目标时才推导 GitHub Pages 域名。
+// 两条 workflow 都在 GitHub Actions 里构建，若按 GITHUB_ACTIONS 自动推导，
+// Cloudflare 构建的 canonical / RSS / sitemap 会错误指向 github.io。
 const resolvedSite =
-  normalizeSiteUrl(customSite) ||
-  (isGitHubActions && githubPagesSite ? githubPagesSite : undefined) ||
-  normalizeSiteUrl(configuredSiteUrl) ||
-  'https://example.com';
+  deployTarget === 'github-pages'
+    ? withTrailingSlash(githubPagesSite) ||
+      withTrailingSlash(configuredSiteUrl) ||
+      'https://example.com/'
+    : withTrailingSlash(customSite) ||
+      withTrailingSlash(configuredSiteUrl) ||
+      'https://example.com/';
 
 const resolvedBase =
   // 显式指定部署目标为 github-pages 时，用仓库名做 base
@@ -95,7 +107,6 @@ const rewriteInternalPaths = () => (tree) => {
 // 色盘背景：把调色盘 CSS 与循环切换脚本注入到每个页面的 <head>，
 // 不依赖某个布局组件，保证文章页/列表页/详情页都跟随色盘改变背景。
 const paletteCss = fs.readFileSync(new URL('./src/styles/palette-bg.css', import.meta.url), 'utf8');
-const paletteRuntimeCss = paletteCss;
 const paletteIntegration = {
   name: 'navfolio-palette-backgrounds',
   hooks: {
@@ -108,7 +119,7 @@ const paletteIntegration = {
   const paletteParam = params.get('palette');
   const themeParam = params.get('theme');
   if (themeParam === 'dark' || themeParam === 'light') root.dataset.theme = themeParam;
-  const css = ${JSON.stringify(paletteRuntimeCss)};
+  const css = ${JSON.stringify(paletteCss)};
   const ensurePaletteStyle = () => {
     if (css && !document.getElementById('palette-backgrounds')) {
       const style = document.createElement('style');
@@ -126,9 +137,6 @@ const paletteIntegration = {
       return null;
     }
   };
-  try {
-    localStorage.removeItem('navfolio-theme');
-  } catch {}
   const apply = (palette) => {
     if (palettes.includes(palette)) root.dataset.palette = palette;
   };

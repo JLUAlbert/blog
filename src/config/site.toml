@@ -1,314 +1,166 @@
-# ============================================================
-# [config.site] —— 站点全局元信息
-# ============================================================
+# 站点配置：导航、文案、主题、身份信息。
+# 改完 push 到 main 即自动上线，不需要重启服务。
+
+# ---------------------------------------------------------------
+# 全局元信息
+# ---------------------------------------------------------------
 [config.site]
-# 站点主标题（浏览器标签、分享卡片里出现）。✅ 保留
 title = "Albert's Blog"
-
-# 站点描述（SEO meta description）。✅ 保留，或写成一句你自己的话
 description = "A personal digital garden for independent thought, reading, photography, and reflections on society. | 独立思考，诚实书写。"
-
-# 首页浏览器标签标题（完整版）。✅ 保留
 pageTitle = "Albert's Blog | Space of Freedom"
-
-# 页面 meta description（与 description 内容一致即可）。✅ 保留
 pageDescription = "A personal digital garden for independent thought, reading, photography, and reflections on society. | 独立思考，诚实书写。"
-
-# 站点正式 URL。用于生成 RSS、sitemap、canonical 链接。🚨 必改：部署后填你自己的真实域名；现在没域名先保持原样，但上线前一定要换
-# GitHub Pages 部署时会自动覆盖 site/base，这里保持默认即可
-url = "https://jlualbert.github.io/blog"
-
-# 站点公开仓库地址（页脚会链到这个地址）。🚨 必改：改成你自己的仓库，如 https://github.com/Albert/xxx；不想公开可删掉本行
+# 主站域名，用于 RSS / sitemap / canonical。部署时由 DEPLOY_TARGET 与 SITE_URL 覆盖。
+url = "https://jlualbert-blog.pages.dev/"
 repository = "https://github.com/JLUAlbert/blog"
-
-# 页脚文案。
 footerNote = "© 2026 Albert Chan"
 
-# ============================================================
-# [config.theme] —— 主题色盘与 UI 语言
-# ============================================================
+# ---------------------------------------------------------------
+# 主题色盘与 UI 语言
+# 可选色盘：green-soft, green-vivid, rose-soft, pink-soft,
+#           purple-soft, blue-soft, orange-soft, brown-soft
+# ---------------------------------------------------------------
 [config.theme]
-# 可用色盘：green-soft, green-vivid, rose-soft, pink-soft, purple-soft, blue-soft, orange-soft, brown-soft
-# 主题色盘名。✏️ 建议改：挑一个你喜欢的，green-soft 是默认偏清爽的绿色
 palette = "green-soft"
-
-# 原生 UI 语言（按钮、分页、搜索提示等）。✏️ 建议改：中文用户建议 "zh-CN"；保留 "en" 也可以
 lang = "zh-CN"
 
-# ============================================================
-# [config.fonts] —— 字体设置
-# ============================================================
+# ---------------------------------------------------------------
+# 字体
+# ---------------------------------------------------------------
 [config.fonts]
-# 英文与数字字体。Libre Baskerville（SIL OFL，优雅衬线）；字体文件由 @fontsource 在构建时打包
 en = "Libre Baskerville"
-
-# 代码字体。✅ 保留（Monaco 是系统经典等宽字体）
 code = "Monaco"
-
-# 中文正文字体。霞鹜文楷（LXGW WenKai，SIL OFL 1.1）——楷体书卷气，长文阅读比仿宋扎实
 zh = "LXGW WenKai"
-
-# 中文完整字体文件路径。已做子集化：880KB woff2，覆盖 4031 个常用汉字 + ASCII + 标点
-# （原朱雀仿宋是 8.5MB 全量 TTF，加载慢且小字号笔画发虚）
+# 中文全量字体（子集化后约 880KB，界面另有 300KB 子集按需加载）
 file = "/fonts/LXGWWenKai.woff2"
 
-# ============================================================
-# [config.code] —— 代码块渲染
-# ============================================================
+# ---------------------------------------------------------------
+# 代码块
+# ---------------------------------------------------------------
 [config.code]
-# 浅色模式代码高亮主题。✅ 保留（Catppuccin 系列审美在圈内很流行）
 lightTheme = "catppuccin-latte"
-
-# 深色模式代码高亮主题。✅ 保留
 darkTheme = "catppuccin-macchiato"
-
-# 是否显示行号。✅ 保留 true
 lineNumbers = true
-
-# 代码是否自动换行。✅ 保留 true（手机端体验更好）
 wrap = true
-
-# 是否保留缩进。✅ 保留 true
 preserveIndent = true
-
-# 代码折叠样式。✅ 保留（collapsible-auto 自动判断是否折叠长代码块）
 collapseStyle = "collapsible-auto"
 
-# ============================================================
-# [config.math] —— 数学公式渲染
-# ============================================================
 [config.math]
-# 公式渲染引擎。✅ 保留（katex 更快；如果你写 LaTeX 不多，也可以忽略这项）
 render = "katex"
 
-# ============================================================
-# [config.comments] —— 评论系统主开关
-# ============================================================
+# ---------------------------------------------------------------
+# 评论（giscus：数据存在本仓库 Discussions）
+# ---------------------------------------------------------------
 [config.comments]
-# 是否启用评论。
 enabled = true
-
-# 评论服务商：giscus（读者用 GitHub 账号评论，数据存在博客仓库的 Discussions 里）
 provider = "giscus"
-
-# 是否在文章页显示评论。✅ 保留 true（enabled=true 时才生效）
 show_on_posts = true
 
-# ============================================================
-# [config.search] —— 站内搜索
-# ============================================================
 [config.search]
-# 是否启用搜索。✅ 保留 true（Pagefind 静态索引，构建时生成）
 enabled = true
-
-# 唤起搜索的快捷键。✅ 保留（mod 在 Windows 上对应 Ctrl）
 shortcut = "mod+k"
-
-# 搜索框占位文案。✏️ 建议改：lang="zh-CN" 后可改成 "搜索文章..."
 placeholder = "Search articles…"
-
-# 搜索结果数量上限。✅ 保留 6
 maxResults = 6
 
-# ============================================================
-# [config.pages.blog] —— 博客列表页文案
-# ============================================================
+# ---------------------------------------------------------------
+# 各栏目页文案
+# ---------------------------------------------------------------
 [config.pages.blog]
-# 列表页大标题。✏️ 建议改：如 "写作笔记" / "Essays"
 title = "Essays"
-
-# 小标题（卡片上方的小字）。✏️ 建议改
 kicker = ""
-
-# 副标题。✏️ 建议改
 subtitle = "Essays and notes from the margins."
-
-# 列表页说明文字。✏️ 建议改
 note = "Long-form writing, drafts, and field notes — arranged for slow browsing."
-
-# 每页文章数。✅ 保留 6（太长影响加载，太短翻页多）
 postsPerPage = 6
-
-# 日期格式（date-fns 语法）。✅ 保留 "yyyy-MM-dd"；中文习惯可用 "yyyy年M月d日"
 dateFormat = "yyyy-MM-dd"
-
-# 文章元信息分隔符。可用 "|" "/" 等符号，或特殊值 "icon"（用图标分隔）。✅ 保留 "icon"
 metadataSeparator = "icon"
-
-# 列表页封面样式。✅ 保留 "mask"（照片贴到卡片右侧，观感高级）；"card" 是带边框缩略图
 coverImageStyle = "mask"
 
-# ============================================================
-# [config.pages.blog.categories] —— 分类页
-# ============================================================
 [config.pages.blog.categories]
-# 分类页大标题。✅ 保留（除非你不想要分类页，整块可删 🗑️）
 title = "Categories"
-
-# 小标题。✅ 保留
 kicker = "Browse notes"
-
-# 副标题。✅ 保留
 subtitle = ""
-
-# 说明文字。✅ 保留
 note = "A quiet index of recurring topics, gathered from article frontmatter."
 
-# ============================================================
-# [config.pages.blog.series] —— 系列页
-# ============================================================
 [config.pages.blog.series]
-# 系列页大标题。✅ 保留（不需要可整块删除 🗑️）
 title = "Series"
-
-# 小标题。✅ 保留
 kicker = "Reading paths"
-
-# 副标题。✅ 保留
 subtitle = ""
-
-# 说明文字。✅ 保留
 note = "Connected notes that can be followed in the order they were written."
 
-# ============================================================
-# [config.pages.vibe] —— Vibe 短记录页
-# ============================================================
 [config.pages.vibe]
-# Vibe 页大标题。✅ 保留（不喜欢可删 🗑️；喜欢发短动态就留着）
 title = "vibe"
-
-# 小标题。✅ 保留
 kicker = ""
-
-# 副标题。✏️ 建议改：可写 "生活与编码碎片" 之类
 subtitle = ""
-
-# 说明文字。✏️ 建议改
 note = "Short thoughts — not formal enough for posts, but still part of the story."
-
-# 是否显示左侧时间轴。✅ 保留 true
 showTrail = true
 
-# ============================================================
-# [config.pages.movie] —— 片单
-# ============================================================
 [config.pages.movie]
 title = "Movies"
 subtitle = "Films and series I have watched."
 note = "Synced from Trakt, sorted by most recent watch."
 
-# ============================================================
-# [config.comments.giscus / utterances / waline] —— 评论后端参数
-# 目前 enabled=false，以下三块都不会生效，纯作预留。✅ 全部保留
-# ============================================================
 [config.comments.giscus]
-# 评论仓库。
 repo = "JLUAlbert/blog"
-# giscus 仓库 ID。
 repo_id = "R_kgDOVYiHtQ"
-# 讨论分类名。
 category = "Announcements"
-# 分类 ID。
 category_id = "DIC_kwDOVYiHtc4DJs6w"
-# 页面与讨论的映射方式。✅ 保留
 mapping = "pathname"
-# 严格匹配。✅ 保留
 strict = "0"
-# 是否启用表情回应栏（"N 个表情"）。用户要求隐藏，故关闭。
 reactions_enabled = "0"
-# 是否输出元数据。✅ 保留
 emit_metadata = "0"
-# 输入框位置。✅ 保留
 input_position = "top"
-# 浅色主题：透明化（透出博客 paper 卡片底色）。
 light_theme = "https://jlualbert-blog.pages.dev/giscus-light-transparent.css"
-# 深色主题：原生透明（transparent_dark，浅色文字适配暗底）。
 dark_theme = "transparent_dark"
-# 界面语言。✅ 保留
 lang = "zh-CN"
-# 是否懒加载。✅ 保留
 loading = "lazy"
 
+# 以下两家为预留，provider 未切换到它们时不会生效。
 [config.comments.utterances]
-# 评论仓库。✅ 保留空串
 repo = ""
-# Issue 匹配方式。✅ 保留
 issue_term = "pathname"
-# Issue 标签。✅ 保留
 label = "comment"
-# 主题。✅ 保留
 theme = "github-light"
 
 [config.comments.waline]
-# Waline 服务端地址。✅ 保留空串
 server_url = ""
-# 界面语言。✅ 保留
 lang = "zh-CN"
-# 深色模式选择器。✅ 保留
 dark = "html.dark"
-# 是否统计阅读量。✅ 保留
 pageview = true
-# 是否显示评论。✅ 保留
 comment = true
 
-# ============================================================
-# [config.profile] —— 你的个人身份（这一段是整份配置里最重要的）
-# ============================================================
+# ---------------------------------------------------------------
+# 个人身份
+# ---------------------------------------------------------------
 [config.profile]
-# 你的名字。
 name = "Albert"
-
-# 你的账号/昵称。
 handle = "Albert Chan"
-
-# 你的身份标签。🚨 必改：如 "Developer & Writer" / "独立开发者"
 role = "Writer, reader, photographer, and independent thinker."
-
-# 联系邮箱。
 email = "dongmuhanchen@gmail.com"
-
-# 个人网站。🚨 必改：如果没部署可以暂时留空或改成你的 GitHub Pages
-website = "https://jlualbert.github.io/blog"
-
-# GitHub 主页。🚨 必改：改成你的 GitHub 用户名地址
+website = "https://jlualbert-blog.pages.dev/"
 github = "https://github.com/JLUAlbert"
-
-# 头像路径。✅ 保留路径，把自己头像文件放进 public/images/ 并改文件名即可
 avatar = "/images/avatar.jpg"
 
-# ============================================================
-# [[config.topNav.links]] —— 顶部导航栏
-# 每一项是一个 [[config.topNav.links]] 数组元素，顺序即显示顺序
-# ============================================================
-
-# 首页入口。✅ 保留
+# ---------------------------------------------------------------
+# 顶部导航（顺序即显示顺序）
+# ---------------------------------------------------------------
 [[config.topNav.links]]
 label = "Home"
 href = "/"
 
-# 博客入口。✅ 保留（如果不想要博客可以删）
 [[config.topNav.links]]
 label = "Blog"
 href = "/blog"
 
-# Vibe 入口。✏️ 建议：同理，保留或删除
 [[config.topNav.links]]
 label = "Vibe"
 module = "vibe"
 
-# 片单入口。
 [[config.topNav.links]]
 label = "Movies"
 href = "/movie"
 
-# 关于不再进入导航栏：About 已并入首页底部的滑动面板（见 src/pages/index.astro）。
-
-# ============================================================
-# [config.home] —— 首页（访客第一眼看到的东西，全部要改成你的）
-# ============================================================
-[config.home]
-
-# 首页大字引语（轮播三行文字）。✏️ 建议改：换成你自己的座右铭/开场白
+# ---------------------------------------------------------------
+# 首页
+# ---------------------------------------------------------------
 [config.home.quote]
 text = [
   "Think independently.",
@@ -317,93 +169,58 @@ text = [
   "Live freely.",
 ]
 
-# 首页自我介绍区。
 [config.home.intro]
-# 区块标题。
 title = "Welcome to"
-
-# 显示的名字。
 name = "Albert's Blog"
-
-# 正文段落数组，一行一段。留空则只显示标题与格言。
 body = []
 
-# 首页“最新动态”区块。
 [config.home.latest]
-# 最新文章显示条数（多加一条，让左栏与右栏高度更接近，视觉更平衡）。
 count = 6
-
-# 热力图显示周数。✅ 保留 24
 heatmapWeeks = 24
-
-# 是否在热力图下方再显示一份最新文章列表。首页已单独渲染“最新”卡片，故关闭。
 showHeatmapLatest = false
-
-# 是否排除草稿。✅ 保留 true
 excludeDraft = true
-
-# 统计起始日期（空 = 自动）。✅ 保留空
 startDate = ""
-
-# 归档链接前缀（空 = 默认）。✅ 保留空
 dateArchiveBaseHref = ""
 
-# ============================================================
-# [[config.home.navigation]] —— 首页导航卡片（4 个快捷入口）
-# ============================================================
-
-# 博客卡片。✅ 保留（href=/blog 指站内）
 [[config.home.navigation]]
 icon = "pen"
 title = "Blog"
 subtitle = "Essays, notes, and field reports"
 href = "/blog"
 
-# Vibe 卡片。
 [[config.home.navigation]]
 icon = "sparkles"
 title = "Vibe"
 subtitle = "Poems and fragments"
 href = "/vibe"
 
-# 片单卡片。
 [[config.home.navigation]]
 icon = "briefcase"
 title = "Movies"
 subtitle = "Films and series I have watched"
 href = "/movie"
 
-# ============================================================
-# [[config.home.links]] —— 首页社交媒体链接图标条
-# tooltip 留空会隐藏该链接，不想显示的直接把 tooltip 改成 ""
-# ============================================================
-
-# 发布台（Publish station）。点击跳转至发布台。
+# tooltip 为空则隐藏该链接；此处 tooltip 复用为跳转地址。
 [[config.home.links]]
 label = "Publish"
 icon = "send"
 tooltip = "https://jlualbert-blog.pages.dev/publish"
 copy = false
 
-# RSS。✅ 保留（站点自带 RSS，链接是 /rss.xml）
 [[config.home.links]]
 label = "RSS"
 icon = "rss"
 tooltip = "/rss.xml"
 copy = false
 
-# Email。
 [[config.home.links]]
 label = "Email"
 icon = "email"
 tooltip = "dongmuhanchen@gmail.com"
 copy = true
 
-# GitHub。（从导航栏移回 ConnectCard）
 [[config.home.links]]
 label = "GitHub"
 icon = "github"
 tooltip = "https://github.com/JLUAlbert"
 copy = false
-
-# “正在做的事”列表已移除：首页左侧现由“最新”文章卡片承担该位置。

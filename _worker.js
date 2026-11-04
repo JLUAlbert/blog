@@ -2,14 +2,15 @@
 // 处理 /publish 路由：GET 返回表单，POST 校验密码后 commit 到 GitHub。
 // 其它路径原样回退到静态资产。
 //
-// 环境变量：GH_TOKEN / PUBLISH_PASSWORD / GH_OWNER / GH_REPO / GH_BRANCH
-// 口令优先读环境变量 PUBLISH_PASSWORD；未设置时回退到下方默认值。
+// 环境变量：GH_TOKEN / PUBLISH_PASSWORD / GH_OWNER / GH_REPO / GH_BRANCH / SITE_URL
+// 口令只从 Cloudflare 环境变量 PUBLISH_PASSWORD 读取，仓库里不留任何默认值：
+// 本仓库公开，写死在代码里的口令等于没有口令。
 
 const API = 'https://api.github.com';
 const ownerOf = (env) => env.GH_OWNER || 'JLUAlbert';
 const repoOf = (env) => env.GH_REPO || 'blog';
 const branchOf = (env) => env.GH_BRANCH || 'main';
-const passwordOf = (env) => env.PUBLISH_PASSWORD || 'chensq0620';
+const passwordOf = (env) => String(env.PUBLISH_PASSWORD || '').trim();
 
 function quoteScalar(v) {
   if (typeof v === 'boolean' || typeof v === 'number') return String(v);
@@ -256,7 +257,8 @@ async function handleList(request, env) {
   const token = env.GH_TOKEN;
   const password = passwordOf(env);
   const pw = request.headers.get('x-publish-pw') || '';
-  if (!password || pw !== password) return json({ error: '口令错误' }, 401);
+  if (!password) return json({ error: '服务端未配置 PUBLISH_PASSWORD' }, 500);
+  if (pw !== password) return json({ error: '口令错误' }, 401);
   if (!token) return json({ error: '服务端未配置 GH_TOKEN' }, 500);
 
   const owner = ownerOf(env);
@@ -327,7 +329,8 @@ async function handleArticle(request, env) {
   const token = env.GH_TOKEN;
   const password = passwordOf(env);
   const pw = request.headers.get('x-publish-pw') || '';
-  if (!password || pw !== password) return json({ error: '口令错误' }, 401);
+  if (!password) return json({ error: '服务端未配置 PUBLISH_PASSWORD' }, 500);
+  if (pw !== password) return json({ error: '口令错误' }, 401);
   if (!token) return json({ error: '服务端未配置 GH_TOKEN' }, 500);
 
   const url = new URL(request.url);
@@ -364,13 +367,16 @@ async function handleArticle(request, env) {
 async function handlePublish(request, env) {
   const token = env.GH_TOKEN;
   const password = passwordOf(env);
-  if (!token) return json({ error: '服务端未配置 GH_TOKEN' }, 500);
 
+  // 打开表单页不需要 GitHub 权限：GH_TOKEN 缺失时页面仍应可见，
+  // 只在真正写入时才报「服务端未配置」。
   if (request.method === 'GET') {
     return new Response(FORM_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 
   if (request.method !== 'POST') return json({ error: '方法不支持' }, 405);
+  if (!token) return json({ error: '服务端未配置 GH_TOKEN' }, 500);
+  if (!password) return json({ error: '服务端未配置 PUBLISH_PASSWORD' }, 500);
 
   let form;
   try {
@@ -380,7 +386,7 @@ async function handlePublish(request, env) {
   }
 
   const pw = form.get('password') || '';
-  if (!password || pw !== password) return json({ error: '口令错误', ok: false }, 401);
+  if (pw !== password) return json({ error: '口令错误', ok: false }, 401);
 
   // 解锁模式：只验证口令，进入发布台（不发布）
   if (form.get('unlock') === 'true') {
@@ -463,8 +469,9 @@ async function handlePublish(request, env) {
     message = `publish: ${title}`;
   }
 
-  // 只有 URL 段不等于发布日期时才把 slug 写进 frontmatter，默认保持干净
-  const fmSlug = isEdit || slug !== dateSlug ? slug : '';
+  // 只有「用户显式填了网址别名」或「新建时同日顺延」才把 slug 写进 frontmatter。
+  // 编辑旧文且未改别名时保持原样，否则会给历史文章凭空加一个 slug、改掉它的地址。
+  const fmSlug = customSlug || (!isEdit && slug !== dateSlug) ? slug : '';
   const fm = buildFrontmatter({
     title,
     description,
@@ -490,7 +497,9 @@ async function handlePublish(request, env) {
   if (!r.ok) return json({ error: '提交失败: ' + (r.json.message || r.status) }, 500);
 
   const baseGh = `https://${owner}.github.io/${repo}`;
-  const baseCf = env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev';
+  const baseCf = String(
+    env.SITE_URL || env.CF_SITE_URL || 'https://jlualbert-blog.pages.dev',
+  ).replace(/\/+$/, '');
   // 实际落盘路径决定板块：意境(Vibe) 无独立详情页，只渲染在 /vibe 时间线；博客有独立文章页
   const actualSection = finalPath.includes('/vibe/') ? 'vibe' : 'blog';
   // 文章真实地址由 frontmatter 的 slug / date 决定，不一定等于文件名（编辑旧文时可能不同）
@@ -811,7 +820,6 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
         <input type="hidden" name="password" id="pw-field" />
         <input type="hidden" name="unlock" value="false" />
         <input type="hidden" name="editPath" id="edit-path" />
-        <input type="hidden" name="editSha" id="edit-sha" />
 
         <label>栏目</label>
         <div class="seg" id="seg">
@@ -897,7 +905,6 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
     const barFill = document.getElementById('bar-fill');
     const progressLabel = document.getElementById('progress-label');
     const editPathField = document.getElementById('edit-path');
-    const editShaField = document.getElementById('edit-sha');
     const histBtn = document.getElementById('hist-btn');
     const histClose = document.getElementById('hist-close');
     const historyEl = document.getElementById('history');
@@ -1022,7 +1029,6 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
             ' · <a href="' + j.cloudflare + '" target="_blank">Cloudflare</a>';
           histEditing.textContent = '';
           editPathField.value = '';
-          editShaField.value = '';
           form.reset();
           syncSection();
         } else {
@@ -1127,7 +1133,6 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
         // 回填已有 slug，避免重发时丢掉自定义地址（默认日期地址的文章此处为空）
         form.querySelector('[name=slug]').value = j.slug || '';
         editPathField.value = j.path;
-        editShaField.value = j.sha;
         histEditing.innerHTML = '正在编辑：' + escapeHtml(j.title) +
           ' <button type="button" id="cancel-edit">取消</button>';
         historyEl.classList.remove('show');
@@ -1145,7 +1150,6 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
     histEditing.addEventListener('click', (e) => {
       if (e.target && e.target.id === 'cancel-edit') {
         editPathField.value = '';
-        editShaField.value = '';
         histEditing.textContent = '';
         form.querySelector('[name=slug]').value = '';
       }
