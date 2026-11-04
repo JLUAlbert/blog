@@ -16,6 +16,7 @@
     "vibe:new": "bun scripts/new-content.ts vibe",
     "media:new": "bun scripts/new-content.ts media",
     "media:sync": "node scripts/trakt-sync.mjs",
+    "check:worker": "node scripts/check-worker.mjs",
     "lint": "eslint .",
     "format": "prettier --write --ignore-unknown .",
     "format:check": "bun run lint && prettier --check --ignore-unknown .",

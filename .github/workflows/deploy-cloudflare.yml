@@ -41,6 +41,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # 发布台 HTML 内嵌在模板字符串里，语法错误会让整页交互静默失效
+      - name: Check publish page script
+        run: npm run check:worker
+
       # 注意：这里 base 保持 '/'（Cloudflare 是根域名部署）
       - name: Build site
         run: npm run build
