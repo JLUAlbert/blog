@@ -120,7 +120,7 @@ node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json   # 用底稿�
 | `CLOUDFLARE_API_TOKEN`  | Cloudflare API Token（Pages:Edit） |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID                 |
 
-片单同步不需要 Actions secret：连接凭据由发布口令派生密钥加密后，放在 `scripts/.trakt-fixture.json` 里，仓库任务只做离线渲染。
+片单同步不需要 Actions secret，也不需要 Trakt 账号授权：`scripts/.trakt-fixture.json` 只存公开数据与详情缓存，不含任何凭据；仓库任务只做离线渲染。
 
 可选的仓库变量：`SITE_URL`（主站域名，不设置时默认 `https://jlualbert-blog.pages.dev`）、`CLOUDFLARE_PROJECT`（默认 `jlualbert-blog`）。
 
@@ -172,9 +172,9 @@ draft: false
 
 片单同步：**在发布台点「同步片单」即可**，不需要进 GitHub 或 Cloudflare。Movies 页面读的是仓库里生成好的 Markdown，不依赖 Trakt 实时在线。
 
-Trakt 前面的防护会拦云端服务器（GitHub Actions、Cloudflare Worker）的出口 IP，所以取数放在**点按钮时的浏览器**里完成：接口允许跨域，用户自己的网络不会被限流。发布台只负责从底稿取出加密凭据、交给已解锁的会话临时使用，再把浏览器精简后的观看历史与评分写回 `scripts/.trakt-fixture.json`，然后触发 `.github/workflows/trakt-sync.yml` **离线**渲染 Markdown 并 push。进度、上次同步时间和结果都直接显示在发布台里；push 会自动触发两条部署流水线，约 1–2 分钟后 Movies 更新。
+片单数据来自 Trakt 的**公开只读接口**（`/users/albert-chan/history`、`/ratings`、`/watched/*`），只需要应用 ID，不需要 OAuth 授权，因此**不占用 Trakt 免费账户唯一的一个社区应用连接名额**——那个名额可以留给 mpv 之类的播放器。Trakt 前面的防护会拦云端服务器（GitHub Actions、Cloudflare Worker）的出口 IP，所以取数放在**点按钮时的浏览器**里完成：接口允许跨域，用户自己的网络不会被限流。发布台只把浏览器精简后的观看记录、评分、观看统计与详情写回 `scripts/.trakt-fixture.json`，然后触发 `.github/workflows/trakt-sync.yml` **离线**渲染 Markdown 并 push。进度、上次同步时间和结果都直接显示在发布台里；push 会自动触发两条部署流水线，约 1–2 分钟后 Movies 更新。
 
-凭据用发布口令派生的密钥（AES-GCM）加密后存在底稿里，公开仓库没有明文；连接 7 天到期时由浏览器在取数前自动续期，轮换后的新凭据随数据一起写回，不需要人工维护。备用入口：[Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) 的 `Run workflow`（会用当前底稿重建片单），或本地 `node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json`。
+底稿里**没有任何账号凭据**，也不再有 7 天续期这回事，不需要人工维护。前提是 Trakt 资料保持公开（`private=false`）；若日后设为私有，公开接口会读不到，需要改回 OAuth 或升级 Trakt VIP。备用入口：[Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) 的 `Run workflow`（会用当前底稿重建片单），或本地 `node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json`。
 
 ---
 

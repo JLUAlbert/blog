@@ -357,50 +357,10 @@ async function syncRuns(owner, repo, token, signal) {
 }
 
 const TRAKT_CLIENT_ID = 'kPI6oQBbAcEpTjfRsn_DAo5mOOqgkYon3z27QFoDl-o';
+const TRAKT_USER = 'albert-chan';
 const TRAKT_FIXTURE = 'scripts/.trakt-fixture.json';
-const TRAKT_SALT = 'alberts-blog-trakt-store-v1';
 
-// 密钥由发布口令派生：不需要额外配置后台变量，公开仓库里也没有密钥
-async function traktStoreKey(env) {
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(TRAKT_SALT + passwordOf(env)),
-  );
-  return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['encrypt', 'decrypt']);
-}
-
-function b64ToBytes(s) {
-  const bin = atob(s);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-async function traktDecrypt(encoded, env) {
-  const all = b64ToBytes(encoded);
-  const plain = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: all.slice(0, 12) },
-    await traktStoreKey(env),
-    all.slice(12),
-  );
-  return JSON.parse(new TextDecoder().decode(plain));
-}
-
-async function traktEncrypt(obj, env) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const cipher = new Uint8Array(
-    await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      await traktStoreKey(env),
-      new TextEncoder().encode(JSON.stringify(obj)),
-    ),
-  );
-  const all = new Uint8Array(iv.length + cipher.length);
-  all.set(iv, 0);
-  all.set(cipher, iv.length);
-  return bytesToBase64(all);
-}
-
+// 片单同步只读公开资料：不需要 OAuth，也不占用 Trakt 免费账户唯一的社区应用名额
 async function readTraktFixture(env) {
   const owner = ownerOf(env);
   const repo = repoOf(env);
@@ -414,7 +374,7 @@ async function readTraktFixture(env) {
   return { owner, repo, branch, fixture, sha: fr.json.sha };
 }
 
-// 只在已解锁的会话里临时交出连接凭据，浏览器用完即弃，不写入本地存储
+// 启动同步：只给出公开资料的地址和已缓存的详情清单，不交出任何账号凭据
 async function handleSyncStart(request, env) {
   const auth = publishAuth(request, env);
   if (auth.error) return json({ error: auth.error }, auth.status);
@@ -424,21 +384,15 @@ async function handleSyncStart(request, env) {
   } catch (err) {
     return json({ error: err.message + '，稍后再点一次' }, 502);
   }
-  let trakt;
-  try {
-    trakt = await traktDecrypt(state.fixture.token, env);
-  } catch (err) {
-    return json({ error: '片单连接凭据无法解开' }, 502);
-  }
   return json({
     ok: true,
     clientId: TRAKT_CLIENT_ID,
-    token: trakt,
+    user: TRAKT_USER,
     knownKeys: Object.keys(state.fixture.details || {}),
   });
 }
 
-// 浏览器把精简后的片单数据交回来；必要时连同续期后的新凭据一起保存
+// 浏览器把精简后的公开片单数据交回来；仓库只保存数据，不保存任何连接凭据
 async function handleSyncFinish(request, env) {
   const auth = publishAuth(request, env);
   if (auth.error) return json({ error: auth.error }, auth.status);
@@ -450,6 +404,12 @@ async function handleSyncFinish(request, env) {
   }
   for (const key of ['movies', 'episodes', 'ratingsMovies', 'ratingsShows']) {
     if (!Array.isArray(payload[key]) || payload[key].length > 20000) {
+      return json({ error: '片单数据异常' }, 400);
+    }
+  }
+  const watched = payload.watched || {};
+  for (const key of ['movies', 'shows']) {
+    if (watched[key] && (!Array.isArray(watched[key]) || watched[key].length > 20000)) {
       return json({ error: '片单数据异常' }, 400);
     }
   }
@@ -471,18 +431,14 @@ async function handleSyncFinish(request, env) {
       details[key] = extra[key];
     }
   }
-  let encoded = state.fixture.token;
-  if (payload.token && payload.token.access_token && payload.token.refresh_token) {
-    encoded = await traktEncrypt(payload.token, env);
-  }
   const next = {
     generatedAt: new Date().toISOString(),
-    token: encoded,
     details,
     movies: payload.movies,
     episodes: payload.episodes,
     ratingsMovies: payload.ratingsMovies,
     ratingsShows: payload.ratingsShows,
+    watched: { movies: watched.movies || [], shows: watched.shows || [] },
   };
   const written = await commit(
     state.owner,
@@ -1675,13 +1631,13 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
     const TRAKT_API = 'https://api.trakt.tv';
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    async function traktCall(path, token, clientId, init) {
+    // 公开只读接口：只发应用 ID，不发送任何账号授权
+    async function traktCall(path, clientId, init) {
       const headers = {
         'Content-Type': 'application/json',
         'trakt-api-version': '2',
         'trakt-api-key': clientId,
       };
-      if (token) headers.Authorization = 'Bearer ' + token;
       for (let attempt = 0; attempt < 3; attempt++) {
         const res = await fetch(TRAKT_API + path, {
           method: (init && init.method) || 'GET',
@@ -1695,11 +1651,11 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       throw new Error('片单源暂时繁忙，稍后再点一次');
     }
 
-    async function traktRows(path, token, clientId) {
+    async function traktRows(path, clientId) {
       const rows = [];
       const sep = path.indexOf('?') >= 0 ? '&' : '?';
       for (let page = 1; page <= 30; page++) {
-        const res = await traktCall(path + sep + 'page=' + page + '&limit=100', token, clientId);
+        const res = await traktCall(path + sep + 'page=' + page + '&limit=100', clientId);
         const data = await res.json();
         for (const row of data) rows.push(row);
         const pages = Number(res.headers.get('x-pagination-page-count') || '1');
@@ -1715,6 +1671,7 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         if (!m || !m.ids || !m.ids.trakt) continue;
         out.push({
           watched_at: row.watched_at,
+          action: row.action || 'watch',
           movie: { title: m.title, year: m.year, ids: { trakt: m.ids.trakt, slug: m.ids.slug } },
         });
       }
@@ -1728,6 +1685,7 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         if (!s || !s.ids || !s.ids.trakt || !e) continue;
         out.push({
           watched_at: row.watched_at,
+          action: row.action || 'watch',
           show: { title: s.title, year: s.year, ids: { trakt: s.ids.trakt, slug: s.ids.slug } },
           episode: { season: e.season, number: e.number },
         });
@@ -1739,7 +1697,11 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       for (const row of rows) {
         const item = row[kind];
         if (!item || !item.ids || !item.ids.trakt) continue;
-        out.push({ rating: row.rating, [kind]: { ids: { trakt: item.ids.trakt } } });
+        out.push({
+          rating: row.rating,
+          rated_at: row.rated_at || '',
+          [kind]: { ids: { trakt: item.ids.trakt } },
+        });
       }
       return out;
     }
@@ -1757,6 +1719,16 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         network: (full && full.network) || '',
         aired: (full && full.aired_episodes) || 0,
         status: (full && full.status) || '',
+        traktRating: (full && full.rating) || 0,
+        votes: (full && full.votes) || 0,
+        country: (full && full.country) || '',
+        language: (full && full.language) || '',
+        certification: (full && full.certification) || '',
+        tagline: (full && full.tagline) || '',
+        trailer: (full && full.trailer) || '',
+        homepage: (full && full.homepage) || '',
+        originalTitle: (full && full.original_title) || '',
+        released: (full && (full.released || full.first_aired)) || '',
         poster: abs(full && full.images && full.images.poster && full.images.poster[0]),
         fanart: abs(full && full.images && full.images.fanart && full.images.fanart[0]),
         creator:
@@ -1767,33 +1739,17 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
     }
 
     async function fetchShelf(conf) {
-      let token = conf.token;
-      let refreshed = null;
-      const expiresAt = (token.created_at || 0) + (token.expires_in || 0);
-      if (!token.access_token || expiresAt - Date.now() / 1000 < 3600) {
-        const res = await fetch(TRAKT_API + '/oauth/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            refresh_token: token.refresh_token,
-            client_id: conf.clientId,
-            redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
-            grant_type: 'refresh_token',
-          }),
-        });
-        if (!res.ok) throw new Error('片单连接续期失败，稍后再点一次');
-        refreshed = await res.json();
-        refreshed.obtained_at = Math.floor(Date.now() / 1000);
-        token = refreshed;
-      }
-      const access = token.access_token;
       const cid = conf.clientId;
+      const u = '/users/' + encodeURIComponent(conf.user);
       syncMetaText('正在读取观看记录…', 'busy');
-      const movieRows = compactMovies(await traktRows('/sync/history/movies', access, cid));
-      const episodeRows = compactEpisodes(await traktRows('/sync/history/episodes', access, cid));
+      const movieRows = compactMovies(await traktRows(u + '/history?type=movies', cid));
+      const episodeRows = compactEpisodes(await traktRows(u + '/history?type=episodes', cid));
       syncMetaText('正在读取评分…', 'busy');
-      const ratingMovieRows = await traktCall('/sync/ratings/movies', access, cid).then((r) => r.json());
-      const ratingShowRows = await traktCall('/sync/ratings/shows', access, cid).then((r) => r.json());
+      const ratingMovieRows = await traktRows(u + '/ratings?type=movies', cid);
+      const ratingShowRows = await traktRows(u + '/ratings?type=shows', cid);
+      syncMetaText('正在读取观看统计…', 'busy');
+      const watchedMovies = await traktRows(u + '/watched/movies', cid);
+      const watchedShows = await traktRows(u + '/watched/shows', cid);
 
       const known = new Set(conf.knownKeys || []);
       const newDetails = {};
@@ -1810,10 +1766,10 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         const parts = k.split(':');
         const base = (parts[0] === 'movie' ? '/movies/' : '/shows/') + parts[1];
         try {
-          const full = await traktCall(base + '?extended=full,images', access, cid).then((r) => r.json());
+          const full = await traktCall(base + '?extended=full,images', cid).then((r) => r.json());
           let people = {};
           try {
-            people = await traktCall(base + '/people', access, cid).then((r) => r.json());
+            people = await traktCall(base + '/people', cid).then((r) => r.json());
           } catch (err) { /* 人物信息不是必需 */ }
           newDetails[k] = detailOf(full, people);
         } catch (err) { /* 下次同步会再补 */ }
@@ -1823,8 +1779,19 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         episodes: episodeRows,
         ratingsMovies: compactRatings(ratingMovieRows, 'movie'),
         ratingsShows: compactRatings(ratingShowRows, 'show'),
+        watched: {
+          movies: watchedMovies.map((r) => ({
+            id: (r.movie && r.movie.ids && r.movie.ids.trakt) || 0,
+            plays: r.plays || 0,
+            last_watched_at: r.last_watched_at || '',
+          })),
+          shows: watchedShows.map((r) => ({
+            id: (r.show && r.show.ids && r.show.ids.trakt) || 0,
+            plays: r.plays || 0,
+            last_watched_at: r.last_watched_at || '',
+          })),
+        },
         details: newDetails,
-        token: refreshed,
       };
     }
 

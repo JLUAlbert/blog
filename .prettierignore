@@ -8,5 +8,5 @@ public/favicon.ico
 src/content/**/*.md
 src/content/**/*.mdx
 
-# 发布台每次同步会重写这份紧凑底稿（含加密凭据），不做格式化
+# 发布台每次同步会重写这份紧凑底稿（公开数据 + 详情缓存），不做格式化
 scripts/.trakt-fixture.json

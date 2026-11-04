@@ -13,7 +13,6 @@ tags:
   - "war"
   - "drama"
   - "history"
-  - "romance"
 externalUrl: "https://trakt.tv/movies/war-and-peace-1968"
 ---
 

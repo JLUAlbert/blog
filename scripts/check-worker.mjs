@@ -45,15 +45,21 @@ for (const needle of [
   'sync-status',
   'trakt-sync.yml/dispatches',
   'scripts/.trakt-fixture.json',
+  'TRAKT_USER',
+  '/watched/movies',
 ]) {
   if (!src.includes(needle)) throw new Error(`发布台缺少片单同步接口 ${needle}`);
+}
+// 片单同步必须保持纯公开只读：任何账号授权回退都会占掉免费账户唯一的社区应用名额
+for (const banned of ['oauth/token', '/sync/history', 'traktEncrypt', 'traktDecrypt']) {
+  if (src.includes(banned)) throw new Error(`片单同步不应再使用账号授权：${banned}`);
 }
 
 // 维护动作必须口令保护：没有口令时两个新接口都应拒绝，且不会真的去触发同步
 const checkEnv = { PUBLISH_PASSWORD: 'check-only' };
 for (const [label, action, init] of [
   ['状态', 'sync-status', { method: 'GET' }],
-  ['凭据', 'sync-start', { method: 'GET' }],
+  ['启动', 'sync-start', { method: 'GET' }],
   ['写回', 'sync-finish', { method: 'POST' }],
 ]) {
   const res = await mod.default.fetch(
@@ -66,5 +72,5 @@ for (const [label, action, init] of [
 }
 
 console.log(
-  `发布台页面检查通过：${scripts.length} 段脚本语法正常，${ids.length} 个关键节点齐全，片单同步接口已口令保护`,
+  `发布台页面检查通过：${scripts.length} 段脚本语法正常，${ids.length} 个关键节点齐全，片单同步已口令保护且保持公开只读`,
 );
