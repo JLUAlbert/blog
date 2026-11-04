@@ -384,6 +384,28 @@ async function handleSyncTrakt(request, env) {
   return json({ ok: true, startedAt: new Date().toISOString() });
 }
 
+async function handleTraktProbe(request, env) {
+  const auth = publishAuth(request, env);
+  if (auth.error) return json({ error: auth.error }, auth.status);
+  // 诊断用：确认从发布台出口能否连到 Trakt（不带任何凭据）
+  const r = await fetch('https://api.trakt.tv/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'User-Agent': 'navfolio-trakt-sync/1.0' },
+    body: JSON.stringify({
+      client_id: 'probe',
+      grant_type: 'refresh_token',
+      refresh_token: 'probe',
+    }),
+  });
+  const text = await r.text();
+  return json({
+    ok: true,
+    status: r.status,
+    blocked: text.includes('Sorry, you have been blocked'),
+    sample: text.slice(0, 90),
+  });
+}
+
 async function handleSyncStatus(request, env) {
   const auth = publishAuth(request, env);
   if (auth.error) return json({ error: auth.error }, auth.status);
@@ -636,6 +658,7 @@ export default {
         if (action === 'history') return handleList(request, env);
         if (action === 'article') return handleArticle(request, env);
         if (action === 'sync-status') return handleSyncStatus(request, env);
+        if (action === 'trakt-probe') return handleTraktProbe(request, env);
       }
       if (request.method === 'POST' && url.searchParams.get('action') === 'sync-trakt') {
         return handleSyncTrakt(request, env);
