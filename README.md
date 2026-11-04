@@ -169,7 +169,7 @@ draft: false
 - 配图放 `public/images/`，正文写 `![说明](/images/xxx.jpg)`，构建时会自动补 base。
 - `<!-- trakt:begin -->` 与 `<!-- trakt:end -->` 之间的片单内容由同步脚本管理，块外可以写自己的笔记，重跑不会丢。
 
-片单同步：Trakt API 在 GitHub Actions 的出口 IP 上常被 Cloudflare 拦截，因此 `.github/workflows/trakt-sync.yml` 设为**手动触发**（Actions → Trakt sync → Run workflow），不再每周定时跑出失败记录。也可以本地 `node scripts/trakt-sync.mjs`。
+片单同步：Movies 页面读的是仓库里已经生成的 Markdown，不依赖 Trakt 实时在线；失效的是**自动同步**这一步——Trakt API 前面的 Cloudflare 常拦 GitHub Actions 的出口 IP，定时跑只会留下失败记录。因此 `.github/workflows/trakt-sync.yml` 改为手动触发：打开 [Trakt sync 工作流](https://github.com/JLUAlbert/blog/actions/workflows/trakt-sync.yml) → 右侧 `Run workflow` → 再点一次 `Run workflow`。需要仓库 secret `TRAKT_TOKEN`（已配置）。也可以本地跑 `node scripts/trakt-sync.mjs`。
 
 ---
 

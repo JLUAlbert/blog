@@ -814,8 +814,8 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { border:3px solid transparent; border-radius:999px;
   background:rgba(255,255,255,.24); background-clip:padding-box; }
-::-webkit-scrollbar-thumb:hover { background:rgba(157,185,255,.55); background-clip:padding-box; }
-::-webkit-scrollbar-thumb:active { background:rgba(183,167,216,.6); background-clip:padding-box; }
+::-webkit-scrollbar-thumb:hover { background:rgba(var(--accent-rgb),.55); background-clip:padding-box; }
+::-webkit-scrollbar-thumb:active { background:rgba(var(--accent-rgb),.72); background-clip:padding-box; }
 ::-webkit-scrollbar-corner { background:transparent; }
 
 /* 口令页一屏装得下：解锁前锁死页面滚动，只有发布台才需要滚动 */
@@ -832,8 +832,8 @@ body.gate-open { overflow:hidden; height:100vh; height:100dvh; }
   border-color:var(--border-strong); transform:translateY(-1px); }
 .insert-btn:disabled { opacity:.55; cursor:default; transform:none; }
 #inline-picker { display:none; }
-textarea.drop-target { border-color:rgba(157,185,255,.7) !important;
-  background:var(--glass-hover) !important; box-shadow:0 0 0 3px rgba(157,185,255,.18) !important; }
+textarea.drop-target { border-color:rgba(var(--accent-rgb),.7) !important;
+  background:var(--glass-hover) !important; box-shadow:0 0 0 3px rgba(var(--accent-rgb),.18) !important; }
 #inline-toast { position:fixed; left:50%; bottom:28px; z-index:120;
   transform:translate(-50%,12px); padding:11px 20px; border-radius:var(--r-pill);
   font-size:13px; color:var(--fg); background:rgba(18,18,22,.9);
@@ -843,9 +843,9 @@ textarea.drop-target { border-color:rgba(157,185,255,.7) !important;
   max-width:calc(100vw - 40px); text-align:center; }
 #inline-toast.show { opacity:1; transform:translate(-50%,0); }
 
-/* ===== 配色：近黑玻璃 + 低饱和冷光 =====
-   保留原来那套毛玻璃的结构与质感，只把「纯黑底 + 五个高饱和彩色光球」
-   收敛成近黑中性底、两三处低饱和冷光，去掉模板感，也更贴站点的克制调性。 */
+/* ===== 配色：近黑玻璃，Blog / Vibe 两套主题 =====
+   骨架仍是毛玻璃，只换强调色、光晕与渐变；切换栏目时整页平滑换色。
+   历史条目用同一组 --tone-* 固定色，按文章所属栏目独立上色，一眼可辨。 */
 :root {
   --bg:#0B0D10;
   --fg:#F2F4F7;
@@ -856,55 +856,81 @@ textarea.drop-target { border-color:rgba(157,185,255,.7) !important;
   --glass-dark:rgba(255,255,255,.035);
   --border:rgba(255,255,255,.10);
   --border-strong:rgba(255,255,255,.19);
-  --accent:#9DB9FF;
-  --accent-2:#B7A7D8;
-  --accent-3:#E0B9A8;
+  /* 两套固定主题色：整页切换与历史条目区分共用，保证视觉一致 */
+  --tone-blog:#9DB9FF;  --tone-blog-rgb:157,185,255;
+  --tone-vibe:#E8C2A0;  --tone-vibe-rgb:232,194,160;
+  /* Blog 为默认主题（冷蓝） */
+  --accent:#9DB9FF; --accent-rgb:157,185,255;
+  --btn-a:#3A4E6E; --btn-b:#637BA6;
+  --glow-1:#4C6FFF; --glow-2:#7C8FA8; --glow-3:#6E7C9B;
+  --glow-4:#C9B48B; --glow-5:#5E8C8A;
+  --shadow-glow:rgba(76,111,255,.18);
+}
+/* Vibe：暖陶 / 香槟，低饱和，与冷蓝形成清晰但不刺眼的对比 */
+body[data-section="vibe"] {
+  --accent:#E8C2A0; --accent-rgb:232,194,160;
+  --btn-a:#6A4A42; --btn-b:#AE8062;
+  --glow-1:#B8755A; --glow-2:#C9A46F; --glow-3:#8C5E58;
+  --glow-4:#9C8AA6; --glow-5:#B99A78;
+  --shadow-glow:rgba(184,117,90,.20);
 }
 body { background:var(--bg); }
 .mesh-bg { background:#0B0D10; }
-.mesh-blob { filter:blur(120px); opacity:.20; animation-duration:26s; }
-.mesh-blob.b1 { background:#4C6FFF; opacity:.20; }
-.mesh-blob.b2 { background:#7C8FA8; opacity:.15; }
-.mesh-blob.b3 { background:#6E7C9B; opacity:.17; }
-.mesh-blob.b4 { background:#C9B48B; opacity:.09; }
-.mesh-blob.b5 { background:#5E8C8A; opacity:.11; }
+.mesh-blob { filter:blur(120px); opacity:.20; animation-duration:26s;
+  transition:background .7s ease,opacity .7s ease; }
+.mesh-blob.b1 { background:var(--glow-1); opacity:.20; }
+.mesh-blob.b2 { background:var(--glow-2); opacity:.15; }
+.mesh-blob.b3 { background:var(--glow-3); opacity:.17; }
+.mesh-blob.b4 { background:var(--glow-4); opacity:.09; }
+.mesh-blob.b5 { background:var(--glow-5); opacity:.11; }
 .mesh-bg::after { background-image:radial-gradient(rgba(255,255,255,.022) 1px,transparent 1px); }
 #gate { background:rgba(8,10,13,.66); }
 .gate-card { box-shadow:0 24px 70px rgba(0,0,0,.55); }
 .panel { box-shadow:0 24px 80px rgba(0,0,0,.55); }
 .gate-mono, .mono { color:#F2F4F7;
-  background:linear-gradient(135deg,#26344A,#435676);
-  box-shadow:0 8px 24px rgba(76,111,255,.18); }
+  background:linear-gradient(135deg,var(--btn-a),var(--btn-b));
+  box-shadow:0 8px 24px var(--shadow-glow);
+  transition:background .7s ease,box-shadow .7s ease; }
 .brand .dot { color:var(--accent); }
-@keyframes dotPulse { 0%,100% { opacity:.55; } 50% { opacity:1; text-shadow:0 0 16px rgba(157,185,255,.6); } }
-.prompt:focus-within { border-color:rgba(157,185,255,.5); box-shadow:0 0 0 3px rgba(157,185,255,.14); }
+@keyframes dotPulse { 0%,100% { opacity:.55; } 50% { opacity:1; text-shadow:0 0 16px rgba(var(--accent-rgb),.6); } }
+.prompt:focus-within { border-color:rgba(var(--accent-rgb),.5); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.14); }
 .cursor { background:var(--accent); }
-@keyframes breathe { 0%,100% { opacity:.35; } 50% { opacity:1; box-shadow:0 0 14px 3px rgba(157,185,255,.45); } }
+@keyframes breathe { 0%,100% { opacity:.35; } 50% { opacity:1; box-shadow:0 0 14px 3px rgba(var(--accent-rgb),.45); } }
 #gate-input { caret-color:var(--accent); }
-input:focus,textarea:focus,select:focus { border-color:rgba(157,185,255,.55);
-  box-shadow:0 0 0 3px rgba(157,185,255,.15); background:var(--glass-hover); }
-.seg-btn.active { color:#fff; background:linear-gradient(135deg,rgba(58,78,110,.94),rgba(99,123,166,.94));
-  box-shadow:0 8px 24px rgba(58,78,110,.38); }
-.switch input:checked + .track { background:linear-gradient(135deg,#3A4E6E,#637BA6); }
-.switch input:focus-visible + .track { box-shadow:0 0 0 3px rgba(157,185,255,.32); }
-button.submit { color:#fff; background:linear-gradient(135deg,rgba(58,78,110,.96),rgba(99,123,166,.96));
-  box-shadow:0 8px 24px rgba(58,78,110,.36); }
-button.submit:hover { background:linear-gradient(135deg,#3A4E6E,#637BA6);
-  box-shadow:0 12px 32px rgba(99,123,166,.42); }
-.bar i { background:linear-gradient(90deg,#4C6FFF,#9DB9FF,#4C6FFF); }
-#result.ok { border-color:rgba(157,185,255,.42); }
+input:focus,textarea:focus,select:focus { border-color:rgba(var(--accent-rgb),.55);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15); background:var(--glass-hover); }
+.seg-btn.active { color:#fff;
+  background:linear-gradient(135deg,var(--btn-a),var(--btn-b));
+  box-shadow:0 8px 24px var(--shadow-glow); }
+.switch input:checked + .track { background:linear-gradient(135deg,var(--btn-a),var(--btn-b)); }
+.switch input:focus-visible + .track { box-shadow:0 0 0 3px rgba(var(--accent-rgb),.32); }
+button.submit { color:#fff;
+  background:linear-gradient(135deg,var(--btn-a),var(--btn-b));
+  box-shadow:0 8px 24px var(--shadow-glow); }
+button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a));
+  box-shadow:0 12px 32px rgba(var(--accent-rgb),.38); }
+.bar i { background:linear-gradient(90deg,var(--btn-a),var(--accent),var(--btn-a)); }
+#result.ok { border-color:rgba(var(--accent-rgb),.42); }
 #result.err { border-color:rgba(224,185,168,.45); }
-#result a { color:#B9CEFF; }
+#result a { color:var(--accent); }
 #history { background:rgba(8,10,13,.78); }
-.hist-search input:focus { border-color:rgba(157,185,255,.55); box-shadow:0 0 0 3px rgba(157,185,255,.15); }
+.hist-search input:focus { border-color:rgba(var(--accent-rgb),.55); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15); }
 .hist-item:hover .go { color:var(--accent); }
-.badge.blog { background:rgba(157,185,255,.14); color:#B9CEFF; }
-.badge.vibe { background:rgba(183,167,216,.14); color:#CFC2E9; }
+.hist-editing { color:var(--accent); background:rgba(var(--accent-rgb),.09);
+  border:1px solid rgba(var(--accent-rgb),.22); }
+
+/* 历史条目：按文章所属栏目固定上色，与切换时的整页主题同源 */
+.hist-item[data-section="blog"] { --tone-rgb:var(--tone-blog-rgb); }
+.hist-item[data-section="vibe"] { --tone-rgb:var(--tone-vibe-rgb); }
+.hist-item { border-left:3px solid rgba(var(--tone-rgb),.8);
+  background:linear-gradient(90deg,rgba(var(--tone-rgb),.13),rgba(var(--tone-rgb),.02) 58%),var(--glass); }
+.hist-item:hover { background:linear-gradient(90deg,rgba(var(--tone-rgb),.20),rgba(var(--tone-rgb),.05) 58%),var(--glass-hover); }
+.hist-item .badge.blog { background:rgba(var(--tone-blog-rgb),.16); color:var(--tone-blog); }
+.hist-item .badge.vibe { background:rgba(var(--tone-vibe-rgb),.16); color:var(--tone-vibe); }
 .badge.draft { background:rgba(224,185,168,.16); color:#E8C4B5; }
-.hist-editing { color:#B9CEFF; background:rgba(157,185,255,.09); border:1px solid rgba(157,185,255,.22); }
 </style>
 </head>
-<body class="gate-open">
+<body class="gate-open" data-section="blog">
   <div class="mesh-bg" aria-hidden="true">
     <div class="mesh-blob b1"></div>
     <div class="mesh-blob b2"></div>
@@ -948,8 +974,8 @@ button.submit:hover { background:linear-gradient(135deg,#3A4E6E,#637BA6);
 
         <label>栏目</label>
         <div class="seg" id="seg">
-          <button type="button" class="seg-btn active" data-val="blog">博客</button>
-          <button type="button" class="seg-btn" data-val="vibe">意境</button>
+          <button type="button" class="seg-btn active" data-val="blog">Blog</button>
+          <button type="button" class="seg-btn" data-val="vibe">Vibe</button>
           <input type="hidden" name="section" value="blog" />
         </div>
 
@@ -1210,11 +1236,13 @@ button.submit:hover { background:linear-gradient(135deg,#3A4E6E,#637BA6);
     function syncSection() {
       const v = sectionInput.value;
       segBtns.forEach((b) => b.classList.toggle('active', b.dataset.val === v));
+      document.body.dataset.section = v === 'vibe' ? 'vibe' : 'blog';
     }
     segBtns.forEach((b) => b.addEventListener('click', () => {
       sectionInput.value = b.dataset.val;
       syncSection();
     }));
+    syncSection();
 
     async function unlock(pw) {
       pw = (pw || '').trim();
@@ -1403,9 +1431,10 @@ button.submit:hover { background:linear-gradient(135deg,#3A4E6E,#637BA6);
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'hist-item';
+        b.dataset.section = it.section === 'vibe' ? 'vibe' : 'blog';
         const secBadge = it.section === 'vibe'
-          ? '<span class="badge vibe">意境</span>'
-          : '<span class="badge blog">博客</span>';
+          ? '<span class="badge vibe">Vibe</span>'
+          : '<span class="badge blog">Blog</span>';
         const draftBadge = it.draft ? '<span class="badge draft">草稿</span>' : '';
         const dateStr = it.date ? it.date.slice(0, 10) : '无日期';
         b.innerHTML =
