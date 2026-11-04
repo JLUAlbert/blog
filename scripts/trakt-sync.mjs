@@ -364,6 +364,15 @@ const END_MARK = '<!-- trakt:end -->';
 
 const day = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : null);
 
+// 年份分桶：把每部作品的“最近一次观看”归入对应年份，供页面底部年表使用
+const yearBuckets = new Map();
+function pushYear(dateStr, title) {
+  if (!dateStr || !title) return;
+  const y = dateStr.slice(0, 4);
+  if (!yearBuckets.has(y)) yearBuckets.set(y, []);
+  yearBuckets.get(y).push(title);
+}
+
 const seasonRows = (rec) =>
   [...rec.seasons.entries()]
     .sort((a, b) => a[0] - b[0])
@@ -517,6 +526,7 @@ async function main() {
   const wantedShows = [...showIndex.values()].slice(0, only === 'shows' ? limit : limit);
 
   let written = 0;
+  let totalMinutes = 0;
   const report = [];
 
   if (only !== 'shows') {
@@ -550,6 +560,8 @@ async function main() {
         last: day(rec.last),
       });
       written += 1;
+      totalMinutes += det.runtime || 0;
+      pushYear(day(rec.last), rec.title);
     }
   }
 
@@ -585,6 +597,8 @@ async function main() {
         last: day(rec.last),
       });
       written += 1;
+      totalMinutes += (det.runtime || 0) * episodes;
+      pushYear(day(rec.last), rec.title);
     }
   }
 
@@ -592,7 +606,33 @@ async function main() {
     report.sort((a, b) => String(b.last).localeCompare(String(a.last)));
     const out = report.map((r) => `${r.last}  ${r.kind.padEnd(6)} ${r.title}`).join('\n');
     await fs.writeFile(path.join(ROOT, 'scripts/.trakt-report.txt'), out + '\n');
+
+    // 汇总给页面用：作品数、总屏幕时长、起始年份，以及按年份分组的作品清单
+    const years = [...yearBuckets.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([year, titles]) => ({
+        year: Number(year),
+        titles: titles.sort((x, y) => x.localeCompare(y)),
+      }));
+    const sinceYear = years.length ? Number(years[years.length - 1].year) : null;
+    const summary = {
+      works: written,
+      totalMinutes,
+      sinceYear,
+      years,
+      updatedAt: new Date().toISOString(),
+    };
+    await fs.writeFile(
+      path.join(ROOT, 'src/data/shelf-summary.json'),
+      JSON.stringify(summary, null, 2) + '\n',
+    );
+
     console.log(`\n写入 ${written} 个条目到 src/content/movie/`);
+    console.log(
+      `汇总：src/data/shelf-summary.json（${summary.works} 部作品 · ${Math.round(
+        totalMinutes / 60,
+      )} 小时 · 始于 ${sinceYear}）`,
+    );
     console.log(`清单：scripts/.trakt-report.txt`);
   }
 }

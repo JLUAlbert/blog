@@ -19,6 +19,14 @@ const items = entries.map((entry) => ({
   rating: entry.data.rating,
   href: entry.data.externalUrl,
 }));
+
+// 片单汇总（作品数 / 总时长 / 按年份分组）由 trakt-sync 生成；缺失时优雅降级
+let summary = null;
+try {
+  summary = (await import('../data/shelf-summary.json')).default;
+} catch {
+  summary = null;
+}
 ---
 
 <ShelfPage
@@ -26,5 +34,6 @@ const items = entries.map((entry) => ({
   kicker=""
   countLabel="films & series"
   items={items}
+  summary={summary}
   empty="The shelf is empty. Run the Trakt sync to pull watch history."
 />

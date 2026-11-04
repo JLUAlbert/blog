@@ -6,6 +6,13 @@ import BlogTopNav from './blog/BlogTopNav.astro';
 import { getSiteConfig } from '../data/site';
 import { getHtmlLang } from '../utils/ui-text';
 
+interface ShelfSummary {
+  works: number;
+  totalMinutes: number;
+  sinceYear: number | null;
+  years: { year: number; titles: string[] }[];
+}
+
 interface Props {
   pageMeta: { title: string; subtitle: string; note: string };
   kicker: string;
@@ -13,9 +20,18 @@ interface Props {
   empty: string;
   variant?: 'shelf' | 'inline';
   countLabel?: string;
+  summary?: ShelfSummary | null;
 }
 
-const { pageMeta, kicker, items, empty, variant = 'shelf', countLabel = 'items' } = Astro.props;
+const {
+  pageMeta,
+  kicker,
+  items,
+  empty,
+  variant = 'shelf',
+  countLabel = 'items',
+  summary = null,
+} = Astro.props;
 const siteConfig = await getSiteConfig();
 const { site, theme } = siteConfig;
 const palette = theme.palette;
@@ -119,6 +135,48 @@ const htmlLang = getHtmlLang(siteConfig);
         margin: 24px 0 0;
         font-size: 0.76rem;
       }
+      /* 底部按年份分组的轻量文字年表，不另起图表 */
+      .shelf-years {
+        margin-top: clamp(48px, 8vw, 80px);
+        padding-top: 28px;
+        border-top: 1px solid var(--paper-line);
+      }
+      .shelf-years-title {
+        margin: 0 0 18px;
+        color: var(--paper-ink-soft);
+        font-family: var(--font-ui-label);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .shelf-year {
+        margin-bottom: 22px;
+      }
+      .shelf-year-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .shelf-year-name {
+        color: var(--paper-ink);
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      .shelf-year-count {
+        color: var(--paper-ink-faint);
+        font-family: var(--font-meta);
+        font-size: 0.78rem;
+      }
+      .shelf-year-titles {
+        margin: 0;
+        color: var(--paper-ink-faint);
+        font-family: var(--font-meta);
+        font-size: 0.8rem;
+        line-height: 1.85;
+        max-width: 70ch;
+      }
       @media (max-width: 760px) {
         main {
           padding-top: 98px;
@@ -140,13 +198,40 @@ const htmlLang = getHtmlLang(siteConfig);
         </div>
       </header>
       <div class="shelf-heading">
-        <span class="shelf-count">{items.length} {countLabel}</span>
+        {
+          summary ? (
+            <span class="shelf-count">
+              {summary.works} works · {Math.round(summary.totalMinutes / 60)} h · since{' '}
+              {summary.sinceYear}
+            </span>
+          ) : (
+            <span class="shelf-count">
+              {items.length} {countLabel}
+            </span>
+          )
+        }
       </div>
       {
         items.length ? (
           <MediaShelf variant={variant} columns={4} items={items} />
         ) : (
           <p class="shelf-empty">{empty}</p>
+        )
+      }
+      {
+        summary?.years?.length > 0 && (
+          <section class="shelf-years" aria-label="By year">
+            <h2 class="shelf-years-title">By year</h2>
+            {summary.years.map((y) => (
+              <div class="shelf-year">
+                <div class="shelf-year-head">
+                  <span class="shelf-year-name">{y.year}</span>
+                  <span class="shelf-year-count">{y.titles.length}</span>
+                </div>
+                <p class="shelf-year-titles">{y.titles.join(' · ')}</p>
+              </div>
+            ))}
+          </section>
         )
       }
     </main>
