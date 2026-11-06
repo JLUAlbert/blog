@@ -1,11 +1,12 @@
 {
-  "works": 135,
-  "totalMinutes": 22296,
+  "works": 136,
+  "totalMinutes": 22903,
   "sinceYear": 2017,
   "years": [
     {
       "year": 2026,
       "titles": [
+        "1917",
         "2046",
         "A Chinese Odyssey Part One: Pandora's Box",
         "A Chinese Odyssey Part Two: Cinderella",
@@ -13,6 +14,7 @@
         "A Confucian Confusion",
         "A Moment to Remember",
         "A Touch of Sin",
+        "A Touch of Zen",
         "About Time",
         "Adrift in Love",
         "All Quiet on the Western Front",
@@ -65,7 +67,6 @@
         "Kingsman: The Secret Service",
         "La La Land",
         "Late Autumn",
-        "Little Women",
         "Little Women",
         "Logan",
         "Lord of War",
@@ -164,5 +165,5 @@
       ]
     }
   ],
-  "updatedAt": "2026-11-04T15:52:35.893Z"
+  "updatedAt": "2026-11-06T11:51:31.383Z"
 }
