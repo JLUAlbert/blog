@@ -31,7 +31,8 @@ jobs:
         run: |
           git config user.name "trakt-sync-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add src/content/movie src/data/shelf-summary.json
+          # -A 保证「同步脚本删掉的条目」也被提交，而不只是新增/修改
+          git add -A src/content/movie src/data/shelf-summary.json
           if git diff --cached --quiet; then
             echo "No changes"
           else

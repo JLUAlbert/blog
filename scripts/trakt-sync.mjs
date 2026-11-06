@@ -425,6 +425,28 @@ async function writeEntry({ slug, fields, body, source }) {
   return { slug, bytes: out.length, source };
 }
 
+// Trakt 里删掉的观看记录不会主动通知我们。每次全量渲染后，把目录里
+// 已经不在本次数据中的条目清掉，否则被删的片子会一直挂在站上。
+// 只认同步自己生成的 film-/series- 前缀，避免误删手工放进去的文件。
+async function pruneOrphans(expected) {
+  // --limit / --only 是冒烟测试，只拉了部分数据，绝不能据此删文件
+  if (limit !== Infinity || only !== 'all') return 0;
+  let files;
+  try {
+    files = await fs.readdir(OUT_DIR);
+  } catch {
+    return 0;
+  }
+  const orphans = files.filter(
+    (f) => /^(film|series)-.*\.md$/.test(f) && !expected.has(f.replace(/\.md$/, '')),
+  );
+  for (const f of orphans) {
+    console.log(`  ${dryRun ? '[dry-run] 将移除' : '移除'}已删除的条目：${f}`);
+    if (!dryRun) await fs.unlink(path.join(OUT_DIR, f));
+  }
+  return orphans.length;
+}
+
 function movieBody(rec, det, rating) {
   const lines = [];
   const when = day(rec.last);
@@ -528,6 +550,7 @@ async function main() {
   let written = 0;
   let totalMinutes = 0;
   const report = [];
+  const expectedSlugs = new Set();
 
   if (only !== 'shows') {
     for (const rec of wantedMovies) {
@@ -536,6 +559,7 @@ async function main() {
         : await details('movie', rec.ids.trakt, token);
       const rating = ratings.movies.get(rec.ids.trakt);
       const slug = `film-${rec.ids.slug || slugify(rec.title)}`;
+      expectedSlugs.add(slug);
       const fields = {
         title: rec.title,
         creator: det.creator || '—',
@@ -574,6 +598,7 @@ async function main() {
       const episodes = [...rec.seasons.values()].reduce((n, s) => n + s.size, 0);
       const finished = det.aired > 0 && episodes >= det.aired;
       const slug = `series-${rec.ids.slug || slugify(rec.title)}`;
+      expectedSlugs.add(slug);
       const fields = {
         title: rec.title,
         creator: det.creator || det.network || '—',
@@ -602,6 +627,8 @@ async function main() {
     }
   }
 
+  const pruned = await pruneOrphans(expectedSlugs);
+
   if (!dryRun) {
     report.sort((a, b) => String(b.last).localeCompare(String(a.last)));
     const out = report.map((r) => `${r.last}  ${r.kind.padEnd(6)} ${r.title}`).join('\n');
@@ -627,7 +654,10 @@ async function main() {
       JSON.stringify(summary, null, 2) + '\n',
     );
 
-    console.log(`\n写入 ${written} 个条目到 src/content/movie/`);
+    console.log(
+      `\n写入 ${written} 个条目到 src/content/movie/` +
+        (pruned ? `，移除 ${pruned} 个已从 Trakt 删除的条目` : ''),
+    );
     console.log(
       `汇总：src/data/shelf-summary.json（${summary.works} 部作品 · ${Math.round(
         totalMinutes / 60,
