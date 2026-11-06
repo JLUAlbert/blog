@@ -32,6 +32,10 @@ const ids = [
   'sync-btn',
   'sync-label',
   'sync-meta',
+  'draft-note',
+  'hist-warn',
+  'hist-retry',
+  'deploy-note',
 ];
 for (const id of ids) {
   if (!html.includes(`id="${id}"`)) throw new Error(`发布台缺少节点 #${id}`);
@@ -71,16 +75,43 @@ for (const [label, action, init] of [
   ['状态', 'sync-status', { method: 'GET' }],
   ['启动', 'sync-start', { method: 'GET' }],
   ['写回', 'sync-finish', { method: 'POST' }],
+  ['站点状态', 'site-status', { method: 'GET' }],
+  ['删除文章', 'delete', { method: 'POST' }],
 ]) {
   const res = await mod.default.fetch(
     new Request('https://example.com/publish?action=' + action, init),
     checkEnv,
   );
   if (res.status !== 401) {
-    throw new Error(`片单同步${label}接口没有正确拒绝无口令请求：${res.status}`);
+    throw new Error(`发布台${label}接口没有正确拒绝无口令请求：${res.status}`);
+  }
+}
+
+// 「成功」必须同时看两个平台的部署结论，不能只看片单生成任务
+for (const needle of [
+  'deploy-pages.yml',
+  'deploy-cloudflare.yml',
+  'site-status',
+  'handleDelete',
+  'abp_draft_v1',
+]) {
+  if (!src.includes(needle)) throw new Error(`发布台缺少上线状态 / 删除 / 草稿能力：${needle}`);
+}
+
+// 部署链路：片单生成完必须显式重新构建；两条流水线用同一套检查与固定依赖
+for (const file of ['deploy-pages.yml', 'deploy-cloudflare.yml']) {
+  const text = fs.readFileSync(new URL('.github/workflows/' + file, root), 'utf8');
+  for (const needle of [
+    "workflows: ['Trakt sync']",
+    'paths-ignore:',
+    'npm ci',
+    'check:worker',
+    'format:check',
+  ]) {
+    if (!text.includes(needle)) throw new Error(`${file} 缺少 ${needle}`);
   }
 }
 
 console.log(
-  `发布台页面检查通过：${scripts.length} 段脚本语法正常，${ids.length} 个关键节点齐全，片单同步已口令保护且保持公开只读`,
+  `发布台页面检查通过：${scripts.length} 段脚本语法正常，${ids.length} 个关键节点齐全，维护接口已口令保护，两条部署流水线已统一`,
 );

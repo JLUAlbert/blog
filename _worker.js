@@ -266,6 +266,7 @@ async function handleList(request, env) {
   const branch = branchOf(env);
   const sections = ['blog', 'vibe'];
   const items = [];
+  let failed = 0;
 
   for (const section of sections) {
     const listRes = await withTimeout(
@@ -276,7 +277,10 @@ async function handleList(request, env) {
         }),
       8000,
     );
-    if (!listRes || !listRes.ok || !Array.isArray(listRes.json)) continue;
+    if (!listRes || !listRes.ok || !Array.isArray(listRes.json)) {
+      failed += 1;
+      continue;
+    }
     const files = listRes.json.filter((f) => f.name && f.name.endsWith('.md'));
 
     // 并发（上限 20）拉取每个文件内容，取出标题/日期/sha；单文件 5s 超时则跳过
@@ -294,7 +298,10 @@ async function handleList(request, env) {
     });
 
     for (const g of got) {
-      if (!g) continue;
+      if (!g) {
+        failed += 1;
+        continue;
+      }
       const { data } = parseFrontmatter(g.raw);
       // 优先用 frontmatter 日期；否则回退到文件名里的日期前缀（发布台生成的文件都有）
       let date = data.date || '';
@@ -320,7 +327,8 @@ async function handleList(request, env) {
     const d = (b.date || '').localeCompare(a.date || '');
     return d !== 0 ? d : b.path.localeCompare(a.path);
   });
-  return json({ ok: true, items });
+  // 读失败不再静默丢弃：前端会明确提示有几篇没读到，并给一键重试
+  return json({ ok: true, items, failed });
 }
 
 /* ---------------- 片单同步：发布台内一键完成，不必进 GitHub ----------------
@@ -354,6 +362,30 @@ async function syncRuns(owner, repo, token, signal) {
     conclusion: run.conclusion,
     createdAt: run.created_at,
   }));
+}
+
+// 两个站点各自最近一次部署任务：发布台用它判断「任务跑完了，但站点是否真的上线」
+async function deployRuns(owner, repo, token, signal) {
+  const defs = [
+    ['deploy-pages.yml', 'GitHub Pages'],
+    ['deploy-cloudflare.yml', 'Cloudflare'],
+  ];
+  const out = [];
+  for (const [file, name] of defs) {
+    const r = await gh(`/repos/${owner}/${repo}/actions/workflows/${file}/runs?per_page=3`, {
+      token,
+      signal,
+    });
+    const runs = r.ok && Array.isArray(r.json && r.json.workflow_runs) ? r.json.workflow_runs : [];
+    const last = runs[0] || null;
+    out.push({
+      name,
+      status: last ? last.status : null,
+      conclusion: last ? last.conclusion : null,
+      createdAt: last ? last.created_at : null,
+    });
+  }
+  return out;
 }
 
 const TRAKT_CLIENT_ID = 'kPI6oQBbAcEpTjfRsn_DAo5mOOqgkYon3z27QFoDl-o';
@@ -472,17 +504,60 @@ async function handleSyncFinish(request, env) {
 async function handleSyncStatus(request, env) {
   const auth = publishAuth(request, env);
   if (auth.error) return json({ error: auth.error }, auth.status);
-  const runs =
-    (await withTimeout(
-      (signal) => syncRuns(ownerOf(env), repoOf(env), auth.token, signal),
-      8000,
-    )) || [];
+  const owner = ownerOf(env);
+  const repo = repoOf(env);
+  const [runList, deploy] = await Promise.all([
+    withTimeout((signal) => syncRuns(owner, repo, auth.token, signal), 8000),
+    withTimeout((signal) => deployRuns(owner, repo, auth.token, signal), 8000),
+  ]);
+  const runs = runList || [];
   return json({
     ok: true,
     run: runs[0] || null,
     lastSuccess:
       runs.find((run) => run.status === 'completed' && run.conclusion === 'success') || null,
+    deploy: deploy || [],
   });
+}
+
+// 发文章后只查上线进度，不必等片单同步任务
+async function handleSiteStatus(request, env) {
+  const auth = publishAuth(request, env);
+  if (auth.error) return json({ error: auth.error }, auth.status);
+  const deploy =
+    (await withTimeout(
+      (signal) => deployRuns(ownerOf(env), repoOf(env), auth.token, signal),
+      8000,
+    )) || [];
+  return json({ ok: true, deploy });
+}
+
+// 历史面板删除文章：只删内容文件，图片留在仓库（可能被别的文章引用）
+async function handleDelete(request, env) {
+  const auth = publishAuth(request, env);
+  if (auth.error) return json({ error: auth.error }, auth.status);
+  let payload;
+  try {
+    payload = await request.json();
+  } catch (err) {
+    return json({ error: '数据格式不对' }, 400);
+  }
+  const p = String((payload && payload.path) || '').trim();
+  if (!/^src\/content\/(blog|vibe)\/[A-Za-z0-9._-]+\.md$/.test(p)) {
+    return json({ error: '无效的文章路径' }, 400);
+  }
+  const owner = ownerOf(env);
+  const repo = repoOf(env);
+  const branch = branchOf(env);
+  const sha = await getSha(owner, repo, branch, p, auth.token);
+  if (!sha) return json({ error: '文章不存在或已被删除' }, 404);
+  const r = await gh(`/repos/${owner}/${repo}/contents/${encodeURI(p)}`, {
+    method: 'DELETE',
+    body: { message: `delete: ${p.split('/').pop()}`, sha, branch },
+    token: auth.token,
+  });
+  if (!r.ok) return json({ error: '删除失败: ' + (r.json.message || r.status) }, 502);
+  return json({ ok: true, path: p });
 }
 
 /* ---------------- 单篇：按路径读取，供编辑回填 ---------------- */
@@ -722,9 +797,13 @@ export default {
         if (action === 'article') return handleArticle(request, env);
         if (action === 'sync-status') return handleSyncStatus(request, env);
         if (action === 'sync-start') return handleSyncStart(request, env);
+        if (action === 'site-status') return handleSiteStatus(request, env);
       }
       if (request.method === 'POST' && url.searchParams.get('action') === 'sync-finish') {
         return handleSyncFinish(request, env);
+      }
+      if (request.method === 'POST' && url.searchParams.get('action') === 'delete') {
+        return handleDelete(request, env);
       }
       return handlePublish(request, env);
     }
@@ -1134,6 +1213,33 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
 .hist-item .badge.blog { background:rgba(var(--tone-blog-rgb),.16); color:var(--tone-blog); }
 .hist-item .badge.vibe { background:rgba(var(--tone-vibe-rgb),.16); color:var(--tone-vibe); }
 .badge.draft { background:rgba(224,185,168,.16); color:#E8C4B5; }
+
+/* 草稿恢复：低调一行，不打断填写 */
+.draft-note { margin:12px 0 0; padding:10px 14px; border:1px solid rgba(var(--accent-rgb),.28);
+  border-radius:14px; background:rgba(var(--accent-rgb),.07); color:var(--muted);
+  font-size:12.5px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.draft-note[hidden] { display:none; }
+.draft-note button { background:transparent; border:1px solid var(--border-strong); color:var(--fg);
+  border-radius:var(--r-pill); padding:3px 12px; font-size:12px; cursor:pointer; font-family:inherit; }
+.draft-note button:hover { border-color:var(--accent); color:var(--accent); }
+/* 历史：读取失败提示、分批展开、删除 */
+.hist-warn { margin:0 0 10px; padding:10px 14px; border:1px solid rgba(232,180,159,.35);
+  border-radius:14px; background:rgba(232,180,159,.08); color:#E8B49F; font-size:12.5px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.hist-warn[hidden] { display:none; }
+.hist-warn button { background:transparent; border:1px solid rgba(232,180,159,.5); color:#E8B49F;
+  border-radius:var(--r-pill); padding:3px 12px; font-size:12px; cursor:pointer; font-family:inherit; }
+.hist-item .del { margin-left:auto; font-size:11.5px; color:var(--muted-2);
+  border:1px solid var(--border-strong); border-radius:var(--r-pill); padding:2px 10px;
+  background:transparent; cursor:pointer; font-family:inherit; opacity:.7; }
+.hist-item:hover .del { opacity:1; }
+.hist-item .del:hover { color:#E8B49F; border-color:rgba(232,180,159,.55); }
+.hist-more { display:block; width:100%; margin:6px 0 20px; padding:12px; border:1px solid var(--border);
+  border-radius:var(--r-inner); background:var(--glass); color:var(--muted); font-size:13px;
+  cursor:pointer; font-family:inherit; }
+.hist-more:hover { color:var(--accent); border-color:rgba(var(--accent-rgb),.5); }
+#deploy-note { margin:8px 0 0; color:var(--muted); font-size:12.5px; }
+#deploy-note[hidden] { display:none; }
 </style>
 </head>
 <body class="gate-open" data-section="blog">
@@ -1175,6 +1281,12 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       <div class="tools-bar">
         <button class="sync-btn" id="sync-btn" type="button"><span class="spin">↻</span><span id="sync-label">同步片单</span></button>
         <div class="sync-meta" id="sync-meta">正在读取同步状态…</div>
+      </div>
+
+      <div id="draft-note" class="draft-note" hidden>
+        <span>上次没发完的草稿还在</span>
+        <button type="button" id="draft-restore">恢复</button>
+        <button type="button" id="draft-drop">丢弃</button>
       </div>
 
       <form id="f">
@@ -1240,6 +1352,7 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       <div id="inline-toast" role="status" aria-live="polite"></div>
       <div id="progress"><div class="bar"><i id="bar-fill"></i></div><div class="label" id="progress-label">正在发布…</div></div>
       <div id="result"></div>
+      <div id="deploy-note" hidden></div>
       <p class="hist-editing" id="hist-editing"></p>
     </div>
   </div>
@@ -1254,6 +1367,10 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       <button class="hist-close" id="hist-close" type="button" aria-label="关闭">×</button>
     </div>
     <div class="hist-search"><input id="hist-search-input" type="text" placeholder="搜索" autocomplete="off" /></div>
+    <div class="hist-warn" id="hist-warn" hidden>
+      <span id="hist-warn-text"></span>
+      <button type="button" id="hist-retry">重试</button>
+    </div>
     <div class="hist-list" id="hist-list">
       <div class="hist-loading">加载中…</div>
     </div>
@@ -1278,6 +1395,10 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
     const histEditing = document.getElementById('hist-editing');
     const histCount = document.getElementById('hist-count');
     const histSearchInput = document.getElementById('hist-search-input');
+    const histWarn = document.getElementById('hist-warn');
+    const histWarnText = document.getElementById('hist-warn-text');
+    const histRetry = document.getElementById('hist-retry');
+    const deployNote = document.getElementById('deploy-note');
 
     let passcode = '';
     let unlocking = false;
@@ -1454,6 +1575,75 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
     }));
     syncSection();
 
+    /* ---------------- 草稿：本地自动保存，误关页面不丢正文 ----------------
+       只存文字字段，图片二进制不进本地存储；恢复时把正文里的插图标记为
+       「待重新插入」，沿用已有的防断图检查，避免发出一篇带空图的文章。 */
+    const DRAFT_KEY = 'abp_draft_v1';
+    const DRAFT_FIELDS = ['title', 'description', 'tags', 'series', 'date', 'slug',
+      'content', 'section', 'draft', 'editPath'];
+    const draftNote = document.getElementById('draft-note');
+    let draftTimer = null;
+    let savedDraft = null;
+
+    function readDraftForm() {
+      const o = {};
+      for (const name of DRAFT_FIELDS) {
+        const el = form.querySelector('[name=' + name + ']');
+        if (!el) continue;
+        o[name] = el.type === 'checkbox' ? el.checked : el.value;
+      }
+      return o;
+    }
+    function draftHasText(o) {
+      return ['title', 'description', 'tags', 'series', 'slug', 'content'].some(
+        (n) => String(o[n] || '').trim().length > 0,
+      );
+    }
+    function saveDraft() {
+      const o = readDraftForm();
+      if (!draftHasText(o)) { localStorage.removeItem(DRAFT_KEY); return; }
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(o)); } catch (err) { /* 存不下就算了 */ }
+    }
+    function scheduleDraft() {
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(saveDraft, 600);
+    }
+    function clearDraft() {
+      localStorage.removeItem(DRAFT_KEY);
+      savedDraft = null;
+      draftNote.hidden = true;
+    }
+    form.addEventListener('input', scheduleDraft);
+    form.addEventListener('change', scheduleDraft);
+    seg.addEventListener('click', scheduleDraft);
+    document.getElementById('draft-drop').addEventListener('click', clearDraft);
+    document.getElementById('draft-restore').addEventListener('click', () => {
+      if (!savedDraft) return;
+      for (const name of DRAFT_FIELDS) {
+        if (savedDraft[name] === undefined) continue;
+        const el = form.querySelector('[name=' + name + ']');
+        if (!el) continue;
+        if (el.type === 'checkbox') el.checked = !!savedDraft[name];
+        else el.value = savedDraft[name];
+      }
+      syncSection();
+      referencedImages().forEach((n) => { if (!pendingImages.has(n)) insertedNames.add(n); });
+      if (savedDraft.editPath) {
+        histEditing.innerHTML = '正在编辑上次未发完的文章（草稿恢复）' +
+          ' <button type="button" id="cancel-edit">取消</button>';
+      }
+      draftNote.hidden = true;
+      editor.focus();
+    });
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        savedDraft = JSON.parse(raw);
+        if (!savedDraft || !draftHasText(savedDraft)) clearDraft();
+        else draftNote.hidden = false;
+      }
+    } catch (err) { clearDraft(); }
+
     async function unlock(pw) {
       pw = (pw || '').trim();
       if (!pw) return;
@@ -1529,6 +1719,32 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       refreshSyncMeta();
     }
 
+    /* 发布只代表写进仓库；这里盯一下两个站点是否真的构建完，只更新一行文字，
+       不阻塞继续写下一篇。用 token 让旧的轮询在新一次发布后自动退出。 */
+    let deployWatchToken = 0;
+    async function watchDeploy(since, token) {
+      for (let i = 0; i < 40; i++) {
+        await wait(6000);
+        if (token !== deployWatchToken || deployNote.hidden) return;
+        let st;
+        try { st = await syncQuery('site-status'); } catch (err) { continue; }
+        if (!st.ok) continue;
+        const mine = (st.deploy || []).filter(
+          (d) => d.createdAt && new Date(d.createdAt).getTime() >= since,
+        );
+        if (mine.length < 2 || mine.some((d) => d.status !== 'completed')) {
+          deployNote.textContent = '正在上线… 已等待 ' + ((i + 1) * 6) + ' 秒';
+          continue;
+        }
+        const bad = mine.filter((d) => d.conclusion !== 'success').map((d) => d.name);
+        deployNote.textContent = bad.length
+          ? '文章已提交，但 ' + bad.join(' / ') + ' 没上线，稍后再看'
+          : '两个站点都已上线，链接可以直接打开';
+        return;
+      }
+      if (!deployNote.hidden) deployNote.textContent = '已提交，稍后会自动上线';
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!passcode) { relockNow(); return; }
@@ -1571,6 +1787,11 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
           result.innerHTML = '✅ ' + verb + '成功！\\nslug: ' + j.slug +
             '\\n<a href="' + j.githubPages + '" target="_blank">GitHub Pages</a>' +
             ' · <a href="' + j.cloudflare + '" target="_blank">Cloudflare</a>';
+          clearDraft();
+          deployWatchToken += 1;
+          deployNote.textContent = '已提交，正在上线…';
+          deployNote.hidden = false;
+          watchDeploy(Date.now() - 15000, deployWatchToken);
           histEditing.textContent = '';
           editPathField.value = '';
           pendingImages.clear();
@@ -1825,28 +2046,48 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         syncMetaText(err.message || '连接中断，点一下重试', 'bad');
         return;
       }
+      // 分两段判断：先等片单生成，再等两个站点真的构建完。生成成功不等于上线成功。
       const since = new Date(started.startedAt).getTime() - 20000;
-      for (let i = 0; i < 60; i++) {
+      let generated = false;
+      for (let i = 0; i < 90; i++) {
         await wait(6000);
         let st;
         try { st = await syncQuery('sync-status'); } catch (err) { continue; }
-        const run = st.ok ? st.run : null;
-        if (!run || new Date(run.createdAt).getTime() < since) continue;
-        if (run.status !== 'completed') {
-          syncMetaText('正在生成片单… 已等待 ' + ((i + 1) * 6) + ' 秒', 'busy');
+        if (!st.ok) continue;
+        if (!generated) {
+          const run = st.run;
+          if (!run || new Date(run.createdAt).getTime() < since) continue;
+          if (run.status !== 'completed') {
+            syncMetaText('正在生成片单… 已等待 ' + ((i + 1) * 6) + ' 秒', 'busy');
+            continue;
+          }
+          if (run.conclusion !== 'success') {
+            syncBusy(false);
+            syncMetaText('片单生成没成功，点一下重试', 'bad');
+            return;
+          }
+          generated = true;
+          syncMetaText('片单已生成 · 正在上线…', 'busy');
+        }
+        const mine = (st.deploy || []).filter(
+          (d) => d.createdAt && new Date(d.createdAt).getTime() >= since,
+        );
+        if (mine.length < 2 || mine.some((d) => d.status !== 'completed')) {
+          syncMetaText('正在上线… 已等待 ' + ((i + 1) * 6) + ' 秒', 'busy');
           continue;
         }
         syncBusy(false);
-        if (run.conclusion === 'success') {
-          syncMetaText('片单已更新 · 网站约 1–2 分钟后刷新', 'good');
-          toast('片单已更新', 3200);
+        const bad = mine.filter((d) => d.conclusion !== 'success').map((d) => d.name);
+        if (bad.length) {
+          syncMetaText('片单已生成，但 ' + bad.join(' / ') + ' 没上线，稍后再点一次', 'bad');
         } else {
-          syncMetaText('片单生成没成功，点一下重试', 'bad');
+          syncMetaText('片单已更新 · 两个站点都已上线', 'good');
+          toast('片单已更新', 3200);
         }
         return;
       }
       syncBusy(false);
-      syncMetaText('已提交，稍后 Movies 会自动更新', 'busy');
+      syncMetaText('已提交，稍后会自动上线', 'busy');
     }
     syncBtn.addEventListener('click', startSync);
 
@@ -1867,8 +2108,12 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       if (!histLoaded) { await loadHistory(); histLoaded = true; }
     }
 
+    let histShown = 30;
+    const HIST_PAGE = 30;
+
     async function loadHistory() {
       histList.innerHTML = '<div class="hist-loading">加载中…</div>';
+      histWarn.hidden = true;
       try {
         const r = await fetch('/publish?action=history', { headers: { 'x-publish-pw': passcode } });
         const j = await r.json();
@@ -1876,7 +2121,13 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         if (!j.items.length) { histList.innerHTML = '<div class="hist-empty">还没有文章</div>'; return; }
         allItems = j.items;
         histCount.textContent = '共 ' + j.items.length + ' 篇';
-        renderHistory('');
+        // 读取超时不再静默丢条目：明确告诉用户有几篇没读到，并给一键重试
+        if (j.failed) {
+          histWarnText.textContent = '有 ' + j.failed + ' 篇没读到，点右边重试';
+          histWarn.hidden = false;
+        }
+        histShown = HIST_PAGE;
+        renderHistory(histSearchInput.value || '');
       } catch (err) {
         histList.innerHTML = '<div class="hist-loading">网络错误：' + escapeHtml(err.message) + '</div>';
       }
@@ -1888,7 +2139,8 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       if (!items.length) { histList.innerHTML = '<div class="hist-empty">没有匹配的文章</div>'; return; }
       histList.innerHTML = '';
       let lastMonth = null;
-      for (const it of items) {
+      // 先渲染一屏，文章多了也不会一次性堆几百个节点；搜索仍基于完整列表
+      for (const it of items.slice(0, histShown)) {
         const month = (it.date || '').slice(0, 7);
         if (month && month !== lastMonth) {
           lastMonth = month;
@@ -1898,9 +2150,11 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
           d.textContent = parts[0] + ' 年 ' + parseInt(parts[1], 10) + ' 月';
           histList.appendChild(d);
         }
-        const b = document.createElement('button');
-        b.type = 'button';
+        // 用 div + role=button，内部才能放真正的「删除」按钮（按钮不能嵌套按钮）
+        const b = document.createElement('div');
         b.className = 'hist-item';
+        b.setAttribute('role', 'button');
+        b.tabIndex = 0;
         b.dataset.section = it.section === 'vibe' ? 'vibe' : 'blog';
         const secBadge = it.section === 'vibe'
           ? '<span class="badge vibe">Vibe</span>'
@@ -1909,14 +2163,63 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
         const dateStr = it.date ? it.date.slice(0, 10) : '无日期';
         b.innerHTML =
           '<div class="t">' + escapeHtml(it.title) + secBadge + draftBadge + '</div>' +
-          '<div class="meta"><span>' + dateStr + '</span><span class="p">' + escapeHtml(it.path) + '</span></div>' +
+          '<div class="meta"><span>' + dateStr + '</span><span class="p">' + escapeHtml(it.path) + '</span>' +
+          '<button type="button" class="del">删除</button></div>' +
           '<span class="go">编辑 →</span>';
-        b.addEventListener('click', () => loadArticle(it));
+        b.addEventListener('click', (e) => {
+          if (e.target && e.target.closest && e.target.closest('.del')) return;
+          loadArticle(it);
+        });
+        b.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !(e.target && e.target.closest && e.target.closest('.del'))) loadArticle(it);
+        });
+        const del = b.querySelector('.del');
+        del.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm('确定删除《' + it.title + '》？文章会从两个站点移除，图片会保留。')) return;
+          del.disabled = true;
+          del.textContent = '删除中…';
+          try {
+            const r = await fetch('/publish?action=delete', {
+              method: 'POST',
+              headers: { 'x-publish-pw': passcode, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: it.path }),
+            });
+            const j = await r.json();
+            if (!j.ok) {
+              alert('删除失败：' + (j.error || ''));
+              del.disabled = false;
+              del.textContent = '删除';
+              return;
+            }
+            if (editPathField.value === it.path) {
+              editPathField.value = '';
+              histEditing.textContent = '';
+            }
+            await loadHistory();
+          } catch (err) {
+            alert('网络错误：' + err.message);
+            del.disabled = false;
+            del.textContent = '删除';
+          }
+        });
         histList.appendChild(b);
+      }
+      if (items.length > histShown) {
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'hist-more';
+        more.textContent = '显示更多（还有 ' + (items.length - histShown) + ' 篇）';
+        more.addEventListener('click', () => {
+          histShown += HIST_PAGE;
+          renderHistory(query);
+        });
+        histList.appendChild(more);
       }
     }
 
-    histSearchInput.addEventListener('input', () => renderHistory(histSearchInput.value));
+    histRetry.addEventListener('click', () => { loadHistory(); });
+    histSearchInput.addEventListener('input', () => { histShown = HIST_PAGE; renderHistory(histSearchInput.value); });
 
     async function loadArticle(it) {
       histList.innerHTML = '<div class="hist-loading">读取「' + escapeHtml(it.title) + '」中…</div>';

@@ -19,7 +19,7 @@
     "check:worker": "node scripts/check-worker.mjs",
     "lint": "eslint .",
     "format": "prettier --write --ignore-unknown .",
-    "format:check": "bun run lint && prettier --check --ignore-unknown .",
+    "format:check": "eslint . && prettier --check --ignore-unknown .",
     "prepare": "husky"
   },
   "dependencies": {

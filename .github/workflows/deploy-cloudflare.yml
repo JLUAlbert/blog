@@ -11,6 +11,16 @@ on:
   push:
     branches:
       - main
+    # 片单底稿由发布台写入，本身不改变站点内容；等 Trakt sync 生成完再构建，
+    # 避免一次同步先构建出一份「旧片单」。
+    paths-ignore:
+      - 'scripts/.trakt-fixture.json'
+  # Trakt sync 生成的 Markdown 是用 Actions 自带令牌推的，不会再触发 push 事件，
+  # 所以显式监听它的完成，保证新片单一定会被构建上线。
+  workflow_run:
+    workflows: ['Trakt sync']
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +32,8 @@ concurrency:
 
 jobs:
   build:
+    # 片单生成失败时不要构建，避免把半成品推上线
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
       HUSKY: '0'
@@ -32,6 +44,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # workflow_run 默认解析的是触发方任务的 sha，这里显式拉 main 最新提交
+          # （含 Trakt sync 刚生成的片单 Markdown）
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,11 +55,15 @@ jobs:
           node-version: '24'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
+      # 两条流水线用同一套检查，避免两个站点拿到不同质量的构建
       # 发布台 HTML 内嵌在模板字符串里，语法错误会让整页交互静默失效
       - name: Check publish page script
         run: npm run check:worker
+
+      - name: Check formatting and lint
+        run: npm run format:check
 
       # 注意：这里 base 保持 '/'（Cloudflare 是根域名部署）
       - name: Build site
