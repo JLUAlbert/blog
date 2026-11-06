@@ -807,13 +807,21 @@ body { margin:0; font:16px/1.6 var(--font); background:var(--bg); color:var(--fg
   border-radius:var(--r-outer); padding:32px 30px; display:flex; flex-direction:column;
   align-items:center; gap:18px; max-width:340px; width:100%; box-shadow:0 24px 70px rgba(0,0,0,.45);
   opacity:0; animation:fadeup .9s ease .35s forwards; }
-.gate-mono { width:56px; height:56px; border-radius:16px; display:grid; place-items:center;
-  font-size:26px; font-weight:700; color:#fff; background:linear-gradient(135deg,#2997FF,#BF5AF2);
-  box-shadow:0 8px 24px rgba(41,151,255,.35); }
-.brand { font-size:21px; font-weight:300; letter-spacing:-.01em; }
-.brand b { font-weight:600; }
-.brand .dot { color:var(--accent); animation:dotPulse 2.6s ease-in-out infinite; }
-@keyframes dotPulse { 0%,100% { opacity:.55; } 50% { opacity:1; text-shadow:0 0 16px rgba(41,151,255,.75); } }
+/* 字标：等宽标签，替换原先的渐变方块；锁界面与发布台共用同一套 */
+.wlogo { display:inline-flex; align-items:center; gap:.62em; flex:none;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:15px;
+  text-decoration:none; color:var(--fg); cursor:pointer;
+  transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .3s; }
+.wlogo:hover { transform:translateY(-2px); }
+.wlogo:focus-visible { outline:2px solid var(--accent); outline-offset:5px; border-radius:6px; }
+.wlogo .mark { width:.5em; height:.5em; border-radius:2px; background:var(--accent); flex:none;
+  box-shadow:0 0 12px rgba(var(--accent-rgb),.5); transition:transform .35s; }
+.wlogo:hover .mark { transform:rotate(45deg); }
+.wlogo .word { font-size:1.02em; font-weight:500; letter-spacing:.14em; white-space:nowrap; }
+.wlogo .sub { color:var(--accent); opacity:.88; font-size:1.02em; letter-spacing:.14em; white-space:nowrap; }
+.wlogo .caret { font-size:1.02em; color:var(--accent); animation:wlogoBlink 1.5s steps(1) infinite; }
+@keyframes wlogoBlink { 0%,55% { opacity:1; } 56%,100% { opacity:.15; } }
+.gate-card .wlogo { font-size:15px; margin:12px 0 4px; }
 .prompt { width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
   padding:10px 16px; border-radius:14px; background:var(--glass-dark);
   border:1px solid var(--border); transition:border-color .25s,box-shadow .25s; }
@@ -839,10 +847,7 @@ body { margin:0; font:16px/1.6 var(--font); background:var(--bg); color:var(--fg
 
 .app-bar { display:flex; align-items:center; gap:12px; padding-bottom:20px;
   border-bottom:1px solid var(--border); margin-bottom:6px; }
-.mono { width:38px; height:38px; border-radius:11px; display:grid; place-items:center;
-  font-size:18px; font-weight:700; color:#fff; flex:none;
-  background:linear-gradient(135deg,#2997FF,#BF5AF2); box-shadow:0 4px 16px rgba(41,151,255,.3); }
-.app-bar .who { flex:1; min-width:0; font-size:15px; font-weight:600; letter-spacing:-.01em; }
+.app-bar .spacer { flex:1; min-width:0; }
 .app-bar .actions { display:flex; gap:8px; flex:none; }
 .gbtn { background:var(--glass); border:1px solid var(--border); color:var(--muted);
   font-size:12.5px; border-radius:var(--r-pill); padding:8px 14px; cursor:pointer; margin:0;
@@ -874,6 +879,10 @@ body { margin:0; font:16px/1.6 var(--font); background:var(--bg); color:var(--fg
 @media (max-width:420px) {
   .tools-bar { flex-wrap:wrap; }
   .sync-meta { flex-basis:100%; text-align:left; }
+  .app-bar { flex-wrap:wrap; row-gap:10px; }
+  .app-bar .spacer { flex-basis:100%; height:0; }
+  .app-bar .actions { margin-left:auto; }
+  .gate-card .wlogo { font-size:12.5px; }
 }
 @media (prefers-reduced-motion:reduce) {
   .sync-btn.busy .spin { animation:none; }
@@ -997,12 +1006,16 @@ button.submit:disabled { opacity:.6; cursor:default; transform:none; box-shadow:
 @media (max-width:600px) {
   .panel { padding:20px 18px; border-radius:24px; }
   textarea { min-height:38vh; }
+  .app-bar { gap:8px; }
+  .app-bar .wlogo { font-size:12.5px; }
+  .wlogo .word,.wlogo .sub { letter-spacing:.06em; }
+  .gbtn { padding:7px 11px; font-size:11.5px; }
 }
 @media (prefers-reduced-motion:reduce) {
   *,*::before,*::after { animation:none !important; transition-duration:.2s !important; }
   #gate.hidden { transform:none; filter:none; }
   #studio { transform:none; transition:opacity .3s ease !important; }
-  .brand,.plat,.gate-card { opacity:1 !important; transform:none !important; filter:none !important; }
+  .wlogo,.plat,.gate-card { opacity:1 !important; transform:none !important; filter:none !important; }
 }
 
 /* ===== 后续新增功能沿用玻璃风 ===== */
@@ -1085,12 +1098,7 @@ body { background:var(--bg); }
 #gate { background:rgba(8,10,13,.66); }
 .gate-card { box-shadow:0 24px 70px rgba(0,0,0,.55); }
 .panel { box-shadow:0 24px 80px rgba(0,0,0,.55); }
-.gate-mono, .mono { color:#F2F4F7;
-  background:linear-gradient(135deg,var(--btn-a),var(--btn-b));
-  box-shadow:0 8px 24px var(--shadow-glow);
-  transition:background .7s ease,box-shadow .7s ease; }
-.brand .dot { color:var(--accent); }
-@keyframes dotPulse { 0%,100% { opacity:.55; } 50% { opacity:1; text-shadow:0 0 16px rgba(var(--accent-rgb),.6); } }
+.wlogo .mark { box-shadow:0 0 12px rgba(var(--accent-rgb),.55); }
 .prompt:focus-within { border-color:rgba(var(--accent-rgb),.5); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.14); }
 .cursor { background:var(--accent); }
 @keyframes breathe { 0%,100% { opacity:.35; } 50% { opacity:1; box-shadow:0 0 14px 3px rgba(var(--accent-rgb),.45); } }
@@ -1144,11 +1152,10 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
       <a class="plat" href="https://jlualbert-blog.pages.dev" target="_blank" rel="noreferrer">Cloudflare</a>
     </div>
     <div class="gate-card">
-      <div class="gate-mono">A</div>
-      <div class="brand">Albert's Blog <b>Publish</b><span class="dot">.</span></div>
+      <a class="wlogo" href="https://jlualbert.github.io/blog/" target="_blank" rel="noreferrer" aria-label="前往 Albert's Blog"><span class="mark"></span><span class="word">Albert's Blog</span><span class="sub">Publish</span><span class="caret">_</span></a>
       <div class="prompt">
         <span class="cursor"></span>
-        <input id="gate-input" type="password" placeholder="口令" autocomplete="off" autocapitalize="off" />
+        <input id="gate-input" type="password" placeholder="password" autocomplete="off" autocapitalize="off" />
       </div>
     </div>
   </div>
@@ -1157,8 +1164,8 @@ button.submit:hover { background:linear-gradient(135deg,var(--btn-b),var(--btn-a
   <div id="studio" inert>
     <div class="panel">
       <div class="app-bar">
-        <div class="mono">A</div>
-        <div class="who">Albert's Blog</div>
+        <a class="wlogo" href="https://jlualbert.github.io/blog/" target="_blank" rel="noreferrer" aria-label="前往 Albert's Blog"><span class="mark"></span><span class="word">Albert's Blog</span><span class="sub">Publish</span><span class="caret">_</span></a>
+        <span class="spacer"></span>
         <div class="actions">
           <button class="gbtn" id="hist-btn" type="button">历史</button>
           <button class="gbtn" id="relock" type="button">锁定</button>

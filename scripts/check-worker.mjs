@@ -36,8 +36,18 @@ const ids = [
 for (const id of ids) {
   if (!html.includes(`id="${id}"`)) throw new Error(`发布台缺少节点 #${id}`);
 }
-for (const cls of ['gate-open', 'inert', 'tools-bar']) {
+for (const cls of ['gate-open', 'inert', 'tools-bar', 'wlogo']) {
   if (!html.includes(cls)) throw new Error(`发布台缺少 ${cls} 标记`);
+}
+// 字标：锁界面与顶栏各一处，都指向博客首页；旧的渐变方块不应再出现
+const marks = html.match(/class="wlogo"/g) || [];
+if (marks.length !== 2) throw new Error(`发布台字标应出现在锁界面与顶栏，实际 ${marks.length} 处`);
+if (!html.includes('href="https://jlualbert.github.io/blog/"')) {
+  throw new Error('发布台字标未指向博客站点');
+}
+if (!html.includes('placeholder="password"')) throw new Error('锁界面 password 占位文字缺失');
+for (const banned of ['gate-mono', 'class="mono"', 'class="brand"']) {
+  if (html.includes(banned)) throw new Error(`发布台仍残留旧标识：${banned}`);
 }
 for (const needle of [
   'sync-start',
