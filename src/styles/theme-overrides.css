@@ -15,10 +15,11 @@
   --font-vibe-text:
     'Libre Caslon Text', 'Adobe Caslon Pro', 'Baskerville', 'Libre Baskerville', Georgia,
     var(--font-serif-cn), 'PingFang SC', 'Microsoft YaHei', serif;
-  /* 滚动条：取当前色盘的强调色，浅色 / 深色 / 8 套色盘都会自动跟随。 */
-  --scrollbar-thumb: color-mix(in srgb, var(--paper-accent) 46%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--paper-accent) 78%, transparent);
-  --scrollbar-thumb-active: color-mix(in srgb, var(--paper-accent) 96%, transparent);
+  /* 滚动条：取当前色盘的强调色，浅色 / 深色 / 8 套色盘都会自动跟随。
+     带兜底色，避免主题外链 CSS 尚未就绪时 var() 缺失导致 color-mix 整条声明失效。 */
+  --scrollbar-thumb: color-mix(in srgb, var(--paper-accent, #667d6d) 46%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--paper-accent, #667d6d) 78%, transparent);
+  --scrollbar-thumb-active: color-mix(in srgb, var(--paper-accent, #667d6d) 96%, transparent);
 }
 
 /* —— 0b. 全站滚动条 ——
@@ -58,6 +59,121 @@
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* —— 0c. 页面切换 · Paper Sheet（ClientRouter / View Transitions API）——
+   复刻 About 面板：新页如一张纸从屏幕下方滑上来盖住旧页（旧页静止、不淡出），
+   纸上的内容在滑入过程中由微模糊收敛为清晰，对应 .about-panel-inner 的浮起。
+   参数与 .about-panel 一致：760ms / cubic-bezier(0.22, 1, 0.36, 1)。
+   html[data-nav-dir] 由 page-sheet-nav.ts 设置：up（默认）/ right / left。 */
+::view-transition-group(root) {
+  animation: none;
+}
+
+::view-transition-old(root) {
+  animation: none;
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  mix-blend-mode: normal;
+  animation:
+    paper-sheet-up 760ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    paper-sheet-focus 520ms ease 120ms both;
+}
+
+@keyframes paper-sheet-up {
+  from {
+    transform: translateY(100%);
+    box-shadow: 0 -22px 60px rgba(0, 0, 0, 0.16);
+  }
+  to {
+    transform: translateY(0);
+    box-shadow: 0 -22px 60px rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes paper-sheet-focus {
+  from {
+    filter: blur(3px);
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+/* 导航栏按左右位置：点右侧项从右滑入，点左侧项从左滑入 */
+html[data-nav-dir='right']::view-transition-new(root) {
+  animation-name: paper-sheet-right, paper-sheet-focus;
+}
+
+html[data-nav-dir='left']::view-transition-new(root) {
+  animation-name: paper-sheet-left, paper-sheet-focus;
+}
+
+@keyframes paper-sheet-right {
+  from {
+    transform: translateX(100%);
+    box-shadow: -22px 0 60px rgba(0, 0, 0, 0.16);
+  }
+  to {
+    transform: translateX(0);
+    box-shadow: -22px 0 60px rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes paper-sheet-left {
+  from {
+    transform: translateX(-100%);
+    box-shadow: 22px 0 60px rgba(0, 0, 0, 0.16);
+  }
+  to {
+    transform: translateX(0);
+    box-shadow: 22px 0 60px rgba(0, 0, 0, 0);
+  }
+}
+
+/* —— 0d. 外链纸页转场（由 page-sheet-nav.ts 动态创建，参数同上）—— */
+.page-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  transform: translateY(100%);
+  background: var(--paper-bg);
+  transition:
+    transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 760ms ease;
+  will-change: transform;
+}
+
+.page-sheet.is-open {
+  transform: translateY(0);
+  box-shadow: 0 -22px 60px rgba(0, 0, 0, 0.16);
+}
+
+.page-sheet-inner {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 520ms ease 120ms,
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1) 80ms;
+}
+
+.page-sheet.is-open .page-sheet-inner {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-sheet-mark {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--paper-accent, #667d6d);
 }
 
 /* —— 1. 被清空的标签残留（Notebook archive 等已置空）—— */
@@ -208,5 +324,16 @@
   .zoomable-image-lightbox__close,
   .zoomable-image-lightbox__nav {
     transition: none;
+  }
+
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+
+  .page-sheet,
+  .page-sheet-inner {
+    transition: none !important;
   }
 }

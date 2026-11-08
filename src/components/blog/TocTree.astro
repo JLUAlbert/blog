@@ -82,7 +82,7 @@ const { items, level = 1, path = '', idPrefix = 'toc', navLink = false } = Astro
     overflow-y: auto;
     padding-right: 4px;
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--paper-accent) 24%, transparent) transparent;
+    scrollbar-color: color-mix(in srgb, var(--paper-accent, #667d6d) 24%, transparent) transparent;
   }
 
   .toc-card.collapsible .toc-list-wrap {

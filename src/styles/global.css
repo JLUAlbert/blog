@@ -31,38 +31,10 @@
   margin-top: 0.22em;
 }
 
-/* ===== 页面切换过渡 · Paper Motion（ClientRouter / View Transitions API） =====
-   设计语言：纸页起落。旧页如纸轻轻下沉淡出，新页自下浮起、微模糊收敛为清晰。
-   无缩放、无平移、无全屏遮罩；首次打开不播任何入场动画。
-   全站统一一种节奏，手机/桌面皆顺滑，尊重「减少动态效果」偏好。 */
-::view-transition-old(root) {
-  animation: paper-out 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-::view-transition-new(root) {
-  animation: paper-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes paper-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-@keyframes paper-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-    filter: blur(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-}
+/* ===== 页面切换过渡 =====
+   全站转场统一定义在 theme-overrides.css（由集成注入到每个页面的 <head>，
+   含主题包生成的 vibe 页）：Paper Sheet —— 复刻 About 面板的整页上滑覆盖。
+   本文件只保留文章页内容的错峰浮起与「减少动态效果」降级。 */
 
 /* 文章页内容错峰浮起：日期 → 标题 → 头图，每段错开 70ms。
    仅在客户端导航（html.client-nav）时启用，直接打开文章不播放入场。 */

@@ -185,8 +185,8 @@ const paletteIntegration = {
 
 // 主题覆盖样式（全局注入）：
 // vibe 页由主题包生成（走主题自带 BaseHead），无法改其组件源码，也加载不到我们的样式表，
-// 因此「vibe 表头两栏 / 空标签隐藏 / 图片灯箱」统一放在 src/styles/theme-overrides.css，
-// 由这里读取后注入每个页面的 <head>。样式本身不再写在配置里。
+// 因此「vibe 表头两栏 / 空标签隐藏 / 图片灯箱 / 全站滚动条」统一放在
+// src/styles/theme-overrides.css，由这里读取后注入每个页面的 <head>。
 const themeOverridesCss = fs.readFileSync(
   new URL('./src/styles/theme-overrides.css', import.meta.url),
   'utf8',
@@ -202,17 +202,34 @@ const motionEnhancementIntegration = {
       injectScript(
         'head-inline',
         `(() => {
-  if (document.getElementById('theme-overrides')) return;
-  const style = document.createElement('style');
-  style.id = 'theme-overrides';
-  style.textContent = ${JSON.stringify(themeOverridesCss)};
-  document.head.appendChild(style);
+  const css = ${JSON.stringify(themeOverridesCss)};
+  const STYLE_ID = 'theme-overrides';
+  // ClientRouter 的 swapHeadElements 会删掉「新文档 head 中不存在的」<style>，
+  // 而 head-inline 脚本在客户端软导航后不会重跑。若只在首屏注入一次，
+  // 每次站内跳转后滚动条等全局样式就会退回浏览器默认外观，直到硬刷新才恢复。
+  // 因此在每次导航后幂等补注入，与 paletteIntegration 的 ensurePaletteStyle 保持一致。
+  const ensureThemeOverrides = () => {
+    let style = document.getElementById(STYLE_ID);
+    if (!style) {
+      style = document.createElement('style');
+      style.id = STYLE_ID;
+      document.head.appendChild(style);
+    }
+    if (style.textContent !== css) style.textContent = css;
+  };
+  ensureThemeOverrides();
+  document.addEventListener('astro:after-swap', ensureThemeOverrides);
+  document.addEventListener('astro:page-load', ensureThemeOverrides);
 })();`,
+      );
+      const pageSheetNavPath = fileURLToPath(
+        new URL('./src/scripts/page-sheet-nav.ts', import.meta.url),
       );
       const blurInPath = fileURLToPath(new URL('./src/scripts/blur-in.ts', import.meta.url));
       const zoomablePath = fileURLToPath(
         new URL('./src/utils/zoomable-images.ts', import.meta.url),
       );
+      injectScript('page', `import ${JSON.stringify(pageSheetNavPath)};`);
       injectScript('page', `import ${JSON.stringify(blurInPath)};`);
       injectScript(
         'page',
