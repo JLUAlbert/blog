@@ -1,6 +1,6 @@
 {
-  "works": 136,
-  "totalMinutes": 22903,
+  "works": 144,
+  "totalMinutes": 23802,
   "sinceYear": 2017,
   "years": [
     {
@@ -55,6 +55,7 @@
         "Happy Together",
         "He's a Woman, She's a Man",
         "Heavenly Forest",
+        "Her",
         "Hill of No Return",
         "History of the Sky",
         "How to Steal a Million",
@@ -65,6 +66,7 @@
         "Joker",
         "Joker: Folie à Deux",
         "Kingsman: The Secret Service",
+        "Knives Out",
         "La La Land",
         "Late Autumn",
         "Little Women",
@@ -86,6 +88,7 @@
         "Portrait of a Lady on Fire",
         "Pride & Prejudice",
         "Return to Dust",
+        "Royal Tramp",
         "Rurouni Kenshin: The Beginning",
         "Sabrina",
         "Se7en",
@@ -111,11 +114,16 @@
         "Swordsman III: The East Is Red",
         "The Amazing Spider-Man",
         "The Amazing Spider-Man 2",
+        "The Assassin",
         "The Assassination of Jesse James by the Coward Robert Ford",
+        "The Assassins",
+        "The Bare-Footed Kid",
+        "The Bride with White Hair",
         "The Dark Knight",
         "The Dark Knight Rises",
         "The English Patient",
         "The Grandmaster",
+        "The Handmaiden",
         "The Lady Improper",
         "The Legend of the Swordsman",
         "The Magnificent Scoundrels",
@@ -165,5 +173,5 @@
       ]
     }
   ],
-  "updatedAt": "2026-11-06T14:29:50.939Z"
+  "updatedAt": "2026-11-12T11:28:15.493Z"
 }
