@@ -105,7 +105,19 @@ npm run vibe:new     # 新建短记录骨架
 node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json   # 用底稿离线重建片单 Markdown
 ```
 
-字体子集化是可选的一次性操作：`python3 -m venv .venv && .venv/bin/python -m pip install fonttools brotli`，之后 `npm run fonts:ui`。生成的 `public/fonts/LXGWWenKai-ui-subset.woff2` 需要提交到仓库，否则线上会回退加载全量字体。
+字体子集化流程（新增/更新繁简文章用字后执行）：
+
+1. 准备官方完整字体（含繁体字形，约 25MB，不提交仓库）：
+   `curl -L -o scripts/fonts/source/LXGWWenKai-Regular.ttf https://github.com/lxgw/LxgwWenKai/releases/download/v1.530/LXGWWenKai-Regular.ttf`
+2. 安装依赖：`python3 -m venv .venv && .venv/bin/python -m pip install fonttools brotli`
+3. 运行：`npm run fonts:ui`
+
+脚本以完整 TTF 为源生成两个产物，都需提交仓库：
+
+- `public/fonts/LXGWWenKai.woff2` — 正文全量字体（Big5 常用字 + 全站文章用字，含繁体）
+- `public/fonts/LXGWWenKai-ui-subset.woff2` — 界面子集（导航/标题等 UI 用字）
+
+旧的 `LXGWWenKai.woff2` 是简体裁剪版（仅 4026 字），繁体字会回退到系统黑体导致排版错乱，已由上述流程重建。
 
 提交前 husky 会跑 `format:check`；改动较多时先 `npm run format`。
 

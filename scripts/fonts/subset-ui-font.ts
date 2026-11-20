@@ -3,12 +3,12 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'smol-toml';
-import navfolioConfig from '../../navfolio.config';
+import navfolioConfig from '../../navfolio.config.ts';
 import {
   getResolvedPageModule,
   getResolvedPageModuleI18n,
   isPageModuleEnabled,
-} from '../../src/plugins/config';
+} from '../../src/plugins/config.ts';
 
 type FontConfig = {
   en: string;
@@ -17,13 +17,19 @@ type FontConfig = {
 };
 
 const projectRoot = process.cwd();
+
+// 官方完整字体（含繁体字形）是唯一的子集化源。
+// public 里的 woff2 是生成产物，不能当源——它已被裁剪成简体常用字，繁体字根本不在里面。
+const sourceFontPath = join(projectRoot, 'scripts/fonts/source/LXGWWenKai-Regular.ttf');
 const uiCharsPath = join(projectRoot, 'scripts/fonts/ui-chars.txt');
+const fullCharsPath = join(projectRoot, 'scripts/fonts/full-chars.txt');
 const friendCirclePath = join(projectRoot, 'public/friend-circle.json');
 const fontConfig = readFontConfig();
 const subsetFontUrl = getSubsetFontUrl(fontConfig.file);
-const outputFontPath = resolveProjectPath(subsetFontUrl);
-const sourceFontPath = resolveProjectPath(fontConfig.file);
+const uiFontPath = resolveProjectPath(subsetFontUrl);
+const fullFontPath = resolveProjectPath(fontConfig.file);
 const subsetFontName = `${fontConfig.zh} UI Subset`;
+const fullFontName = fontConfig.zh;
 const isWindows = process.platform === 'win32';
 const venvBinDir = isWindows ? 'Scripts' : 'bin';
 const pythonExe = isWindows ? 'python.exe' : 'python';
@@ -63,17 +69,13 @@ const sourceFiles = [
   ...(vibeRouteSourceFile ? [vibeRouteSourceFile] : []),
   ...(mediaRouteSourceFile ? [mediaRouteSourceFile] : []),
 ];
-const contentFrontmatterDirs = [
+const contentDirs = [
   `${contentRoot}/blog`,
   ...(projectsModuleEnabled ? [`${contentRoot}/projects`] : []),
   ...(vibeModuleEnabled ? [`${contentRoot}/vibe`] : []),
   ...(mediaModuleEnabled ? [`${contentRoot}/media`] : []),
 ];
-const lightweightContentDirs = [
-  ...(vibeModuleEnabled ? [`${contentRoot}/vibe`] : []),
-  ...(mediaModuleEnabled ? [`${contentRoot}/media`] : []),
-];
-const lightweightContentFiles = [
+const contentFiles = [
   `${contentRoot}/about.mdx`,
   `${contentRoot}/about.md`,
   ...(projectsModuleEnabled
@@ -81,7 +83,7 @@ const lightweightContentFiles = [
     : []),
 ];
 const sourceExtensions = new Set(['.astro', '.ts', '.js', '.mjs', '.cjs', '.json', '.toml']);
-const frontmatterExtensions = new Set(['.md', '.mdx']);
+const contentExtensions = new Set(['.md', '.mdx']);
 const frontmatterKeys = new Set([
   'title',
   'description',
@@ -136,7 +138,7 @@ function normalizeConfigString(value: unknown, fallback: string) {
 function resolveProjectPath(value: string) {
   if (/^https?:\/\//i.test(value)) {
     throw new Error(
-      `Font subsetting needs a local font file, but config.fonts.file received a remote URL: ${value}`,
+      `Font output needs a local path, but config.fonts.file received a remote URL: ${value}`,
     );
   }
 
@@ -219,11 +221,35 @@ function collectFriendCircleChars(chars: Set<string>) {
   }
 }
 
-function runSubset() {
+// Big5 常用字集（约 1.3 万字）：覆盖繁体中文日常用字，是正文全量字体的主力。
+// 用 Python 标准库解码 Big5 码表，不依赖额外 npm 包。
+function buildBig5Chars(): string {
+  const script = `
+import sys
+chars = set()
+for b1 in range(0xA1, 0xFA):
+    for b2 in list(range(0x40, 0x7F)) + list(range(0xA1, 0xFF)):
+        try:
+            ch = bytes([b1, b2]).decode('big5')
+        except UnicodeDecodeError:
+            continue
+        if '\\u4e00' <= ch <= '\\u9fff':
+            chars.add(ch)
+sys.stdout.write(''.join(sorted(chars)))
+`;
+  for (const command of pythonCommands) {
+    const result = spawnSync(command, ['-c', script], { encoding: 'utf8' });
+    if (result.status === 0 && result.stdout) return result.stdout;
+  }
+
+  throw new Error('Unable to build Big5 character set. Ensure Python 3 is installed.');
+}
+
+function runSubset(inputPath: string, charsPath: string, outputPath: string) {
   const args = [
-    sourceFontPath,
-    `--text-file=${uiCharsPath}`,
-    `--output-file=${outputFontPath}`,
+    inputPath,
+    `--text-file=${charsPath}`,
+    `--output-file=${outputPath}`,
     '--flavor=woff2',
     '--with-zopfli',
     '--layout-features=*',
@@ -254,7 +280,7 @@ function runSubset() {
   );
 }
 
-function syncSubsetFontName() {
+function syncFontName(fontPath: string, family: string) {
   const script = `
 from fontTools.ttLib import TTFont
 import sys
@@ -278,70 +304,80 @@ font.save(path)
 `;
   let result;
   for (const command of pythonCommands) {
-    result = spawnSync(command, ['-c', script, outputFontPath, subsetFontName], {
+    result = spawnSync(command, ['-c', script, fontPath, family], {
       stdio: 'inherit',
     });
     if (result.status === 0) return;
   }
 
   throw new Error(
-    `Generated subset font, but failed to sync its internal name to ${subsetFontName}. Ensure Python 3 and fonttools are installed. Error: ${result?.error?.message ?? `status ${result?.status}`}`,
+    `Generated subset font, but failed to sync its internal name to ${family}. Ensure Python 3 and fonttools are installed. Error: ${result?.error?.message ?? `status ${result?.status}`}`,
   );
 }
 
-const chars = new Set<string>();
+if (!existsSync(sourceFontPath)) {
+  throw new Error(
+    `Official full font not found at ${sourceFontPath}. Download LXGWWenKai-Regular.ttf from https://github.com/lxgw/LxgwWenKai/releases and place it there.`,
+  );
+}
+
+const uiChars = new Set<string>();
+const fullChars = new Set<string>();
 
 for (const contribution of getResolvedPageModuleI18n(navfolioConfig)) {
-  collectCjk(chars, JSON.stringify(contribution.messages));
+  collectCjk(uiChars, JSON.stringify(contribution.messages));
 }
 
 for (const dir of sourceDirs) {
   for (const file of walkFiles(join(projectRoot, dir), sourceExtensions)) {
-    collectCjk(chars, readFileSync(file, 'utf8'));
+    collectCjk(uiChars, readFileSync(file, 'utf8'));
   }
 }
 
 for (const file of sourceFiles) {
   const path = isAbsolute(file) ? file : join(projectRoot, file);
-  if (existsSync(path)) collectCjk(chars, readFileSync(path, 'utf8'));
+  if (existsSync(path)) collectCjk(uiChars, readFileSync(path, 'utf8'));
 }
 
-for (const dir of contentFrontmatterDirs) {
-  for (const file of walkFiles(join(projectRoot, dir), frontmatterExtensions)) {
-    const frontmatter = extractFrontmatter(readFileSync(file, 'utf8'));
-    collectCjk(chars, extractFrontmatterFields(frontmatter));
+for (const dir of contentDirs) {
+  for (const file of walkFiles(join(projectRoot, dir), contentExtensions)) {
+    const text = readFileSync(file, 'utf8');
+    collectCjk(uiChars, extractFrontmatterFields(extractFrontmatter(text)));
+    // 正文全文只进全量字体，不进 UI 子集（UI 子集只服务界面，不需要文章用字）。
+    collectCjk(fullChars, text);
   }
 }
 
-for (const dir of lightweightContentDirs) {
-  for (const file of walkFiles(join(projectRoot, dir), frontmatterExtensions)) {
-    collectCjk(chars, readFileSync(file, 'utf8'));
-  }
-}
-
-for (const file of lightweightContentFiles) {
+for (const file of contentFiles) {
   const path = join(projectRoot, file);
-  if (existsSync(path)) collectCjk(chars, readFileSync(path, 'utf8'));
+  if (existsSync(path)) collectCjk(uiChars, readFileSync(path, 'utf8'));
 }
 
 // The sync Action writes RSS-derived display text before this build step.
-collectFriendCircleChars(chars);
+collectFriendCircleChars(uiChars);
 
-const uiChars = [...chars].sort((a, b) => a.codePointAt(0)! - b.codePointAt(0)!).join('');
-if (!uiChars) throw new Error('No CJK UI characters were found for font subsetting.');
+for (const char of uiChars) fullChars.add(char);
+for (const char of buildBig5Chars()) fullChars.add(char);
 
-mkdirSync(join(projectRoot, 'scripts/fonts'), { recursive: true });
-mkdirSync(dirname(outputFontPath), { recursive: true });
-writeFileSync(uiCharsPath, `${uiChars}\n`, 'utf8');
+const sortedUiChars = [...uiChars].sort((a, b) => a.codePointAt(0)! - b.codePointAt(0)!).join('');
+const sortedFullChars = [...fullChars]
+  .sort((a, b) => a.codePointAt(0)! - b.codePointAt(0)!)
+  .join('');
+if (!sortedUiChars) throw new Error('No CJK UI characters were found for font subsetting.');
+if (!sortedFullChars) throw new Error('No CJK characters were found for font subsetting.');
 
-if (!existsSync(sourceFontPath)) {
-  throw new Error(
-    `${fontConfig.zh} source font not found. Place the full font at ${sourceFontPath}, or update config.fonts.file in src/config/site.toml.`,
-  );
-}
+mkdirSync(dirname(uiCharsPath), { recursive: true });
+mkdirSync(dirname(uiFontPath), { recursive: true });
+writeFileSync(uiCharsPath, `${sortedUiChars}\n`, 'utf8');
+writeFileSync(fullCharsPath, `${sortedFullChars}\n`, 'utf8');
 
-runSubset();
-syncSubsetFontName();
+// 先生成正文全量字体（简繁 + Big5），再生成界面子集。两者都源自完整 TTF，繁体字形齐备。
+runSubset(sourceFontPath, fullCharsPath, fullFontPath);
+syncFontName(fullFontPath, fullFontName);
+runSubset(sourceFontPath, uiCharsPath, uiFontPath);
+syncFontName(uiFontPath, subsetFontName);
 
-console.log(`Generated ${uiCharsPath} with ${uiChars.length} CJK UI characters.`);
-console.log(`Generated ${subsetFontName} at ${outputFontPath} from ${sourceFontPath}.`);
+console.log(`Generated ${fullCharsPath} with ${sortedFullChars.length} CJK characters.`);
+console.log(`Generated ${fullFontPath} (body font, Simplified + Traditional).`);
+console.log(`Generated ${uiCharsPath} with ${sortedUiChars.length} CJK UI characters.`);
+console.log(`Generated ${uiFontPath} (UI subset).`);
