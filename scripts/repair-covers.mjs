@@ -1,141 +1,114 @@
 /**
- * One-off cover repair: re-fetch current poster URLs from Trakt's public API
- * and rewrite the `cover` field in src/content/movie/*.md.
+ * Cover normalizer / health check for the movie shelf.
  *
- * Trakt rehashes its image URLs over time; the saved links in frontmatter rot
- * into 404s. The public /movies|shows/{id}?extended=images endpoint returns the
- * current valid URL and needs no OAuth token, so it works even when the token
- * refresh flow is blocked.
+ * Every cover is derived from a Trakt ID via the stable endpoint in
+ * trakt-cover.mjs, so normal operation is fully OFFLINE — no API calls, no
+ * credentials, safe to run in GitHub Actions CI (whose egress IPs are blocked
+ * by Trakt).
+ *
+ * It is intentionally idempotent: when trakt-sync.mjs has already emitted
+ * stable URLs, a run changes nothing. It exists as a self-healing net for
+ * hand-edited files, older hash-style URLs, or a future regression in the
+ * generator, and runs after every sync via trakt-sync.yml.
  *
  * Usage:
- *   node scripts/repair-covers.mjs --dry-run   # report only, write nothing
- *   node scripts/repair-covers.mjs             # rewrite covers
+ *   node scripts/repair-covers.mjs --check    # read-only: fail if any cover is not stable
+ *   node scripts/repair-covers.mjs --dry-run # alias of --check
+ *   node scripts/repair-covers.mjs           # rewrite non-stable covers (idempotent)
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { stableCover, isStableCover } from './trakt-cover.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const CONTENT_DIR = path.join(ROOT, 'src/content/movie');
 const FIXTURE = path.join(ROOT, 'scripts/.trakt-fixture.json');
-const ENV_FILE = path.join(ROOT, '.env');
-const dryRun = process.argv.includes('--dry-run');
+const checkOnly = process.argv.includes('--check') || process.argv.includes('--dry-run');
 
-const CLIENT_ID = process.env.TRAKT_CLIENT_ID || (await readClientId());
-
-async function readClientId() {
+// Only needed when a cover actually has to be repaired: resolve a file to its
+// Trakt ID using the same fixture the shelf sync reads. Title+year is primary;
+// the externalUrl slug and a title-prefix fallback cover entries whose year
+// differs between Trakt and the site.
+let idMaps = null;
+async function loadIdMaps() {
+  if (idMaps) return idMaps;
+  const byTitleYear = new Map();
+  const bySlug = new Map();
   try {
-    const text = await fs.readFile(ENV_FILE, 'utf8');
-    const m = text.match(/^TRAKT_CLIENT_ID\s*=\s*(.+)$/m);
-    return m ? m[1].trim().replace(/^["']|["']$/g, '') : '';
+    const fixture = JSON.parse(await fs.readFile(FIXTURE, 'utf8'));
+    for (const row of fixture.movies || []) {
+      const m = row.movie;
+      if (!m?.ids?.trakt) continue;
+      byTitleYear.set(`${m.title}|${m.year}`, { kind: 'movies', id: m.ids.trakt });
+      if (m.ids.slug) bySlug.set(m.ids.slug, { kind: 'movies', id: m.ids.trakt });
+    }
+    for (const row of fixture.episodes || []) {
+      const s = row.show;
+      if (!s?.ids?.trakt) continue;
+      byTitleYear.set(`${s.title}|${s.year}`, { kind: 'shows', id: s.ids.trakt });
+      if (s.ids.slug) bySlug.set(s.ids.slug, { kind: 'shows', id: s.ids.trakt });
+    }
   } catch {
-    return '';
+    // Fixture is optional for the health check; unstable covers simply cannot
+    // be auto-fixed without it and are reported below.
   }
-}
-
-if (!CLIENT_ID) {
-  console.error('TRAKT_CLIENT_ID is required (in .env or environment).');
-  process.exit(1);
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function traktImages(kind, id) {
-  const res = await fetch(`https://api.trakt.tv/${kind}/${id}?extended=images`, {
-    headers: {
-      'Content-Type': 'application/json',
-      'trakt-api-version': '2',
-      'trakt-api-key': CLIENT_ID,
-      'User-Agent': 'navfolio-trakt-sync/1.0',
-    },
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  const images = data?.images || {};
-  const poster = images.poster?.[0];
-  const fanart = images.fanart?.[0];
-  const abs = (u) => (u ? (u.startsWith('http') ? u : `https://${u}`) : '');
-  return { poster: abs(poster), fanart: abs(fanart) };
-}
-
-const fixture = JSON.parse(await fs.readFile(FIXTURE, 'utf8'));
-const idByTitleYear = new Map();
-const idBySlug = new Map();
-for (const row of fixture.movies || []) {
-  const m = row.movie;
-  if (!m?.ids?.trakt) continue;
-  idByTitleYear.set(`${m.title}|${m.year}`, { kind: 'movies', id: m.ids.trakt });
-  if (m.ids.slug) idBySlug.set(m.ids.slug, { kind: 'movies', id: m.ids.trakt });
-}
-for (const row of fixture.episodes || []) {
-  const s = row.show;
-  if (!s?.ids?.trakt) continue;
-  idByTitleYear.set(`${s.title}|${s.year}`, { kind: 'shows', id: s.ids.trakt });
-  if (s.ids.slug) idBySlug.set(s.ids.slug, { kind: 'shows', id: s.ids.trakt });
+  idMaps = { byTitleYear, bySlug };
+  return idMaps;
 }
 
 const files = (await fs.readdir(CONTENT_DIR)).filter((f) => f.endsWith('.md'));
-let changed = 0;
-let unchanged = 0;
-let failed = [];
-const cache = new Map();
+let stable = 0;
+let normalized = 0;
+const failed = [];
 
 for (const file of files) {
   const full = path.join(CONTENT_DIR, file);
   const text = await fs.readFile(full, 'utf8');
-  const title = (text.match(/^title:\s*"([^"]+)"/m) || [])[1]?.trim();
-  const year = (text.match(/^year:\s*(\d{4})/m) || [])[1];
   const oldCover = (text.match(/^cover:\s*"([^"]+)"/m) || [])[1]?.trim();
   const oldAspect = (text.match(/^coverAspect:\s*"([^"]+)"/m) || [])[1]?.trim();
 
+  // Fast path: already a stable ID-addressed cover, nothing to look up.
+  if (isStableCover(oldCover) && oldAspect === 'portrait') {
+    stable++;
+    continue;
+  }
+
+  const title = (text.match(/^title:\s*"([^"]+)"/m) || [])[1]?.trim();
+  const year = (text.match(/^year:\s*(\d{4})/m) || [])[1];
   const slug = (text.match(/externalUrl:\s*"https:\/\/trakt\.tv\/(?:movies|shows)\/([^"]+)"/m) ||
     [])[1];
-  let ref = idByTitleYear.get(`${title}|${year}`) || idBySlug.get(slug);
+  const { byTitleYear, bySlug } = await loadIdMaps();
+  let ref = byTitleYear.get(`${title}|${year}`) || bySlug.get(slug);
   if (!ref && title) {
-    const hit = [...idByTitleYear.entries()].find(([k]) => k.startsWith(`${title}|`));
+    const hit = [...byTitleYear.entries()].find(([k]) => k.startsWith(`${title}|`));
     if (hit) ref = hit[1];
   }
   if (!ref) {
-    failed.push(`${file}: no trakt id (${title} ${year})`);
+    failed.push(`${file}: cover not stable and no trakt id found (${title} ${year})`);
     continue;
   }
 
-  const cacheKey = `${ref.kind}:${ref.id}`;
-  if (!cache.has(cacheKey)) {
-    const imgs = await traktImages(ref.kind, ref.id);
-    cache.set(cacheKey, {
-      cover: imgs?.poster || imgs?.fanart || null,
-      aspect: imgs?.poster ? 'portrait' : imgs?.fanart ? 'landscape' : null,
-    });
-    await sleep(120);
-  }
-  const { cover, aspect } = cache.get(cacheKey);
-  if (!cover) {
-    failed.push(`${file}: no image from Trakt API (${title})`);
+  const { cover, coverAspect } = stableCover(ref.kind, ref.id);
+  normalized++;
+  if (checkOnly) {
+    failed.push(`${file}: cover not stable -> ${cover}`);
     continue;
   }
 
-  const nextCoverLine = `cover: "${cover}"`;
-  const nextAspectLine = aspect ? `coverAspect: "${aspect}"` : null;
   let next = text;
-  if (oldCover) next = next.replace(/^cover:\s*"[^"]*"/m, nextCoverLine);
-  else next = next.replace(/^title:.*$/m, (m) => `${m}\n${nextCoverLine}`);
-  if (oldAspect && nextAspectLine) {
-    next = next.replace(/^coverAspect:\s*"[^"]*"/m, nextAspectLine);
-  } else if (!oldAspect && nextAspectLine) {
-    next = next.replace(/^cover:\s*"[^"]*"/m, (m) => `${m}\n${nextAspectLine}`);
-  }
-
-  if (next === text) {
-    unchanged++;
-  } else {
-    changed++;
-    if (!dryRun) await fs.writeFile(full, next, 'utf8');
-  }
+  const coverLine = `cover: "${cover}"`;
+  const aspectLine = `coverAspect: "${coverAspect}"`;
+  if (oldCover) next = next.replace(/^cover:\s*"[^"]*"/m, coverLine);
+  else next = next.replace(/^title:.*$/m, (m) => `${m}\n${coverLine}`);
+  if (oldAspect) next = next.replace(/^coverAspect:\s*"[^"]*"/m, aspectLine);
+  else next = next.replace(/^cover:\s*"[^"]*"/m, (m) => `${m}\n${aspectLine}`);
+  await fs.writeFile(full, next, 'utf8');
 }
 
 console.log(`files: ${files.length}`);
-console.log(`changed: ${changed}${dryRun ? ' (dry-run, not written)' : ''}`);
-console.log(`unchanged: ${unchanged}`);
-console.log(`failed: ${failed.length}`);
+console.log(`already stable: ${stable}`);
+console.log(`normalized: ${normalized}${checkOnly ? ' (would be rewritten)' : ''}`);
+console.log(`problems: ${failed.length}`);
 for (const line of failed.slice(0, 30)) console.log(`  - ${line}`);
+
+if (failed.length) process.exit(1);

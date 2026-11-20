@@ -20,6 +20,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { stableCover } from './trakt-cover.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const TOKEN_FILE = path.join(ROOT, '.trakt-token.json');
@@ -568,8 +569,7 @@ async function main() {
         completedAt: day(rec.last),
         year: det.year || rec.year || null,
         runtime: det.runtime || null,
-        cover: det.poster || det.fanart || null,
-        coverAspect: det.poster ? 'portrait' : det.fanart ? 'landscape' : null,
+        ...stableCover('movie', rec.ids.trakt),
         rating: toFive(rating),
         tags: det.genres || [],
         externalUrl: rec.ids.slug ? `https://trakt.tv/movies/${rec.ids.slug}` : null,
@@ -606,8 +606,7 @@ async function main() {
         status: finished ? 'completed' : 'in-progress',
         completedAt: day(rec.last),
         year: det.year || rec.year || null,
-        cover: det.poster || det.fanart || null,
-        coverAspect: det.poster ? 'portrait' : det.fanart ? 'landscape' : null,
+        ...stableCover('show', rec.ids.trakt),
         rating: toFive(rating),
         tags: det.genres || [],
         externalUrl: rec.ids.slug ? `https://trakt.tv/shows/${rec.ids.slug}` : null,

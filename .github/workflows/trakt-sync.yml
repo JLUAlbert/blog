@@ -27,6 +27,14 @@ jobs:
             node scripts/trakt-sync.mjs
           fi
 
+      # Trakt rehashes its image CDN over time, so covers are built from the
+      # stable ID endpoint (trakt-cover.mjs) rather than cached URLs. This step
+      # is a fully offline, idempotent self-healing net: it also rewrites any
+      # legacy/hand-edited hash URLs, with zero Trakt API calls (CI egress IPs
+      # are blocked by Trakt). Fails the run if a cover cannot be normalized.
+      - name: Normalize cover URLs
+        run: node scripts/repair-covers.mjs
+
       - name: Commit and push
         run: |
           git config user.name "trakt-sync-bot"

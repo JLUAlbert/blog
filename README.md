@@ -102,11 +102,15 @@ npm run preview      # 预览 dist/
 ```bash
 npm run post:new     # 新建长文骨架
 npm run vibe:new     # 新建短记录骨架
-node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json   # 用底稿离线重建片单 Markdown
-node scripts/repair-covers.mjs                                     # 修复失效海报：从 Trakt 公开接口重拉当前有效链接
+npm run media:sync   # 从 Trakt 拉取观看历史并重建片单 Markdown
+node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json   # 用底稿离线重建片单 Markdown（CI / 发布台用）
+node scripts/repair-covers.mjs --check                              # 校验封面是否都为稳定格式（只读）
+node scripts/repair-covers.mjs                                      # 把非稳定封面规范化为稳定格式（幂等）
 ```
 
-海报链接会随 Trakt 图床重建而过期（旧 hash URL 变 404，页面出现空白封面）。`repair-covers.mjs` 从 Trakt 公开只读接口（`/movies|shows/{id}?extended=images`，不需 OAuth）逐部取回当前有效链接并只改写 frontmatter 的 `cover` / `coverAspect`，不动评分、观看时间等其它字段；先加 `--dry-run` 可只看不改。
+**封面为什么不会失效**：Trakt 的 hash 图片地址（`/images/.../<hash>.jpg.webp`）会随图床重建变成 404，所以片单**从不缓存 API 返回的图片 URL**。`scripts/trakt-cover.mjs` 是唯一真源，用 trakt ID 直接拼出稳定端点 `https://media.trakt.tv/{movies|shows}/{id}/medium/poster.webp`——这正是 Trakt 公开接口现在返回的形式，由 ID 寻址、不会 rehash。`trakt-sync.mjs` 每次同步都这样生成封面，**零网络请求**，因此在完全离线的 CI 里也成立，且每次同步自动带上正确封面，无需事后补救。
+
+`repair-covers.mjs` 是离线、幂等的自愈兜底：把历史遗留的 hash 链接或手改坏的 `cover` 规范化，正常同步后运行应显示 `already stable: 144 / normalized: 0`。它已接入 `.github/workflows/trakt-sync.yml`，每次「同步片单」都会在提交前自动执行并校验（无法规范化会让 CI 失败），全程不访问 Trakt。加 `--check`（或 `--dry-run`）可只读校验不写文件。
 
 字体子集化流程（新增/更新繁简文章用字后执行）：
 
