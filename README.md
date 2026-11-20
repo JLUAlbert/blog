@@ -103,7 +103,10 @@ npm run preview      # 预览 dist/
 npm run post:new     # 新建长文骨架
 npm run vibe:new     # 新建短记录骨架
 node scripts/trakt-sync.mjs --fixture=scripts/.trakt-fixture.json   # 用底稿离线重建片单 Markdown
+node scripts/repair-covers.mjs                                     # 修复失效海报：从 Trakt 公开接口重拉当前有效链接
 ```
+
+海报链接会随 Trakt 图床重建而过期（旧 hash URL 变 404，页面出现空白封面）。`repair-covers.mjs` 从 Trakt 公开只读接口（`/movies|shows/{id}?extended=images`，不需 OAuth）逐部取回当前有效链接并只改写 frontmatter 的 `cover` / `coverAspect`，不动评分、观看时间等其它字段；先加 `--dry-run` 可只看不改。
 
 字体子集化流程（新增/更新繁简文章用字后执行）：
 

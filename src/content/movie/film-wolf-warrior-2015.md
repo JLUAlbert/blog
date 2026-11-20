@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-10-06
 year: 2015
 runtime: 90
-cover: "https://media.trakt.tv/images/movies/000/216/260/posters/medium/7ddd91868f.jpg.webp"
+cover: "https://media.trakt.tv/movies/216260/medium/poster.webp"
 coverAspect: "portrait"
 rating: 3.5
 tags:

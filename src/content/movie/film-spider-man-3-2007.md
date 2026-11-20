@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-23
 year: 2007
 runtime: 139
-cover: "https://media.trakt.tv/images/movies/000/000/440/posters/medium/9b83e5931d.jpg.webp"
+cover: "https://media.trakt.tv/movies/440/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4
 tags:

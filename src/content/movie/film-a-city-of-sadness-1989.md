@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-24
 year: 1989
 runtime: 158
-cover: "https://media.trakt.tv/images/movies/000/034/897/posters/medium/260896411c.jpg.webp"
+cover: "https://media.trakt.tv/movies/34897/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4.5
 tags:

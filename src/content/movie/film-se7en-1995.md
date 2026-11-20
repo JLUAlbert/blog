@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-10-05
 year: 1995
 runtime: 127
-cover: "https://media.trakt.tv/images/movies/000/000/650/posters/medium/69872078fd.jpg.webp"
+cover: "https://media.trakt.tv/movies/650/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

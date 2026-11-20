@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-03
 year: 1999
 runtime: 89
-cover: "https://media.trakt.tv/images/movies/000/007/171/posters/medium/ca95a4695c.jpg.webp"
+cover: "https://media.trakt.tv/movies/7171/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

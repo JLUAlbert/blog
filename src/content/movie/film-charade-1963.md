@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-22
 year: 1963
 runtime: 113
-cover: "https://media.trakt.tv/images/movies/000/002/804/posters/medium/c6a5f870a1.jpg.webp"
+cover: "https://media.trakt.tv/movies/2804/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4
 tags:

@@ -5,7 +5,7 @@ type: "series"
 status: "completed"
 completedAt: 2026-06-12
 year: 2016
-cover: "https://media.trakt.tv/images/shows/000/104/216/posters/medium/c9041aebed.jpg.webp"
+cover: "https://media.trakt.tv/shows/104216/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

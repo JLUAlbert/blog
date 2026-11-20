@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-05-10
 year: 2022
 runtime: 139
-cover: "https://media.trakt.tv/images/movies/000/548/877/posters/medium/7faf20f881.jpg.webp"
+cover: "https://media.trakt.tv/movies/548877/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4.5
 tags:

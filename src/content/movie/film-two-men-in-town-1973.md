@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-10-06
 year: 1973
 runtime: 99
-cover: "https://media.trakt.tv/images/movies/000/002/743/posters/medium/9d676451dc.jpg.webp"
+cover: "https://media.trakt.tv/movies/2743/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

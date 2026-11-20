@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-25
 year: 1953
 runtime: 137
-cover: "https://media.trakt.tv/images/movies/000/011/093/posters/medium/f3b7c44afe.jpg.webp"
+cover: "https://media.trakt.tv/movies/11093/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

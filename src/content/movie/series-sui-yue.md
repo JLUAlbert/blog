@@ -5,7 +5,7 @@ type: "series"
 status: "in-progress"
 completedAt: 2026-10-04
 year: 2007
-cover: "https://media.trakt.tv/images/shows/000/194/521/posters/medium/64f36b347b.jpg.webp"
+cover: "https://media.trakt.tv/shows/194521/medium/poster.webp"
 coverAspect: "portrait"
 tags:
   - "drama"

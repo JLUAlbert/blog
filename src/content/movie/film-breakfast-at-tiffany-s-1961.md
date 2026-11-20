@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-22
 year: 1961
 runtime: 115
-cover: "https://media.trakt.tv/images/movies/000/000/129/posters/medium/906d0a921d.jpg.webp"
+cover: "https://media.trakt.tv/movies/129/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

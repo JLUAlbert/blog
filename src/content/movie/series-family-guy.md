@@ -5,7 +5,7 @@ type: "series"
 status: "in-progress"
 completedAt: 2026-11-05
 year: 1999
-cover: "https://media.trakt.tv/images/shows/000/001/425/posters/medium/d6c13f48cb.jpg.webp"
+cover: "https://media.trakt.tv/shows/1425/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

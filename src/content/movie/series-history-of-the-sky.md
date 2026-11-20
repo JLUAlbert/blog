@@ -5,7 +5,7 @@ type: "series"
 status: "completed"
 completedAt: 2026-09-15
 year: 2004
-cover: "https://media.trakt.tv/images/shows/000/211/586/posters/medium/49e7eed162.jpg.webp"
+cover: "https://media.trakt.tv/shows/211586/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

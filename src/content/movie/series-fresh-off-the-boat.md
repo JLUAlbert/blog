@@ -5,7 +5,7 @@ type: "series"
 status: "in-progress"
 completedAt: 2026-09-30
 year: 2015
-cover: "https://media.trakt.tv/images/shows/000/077/805/posters/medium/c29967512d.jpg.webp"
+cover: "https://media.trakt.tv/shows/77805/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4.5
 tags:

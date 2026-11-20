@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-15
 year: 1997
 runtime: 145
-cover: "https://media.trakt.tv/images/movies/000/018/444/posters/medium/6e622766f6.jpg.webp"
+cover: "https://media.trakt.tv/movies/18444/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4
 tags:

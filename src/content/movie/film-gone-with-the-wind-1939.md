@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-06-19
 year: 1939
 runtime: 238
-cover: "https://media.trakt.tv/images/movies/000/000/613/posters/medium/a82f56d1ca.jpg.webp"
+cover: "https://media.trakt.tv/movies/613/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4.5
 tags:

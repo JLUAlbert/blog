@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-09-17
 year: 1993
 runtime: 102
-cover: "https://media.trakt.tv/images/movies/000/024/202/posters/medium/a511d15db4.jpg.webp"
+cover: "https://media.trakt.tv/movies/24202/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

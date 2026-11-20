@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-07-22
 year: 1957
 runtime: 116
-cover: "https://media.trakt.tv/images/movies/000/023/813/posters/medium/68f17f83a6.jpg.webp"
+cover: "https://media.trakt.tv/movies/23813/medium/poster.webp"
 coverAspect: "portrait"
 rating: 5
 tags:

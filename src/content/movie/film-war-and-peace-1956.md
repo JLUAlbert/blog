@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-10
 year: 1956
 runtime: 208
-cover: "https://media.trakt.tv/images/movies/000/006/778/posters/medium/1ae7ba7aa3.jpg.webp"
+cover: "https://media.trakt.tv/movies/6778/medium/poster.webp"
 coverAspect: "portrait"
 rating: 3.5
 tags:

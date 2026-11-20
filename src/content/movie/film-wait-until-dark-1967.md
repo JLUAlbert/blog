@@ -6,7 +6,7 @@ status: "completed"
 completedAt: 2026-08-19
 year: 1967
 runtime: 108
-cover: "https://media.trakt.tv/images/movies/000/006/332/posters/medium/1e81e89de2.jpg.webp"
+cover: "https://media.trakt.tv/movies/6332/medium/poster.webp"
 coverAspect: "portrait"
 rating: 4
 tags:
